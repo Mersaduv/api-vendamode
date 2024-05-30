@@ -1,5 +1,5 @@
 using api_vendamode.Entities.Products;
-using api_vendamode.Models.DTO.ProductDto.Category;
+using api_vendamode.Models.Dtos.ProductDto.Category;
 
 namespace api_vendamode.Models.Dtos.ProductDto;
 
@@ -11,20 +11,20 @@ public class ProductDTO
     public string Code { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public double Price { get; set; }
+    public bool IsFake { get; set; }
+    public int? BrandId { get; set; }
+    public int InStock { get; set; }
+    public ProductSizeInfo? ProductSizeInfo { get; set; }
+    public ProductFeatureInfo? ProductFeatureInfo { get; set; }
     public string Description { get; set; } = string.Empty;
     public double? Discount { get; set; }
-    public List<int?>? CategoryList { get; set; }
-    public IEnumerable<CategoryDTO>? CategoryLevels { get; set; }
-    public int CategoryId { get; set; }
-    public int? BrandId { get; set; }
+    public List<Guid?>? CategoryList { get; set; }
+    public List<CategoryLevels>? CategoryLevels { get; set; }
+    public Guid CategoryId { get; set; }
     public List<string>? Size { get; set; }
-    public List<ProductColor>? Colors { get; set; }
-    public List<ProductAttributeDto>? Info { get; set; }
-    public List<ProductAttributeDto>? Specifications { get; set; }
-    public int InStock { get; set; }
     public int? Sold { get; set; }
     public double? Rating { get; set; }
-    public int? NumReviews { get; set; }
+    public int? ReviewCount { get; set; }
     public DateTime? Created { get; set; }
     public DateTime? LastUpdated { get; set; }
 }

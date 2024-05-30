@@ -74,6 +74,34 @@ public class ByteFileUtility
         return newFileNames;
     }
 
+    public void DeleteFiles<TImage>(ICollection<TImage> images, string entityName)
+    where TImage : IThumbnail
+    {
+        var appRootPath = environment.WebRootPath;
+        var mediaRootPath = configuration.GetValue<string>("MediaPath") ?? throw new InvalidOperationException("MediaPath is not configured.");
+
+        foreach (var image in images)
+        {
+            if (image.ImageUrl != null)
+            {
+                var imageFilePath = Path.Combine(appRootPath, mediaRootPath, entityName, image.ImageUrl);
+                if (File.Exists(imageFilePath))
+                {
+                    File.Delete(imageFilePath);
+                }
+            }
+
+            if (image.Placeholder != null)
+            {
+                var placeholderFilePath = Path.Combine(appRootPath, mediaRootPath, entityName, image.Placeholder);
+                if (File.Exists(placeholderFilePath))
+                {
+                    File.Delete(placeholderFilePath);
+                }
+            }
+        }
+    }
+
     private string GetEntityFolderUrl(string host, string entityName, bool isHttps)
     {
         var mediaRootPath = configuration.GetValue<string>("MediaPath")!.Replace("\\", "/");
@@ -128,7 +156,7 @@ public class ByteFileUtility
                 // Resize the image as needed
                 image.Mutate(x => x.Resize(new ResizeOptions
                 {
-                    Size = new Size(300, 300),
+                    Size = new Size(50, 50),
                     Mode = ResizeMode.Max
                 }));
 
@@ -164,7 +192,7 @@ public class ByteFileUtility
 
     public byte[] EncryptFile(byte[] fileContent)
     {
-        string EncryptionKey = configuration.GetValue<string>("FileEncryptionKey")!;
+        string EncryptionKey = configuration.GetValue<string>("EncryptionKey")!;
         using (Aes encryptor = Aes.Create())
         {
             Rfc2898DeriveBytes pdb = new Rfc2898DeriveBytes(EncryptionKey, new byte[] { 0x49, 0x76, 0x61, 0x6e, 0x20, 0x4d, 0x65, 0x64, 0x76, 0x65, 0x64, 0x65, 0x76 }, 1000, HashAlgorithmName.SHA256);
@@ -185,7 +213,7 @@ public class ByteFileUtility
 
     public byte[] DecryptFile(byte[] fileContent)
     {
-        string EncryptionKey = configuration.GetValue<string>("FileEncryptionKey")!;
+        string EncryptionKey = configuration.GetValue<string>("EncryptionKey")!;
         using (Aes encryptor = Aes.Create())
         {
             Rfc2898DeriveBytes pdb = new Rfc2898DeriveBytes(EncryptionKey, new byte[] { 0x49, 0x76, 0x61, 0x6e, 0x20, 0x4d, 0x65, 0x64, 0x76, 0x65, 0x64, 0x65, 0x76 }, 1000, HashAlgorithmName.SHA256);

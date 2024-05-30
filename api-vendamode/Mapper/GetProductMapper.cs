@@ -12,8 +12,10 @@ public static class GetProductMapper
         return new ProductDTO
         {
             Id = product.Id,
+            CategoryId = product.CategoryId,
             Title = product.Title,
             Code = product.Code,
+            Slug = product.Slug,
             ImagesSrc = byteFileUtility.GetEncryptedFileActionUrl
             (product.Images.Select(img => new EntityImageDto
             {
@@ -21,27 +23,11 @@ public static class GetProductMapper
                 ImageUrl = img.ImageUrl!,
                 Placeholder = img.Placeholder!
             }).ToList(), nameof(Product)),
-            Info = product.Info?.Select(infoDto => new ProductAttributeDto
-            {
-                Title = infoDto.Title,
-                Value = infoDto.Value,
-            }).ToList(),
-            Specifications = product.Specifications?.Select(infoDto => new ProductAttributeDto
-            {
-                Title = infoDto.Title,
-                Value = infoDto.Value,
-            }).ToList(),
-            CategoryId = product.CategoryId,
-            BrandId = product.BrandId,
-            Description = product.Description,
-            Discount = product.Discount,
-            InStock = product.InStock,
             Price = product.Price,
-            Size = product.Size,
-            Colors = product.Colors,
-            Slug = product.Slug,
-            NumReviews = product.Review?.Count,
-            Sold = product.Sold,
+            Discount = product.Discount,
+            BrandId = product.BrandId,
+            IsFake = product.IsFake,
+            InStock = product.InStock,
             Created = product.Created,
             LastUpdated = product.LastUpdated
         };
@@ -54,6 +40,8 @@ public static class GetProductMapper
             {
                 Id = prod.Id,
                 Title = prod.Title,
+                Slug = prod.Slug,
+                Code = prod.Code,
                 ImagesSrc = byteFileUtility.GetEncryptedFileActionUrl
                 (prod.Images.Select(img => new EntityImageDto
                 {
@@ -61,28 +49,14 @@ public static class GetProductMapper
                     ImageUrl = img.ImageUrl!,
                     Placeholder = img.Placeholder!
                 }).ToList(), nameof(Product)),
-                Code = prod.Code,
-                Info = prod.Info?.Select(infoDto => new ProductAttributeDto
-                {
-                    Title = infoDto.Title,
-                    Value = infoDto.Value,
-                }).ToList(),
-                Specifications = prod.Specifications?.Select(infoDto => new ProductAttributeDto
-                {
-                    Title = infoDto.Title,
-                    Value = infoDto.Value,
-                }).ToList(),
                 CategoryId = prod.CategoryId,
                 BrandId = prod.BrandId,
                 Description = prod.Description,
                 Discount = prod.Discount,
                 InStock = prod.InStock,
                 Price = prod.Price,
-                Size = prod.Size,
-                Colors = prod.Colors,
-                Slug = prod.Slug,
                 Sold = prod.Sold,
-                NumReviews = prod.Review?.Count,
+                ReviewCount = prod.Review?.Count,
                 Created = prod.Created,
                 LastUpdated = prod.LastUpdated
             }).ToList()

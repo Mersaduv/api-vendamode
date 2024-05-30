@@ -3,6 +3,7 @@ using api_vendamode.Entities.Products;
 using api_vendamode.Interfaces.IRepository;
 using api_vendamode.Interfaces.IServices;
 using api_vendamode.Mapper;
+using api_vendamode.Models;
 using api_vendamode.Utility;
 using Microsoft.EntityFrameworkCore;
 namespace api_vendamode.Repository;
@@ -20,15 +21,41 @@ public class ProductRepository : IProductRepository
         await _context.AddAsync(product);
     }
 
+    public async Task<PaginatedList<Product>> GetPaginationAsync(int pageNumber, int pageSize)
+    {
+        var query = _context.Products
+            .Include(x => x.Brand)
+            .Include(x => x.Images)
+            .Include(x => x.Features)
+            .Include(x => x.ProductScale)
+            .Include(x => x.Review)
+            .Include(c => c.Category)
+            .AsNoTracking();
+
+        var totalCount = await query.CountAsync();
+        var products = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return new PaginatedList<Product>
+        {
+            Data = products,
+            TotalCount = totalCount,
+            CurrentPage = pageNumber,
+            PageSize = pageSize
+        };
+    }
+
     public async Task<IEnumerable<Product>> GetAllAsync()
     {
-        var productAll = _context.Products.Include(x => x.Info)
-        .Include(x => x.Specifications)
+        var productAll = _context.Products
+        .Include(x => x.Brand)
         .Include(x => x.Images)
-        .Include(x => x.Colors)
+        .Include(x => x.Features)
+        .Include(x => x.ProductScale)
         .Include(x => x.Review)
-        .Include(c=>c.Category)
-        .ThenInclude(x=>x.ParentCategory)
+        .Include(c => c.Category)
         .AsNoTracking()
         .ToListAsync();
 
@@ -42,24 +69,44 @@ public class ProductRepository : IProductRepository
 
     public async Task<Product?> GetAsyncBy(Guid id)
     {
-        return await _context.Products.Include(x => x.Info)
-        .Include(x=> x.Category)
-        .ThenInclude(x=>x.ParentCategory)
-        .Include(x => x.Specifications)
+        return await _context.Products
+        .Include(x => x.Brand)
         .Include(x => x.Images)
-        .Include(x => x.Colors)
+        .Include(x => x.Features)
+        .Include(x => x.ProductScale)
         .Include(x => x.Review)
+        .Include(c => c.Category)
         .AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
     }
 
     public async Task<Product?> GetAsyncBy(string productName)
     {
-        return await _context.Products.Include(x => x.Info)
-        .Include(x => x.Specifications)
+        return await _context.Products
+        .Include(x => x.Brand)
         .Include(x => x.Images)
-        .Include(x => x.Colors)
+        .Include(x => x.Features)
+        .Include(x => x.ProductScale)
         .Include(x => x.Review)
+        .Include(c => c.Category)
         .FirstOrDefaultAsync(u => u.Title.ToLower() == productName.ToLower());
     }
 
+    public long GetLastProductCodeNumber()
+    {
+        // Get the last product from the database, ordered by the product code in descending order
+        var lastProduct = _context.Products
+            .OrderByDescending(p => p.Code)
+            .FirstOrDefault();
+
+        // If there are no products in the database, return 0
+        if (lastProduct == null)
+        {
+            return 0;
+        }
+
+        // Extract the numeric part from the last product code, convert it to a long, and return it
+        string numericPart = lastProduct.Code.Substring(1); // Remove the 'K' prefix
+        long lastCodeNumber = long.Parse(numericPart);
+        return lastCodeNumber;
+    }
 }

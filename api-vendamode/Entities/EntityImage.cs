@@ -1,6 +1,6 @@
 using api_vendamode.Interfaces;
 
-namespace api_vendamode.Entities.Products;
+namespace api_vendamode.Entities;
 
 public class EntityImage<TEntityIdType, TEntity> : IThumbnail
     where TEntity : class

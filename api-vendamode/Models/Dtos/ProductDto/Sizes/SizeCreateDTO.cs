@@ -1,0 +1,8 @@
+namespace api_vendamode.Models.Dtos.ProductDto.Sizes;
+
+public class SizeCreateDTO
+{
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public Guid ProductSizeId { get; set; }
+}

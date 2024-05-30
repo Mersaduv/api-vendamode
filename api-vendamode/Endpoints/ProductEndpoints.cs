@@ -4,6 +4,7 @@ using api_vendamode.Interfaces.IServices;
 using api_vendamode.Mapper;
 using api_vendamode.Models;
 using api_vendamode.Models.Dtos.ProductDto;
+using api_vendamode.Utility;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace api_vendamode.Endpoints;
@@ -28,7 +29,7 @@ public static class ProductEndpoints
         return apiGroup;
     }
 
-        //Write
+    //Write
     private static async Task<Ok<ServiceResponse<bool>>> CreateProduct(IProductServices productServices,
                   ProductCreateDTO product_C_DTO, ILogger<Program> _logger, HttpContext context)
     {
@@ -36,12 +37,12 @@ public static class ProductEndpoints
 
         // await AccessControl.CheckProductPermissionFlag(context, "product-add");
 
-        var productDTO = await productServices.Create(product_C_DTO);
+        var productDTO = await productServices.CreateProduct(product_C_DTO);
 
         return TypedResults.Ok(productDTO);
     }
 
-     // Read 
+    // Read 
     private async static Task<Ok<ServiceResponse<ProductDTO>>> GetProduct(IProductServices productService, ILogger<Program> _logger, Guid id)
     {
         _logger.Log(LogLevel.Information, "Get Product");
@@ -59,5 +60,18 @@ public static class ProductEndpoints
         var result = await productService.GetAll();
 
         return TypedResults.Ok(result);
+    }
+
+    private async static Task<FileContentHttpResult> MediaEndpoint(string fileName, string entity, ByteFileUtility byteFileUtility, HttpContext context)
+    {
+        var filePath = byteFileUtility.GetFileFullPath(fileName, entity);
+        byte[] encryptedData = await System.IO.File.ReadAllBytesAsync(filePath);
+
+        //? Decrypt if the file is encrypted
+        // var decryptedData = byteFileUtility.DecryptFile(encryptedData);
+
+        context.Response.Headers.Append("Content-Disposition", "inline; filename=preview.jpg");
+
+        return TypedResults.File(encryptedData, "image/jpeg");
     }
 }

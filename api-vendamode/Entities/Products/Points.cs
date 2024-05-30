@@ -1,4 +1,4 @@
-namespace api_vendamode.Models.Dtos.ProductDto.Review;
+namespace api_vendamode.Entities.Products;
 
 public class Points
 {

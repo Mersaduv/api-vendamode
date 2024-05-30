@@ -8,6 +8,8 @@ public static class Constants
     public const string Api = "api";
     public const string Base = "base";
     public const string Auth = "auth";
+    public const string User = "user";
+    public const string Users = "users";
     public const string Cart = "cart";
     public const string ChangePassword = "changePassword";
     public const string Checkout = "checkout";
@@ -15,6 +17,10 @@ public static class Constants
     public const string Login = "login";
     public const string Payment = "payment";
     public const string Products = "products";
+    public const string Features = "features";
+    public const string Feature = "feature";
+    public const string Sizes = "sizes";
+    public const string Size = "size";
     public const string Main = "main";
     public const string Register = "register";
     public const string GenerateRefreshToken = "generateToken";
@@ -22,10 +28,12 @@ public static class Constants
     public const string SearchSuggestions = "search-suggestions";
     public const string UpdateQuantity = "update-quantity";
     public const string ProductImages = "product-images";
+    public const string SizeImage = "size-image";
     public const string CategoryImages = "category-images";
     public const string Images = "images";
     public const string Brand = "brand";
     public const string Brands = "brands";
+    public const string AllBrands = "all-brands";
     public const string Details = "details";
     public const string AllDetails = "all-details";
     public const string Banner = "banner";
