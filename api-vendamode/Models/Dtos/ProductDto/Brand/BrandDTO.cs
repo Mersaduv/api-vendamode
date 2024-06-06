@@ -1,4 +1,4 @@
-namespace api_vendamode.Models.Dtos.ProductDto.Brand;
+namespace api_vendace.Models.Dtos.ProductDto.Brand;
 
 public class BrandDTO : BaseClass<Guid>
 {

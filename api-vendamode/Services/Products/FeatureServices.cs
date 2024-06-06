@@ -1,12 +1,12 @@
-using api_vendamode.Data;
-using api_vendamode.Entities.Products;
-using api_vendamode.Interfaces;
-using api_vendamode.Interfaces.IServices;
-using api_vendamode.Models;
-using api_vendamode.Models.Dtos.ProductDto.Feature;
+using api_vendace.Data;
+using api_vendace.Entities.Products;
+using api_vendace.Interfaces;
+using api_vendace.Interfaces.IServices;
+using api_vendace.Models;
+using api_vendace.Models.Dtos.ProductDto.Feature;
 using Microsoft.EntityFrameworkCore;
 
-namespace api_vendamode.Services.Products;
+namespace api_vendace.Services.Products;
 public class FeatureServices : IFeatureServices
 {
     private readonly ApplicationDbContext _context;
@@ -30,7 +30,7 @@ public class FeatureServices : IFeatureServices
             LastUpdated = DateTime.UtcNow
         };
 
-        await _context.Features.AddAsync(productFeature);
+        await _context.ProductFeatures.AddAsync(productFeature);
         await _unitOfWork.SaveChangesAsync();
 
         return new ServiceResponse<bool>
@@ -41,7 +41,7 @@ public class FeatureServices : IFeatureServices
     // value
     public async Task<ServiceResponse<bool>> AddFeatureValue(FeatureValueCreateDTO featureValueDto)
     {
-        var feartureValue = new FeatureValue
+        var featureValue = new FeatureValue
         {
             Id = Guid.NewGuid(),
             Name = featureValueDto.Name,
@@ -53,7 +53,7 @@ public class FeatureServices : IFeatureServices
             LastUpdated = DateTime.UtcNow
         };
 
-        await _context.FeatureValues.AddAsync(feartureValue);
+        await _context.FeatureValues.AddAsync(featureValue);
         await _unitOfWork.SaveChangesAsync();
 
 
@@ -65,8 +65,8 @@ public class FeatureServices : IFeatureServices
 
     public async Task<ServiceResponse<bool>> UpdateFeature(ProductFeatureUpdateDTO featureDTO)
     {
-        var fearture = await _context.Features.FirstOrDefaultAsync(c => c.Id == featureDTO.Id);
-        if (fearture == null)
+        var feature = await _context.ProductFeatures.FirstOrDefaultAsync(c => c.Id == featureDTO.Id);
+        if (feature == null)
         {
             return new ServiceResponse<bool>
             {
@@ -75,10 +75,10 @@ public class FeatureServices : IFeatureServices
             };
         }
 
-        fearture.Name = featureDTO.Name;
-        fearture.LastUpdated = DateTime.UtcNow;
+        feature.Name = featureDTO.Name;
+        feature.LastUpdated = DateTime.UtcNow;
 
-        _context.Features.Update(fearture);
+        _context.ProductFeatures.Update(feature);
         await _unitOfWork.SaveChangesAsync();
 
         return new ServiceResponse<bool>
@@ -89,8 +89,8 @@ public class FeatureServices : IFeatureServices
 
     public async Task<ServiceResponse<bool>> UpdateFeatureValue(ProductFeatureUpdateDTO featureDTO)
     {
-        var featurValue = await _context.FeatureValues.FirstOrDefaultAsync(c => c.Id == featureDTO.Id);
-        if (featurValue == null)
+        var featureValue = await _context.FeatureValues.FirstOrDefaultAsync(c => c.Id == featureDTO.Id);
+        if (featureValue == null)
         {
             return new ServiceResponse<bool>
             {
@@ -99,13 +99,13 @@ public class FeatureServices : IFeatureServices
             };
         }
 
-        featurValue.Name = featureDTO.Name;
-        featurValue.Description = featureDTO.Description ?? string.Empty;
-        featurValue.HexCode = featureDTO.HexCode ?? null;
-        featurValue.LastUpdated = DateTime.UtcNow;
+        featureValue.Name = featureDTO.Name;
+        featureValue.Description = featureDTO.Description ?? string.Empty;
+        featureValue.HexCode = featureDTO.HexCode ?? null;
+        featureValue.LastUpdated = DateTime.UtcNow;
 
 
-        _context.FeatureValues.Update(featurValue);
+        _context.FeatureValues.Update(featureValue);
         await _unitOfWork.SaveChangesAsync();
 
         return new ServiceResponse<bool>
@@ -116,7 +116,7 @@ public class FeatureServices : IFeatureServices
 
     public async Task<ServiceResponse<bool>> DeleteFeature(Guid id)
     {
-        var feature = await _context.Features.FirstOrDefaultAsync(c => c.Id == id);
+        var feature = await _context.ProductFeatures.FirstOrDefaultAsync(c => c.Id == id);
         if (feature == null)
         {
             return new ServiceResponse<bool>
@@ -125,8 +125,7 @@ public class FeatureServices : IFeatureServices
                 Message = "ویژگی مورد نظر یافت نشد"
             };
         }
-        feature.IsDeleted = true;
-        _context.Features.Update(feature);
+        _context.ProductFeatures.Remove(feature);
         await _unitOfWork.SaveChangesAsync();
 
         return new ServiceResponse<bool>
@@ -146,8 +145,7 @@ public class FeatureServices : IFeatureServices
                 Message = "مقدار ویژگی مورد نظر یافت نشد"
             };
         }
-        featureValue.IsDeleted = true;
-        _context.FeatureValues.Update(featureValue);
+        _context.FeatureValues.Remove(featureValue);
         await _unitOfWork.SaveChangesAsync();
 
         return new ServiceResponse<bool>
@@ -156,15 +154,17 @@ public class FeatureServices : IFeatureServices
         };
     }
 
-    public async Task<ServiceResponse<IReadOnlyList<ProductFeature>>> GetAllFeatures()
+    public async Task<ServiceResponse<List<ProductFeature>>> GetAllFeatures()
     {
-        var features = await _context.Features.Include(f => f.Values)
+        var features = await _context.ProductFeatures
+                                        .Include(f => f.Values)
                                         .Include(f => f.Product)
+                                        .Include(c => c.Category)
                                         .AsNoTracking()
                                         .ToListAsync();
 
 
-        return new ServiceResponse<IReadOnlyList<ProductFeature>>
+        return new ServiceResponse<List<ProductFeature>>
         {
             Count = features.Count,
             Data = features,
@@ -187,7 +187,7 @@ public class FeatureServices : IFeatureServices
 
     public async Task<ServiceResponse<ProductFeature>> GetFeatureBy(Guid id)
     {
-        var feature = await _context.Features.Include(f => f.Values)
+        var feature = await _context.ProductFeatures.Include(f => f.Values)
                                  .Include(f => f.Product)
                                  .FirstOrDefaultAsync(f => f.Id == id);
 
@@ -228,7 +228,7 @@ public class FeatureServices : IFeatureServices
 
     public async Task<ServiceResponse<List<ProductFeature>>> GetFeaturesByCategory(Guid id)
     {
-        var features = await _context.Features.Where(f => f.CategoryId == id)
+        var features = await _context.ProductFeatures.Where(f => f.CategoryId == id)
                                  .Include(f => f.Values)
                                  .Include(f => f.Product)
                                  .AsNoTracking()

@@ -1,6 +1,6 @@
-using api_vendamode.Entities.Products;
+using api_vendace.Entities.Products;
 
-namespace api_vendamode.Models.Dtos.ProductDto;
+namespace api_vendace.Models.Dtos.ProductDto;
 
 public class ProductFeatureInfo
 {
@@ -18,9 +18,9 @@ public class ProductFeatureInfo
         ColorDTOs = new List<ColorDTO>();
         FeatureValueInfos = new List<ObjectValue>();
 
-        if (product.Features != null)
+        if (product.ProductFeatures != null)
         {
-            foreach (var feature in product.Features)
+            foreach (var feature in product.ProductFeatures)
             {
                 if (feature.Values != null)
                 {

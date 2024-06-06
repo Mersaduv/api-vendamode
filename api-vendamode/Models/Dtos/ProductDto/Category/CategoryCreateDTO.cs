@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace api_vendamode.Models.Dtos.ProductDto.Category;
+namespace api_vendace.Models.Dtos.ProductDto.Category;
 
 public class CategoryCreateDTO
 {
@@ -21,8 +21,7 @@ public class CategoryCreateDTO
         var isActive = bool.Parse(form["IsActive"]!);
         var mainCategoryId = string.IsNullOrEmpty(form["MainCategoryId"]) ? null : (Guid?)Guid.Parse(form["MainCategoryId"]!);
         var parentCategoryId = string.IsNullOrEmpty(form["ParentCategoryId"]) ? null : (Guid?)Guid.Parse(form["ParentCategoryId"]!);
-        var level = int.Parse(form["Level"]!);
-
+        var level = string.IsNullOrEmpty(form["Level"]) ? 0 : Convert.ToInt32(form["Level"]);
         return new CategoryCreateDTO
         {
             Thumbnail = thumbnail,

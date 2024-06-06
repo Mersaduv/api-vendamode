@@ -1,7 +1,7 @@
-using api_vendamode.Models;
-using api_vendamode.Models.Dtos.ProductDto.Category;
+using api_vendace.Models;
+using api_vendace.Models.Dtos.ProductDto.Category;
 
-namespace api_vendamode.Entities.Products;
+namespace api_vendace.Entities.Products;
 
 public class Product : BaseClass<Guid>
 {
@@ -15,14 +15,15 @@ public class Product : BaseClass<Guid>
     public string Description { get; set; } = string.Empty;
     public double? Discount { get; set; }
     public CategoryLevels? CategoryLevels { get; set; }
-    public int? BrandId { get; set; }
+    public List<Guid>? FeatureValueIds { get; set; }
+    public Guid? BrandId { get; set; }
     public virtual Brand? Brand { get; set; }
     public int Sold { get; set; }
     public double Rating { get; set; }
     public int NumReviews { get; set; }
     public Guid CategoryId { get; set; }
     public virtual Category? Category { get; set; }
-    public virtual ICollection<ProductFeature>? Features { get; set; }
+    public virtual ICollection<ProductFeature>? ProductFeatures { get; set; }
     public virtual ProductSize? ProductSizes { get; set; }
     public Guid ProductScaleId { get; set; }
     public int InStock { get; set; }

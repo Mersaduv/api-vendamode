@@ -1,4 +1,4 @@
-namespace api_vendamode.Models.Dtos.ProductDto;
+namespace api_vendace.Models.Dtos.ProductDto;
 
 public class ProductAttributeDto
 {

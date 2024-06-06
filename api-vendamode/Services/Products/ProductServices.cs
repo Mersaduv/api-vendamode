@@ -1,15 +1,18 @@
-using api_vendamode.Data;
-using api_vendamode.Entities.Products;
-using api_vendamode.Interfaces;
-using api_vendamode.Interfaces.IRepository;
-using api_vendamode.Interfaces.IServices;
-using api_vendamode.Mapper;
-using api_vendamode.Models;
-using api_vendamode.Models.Dtos.ProductDto;
-using api_vendamode.Models.Dtos.ProductDto.Category;
+using System.Text.RegularExpressions;
+using api_vendace.Data;
+using api_vendace.Entities.Products;
+using api_vendace.Interfaces;
+using api_vendace.Interfaces.IRepository;
+using api_vendace.Interfaces.IServices;
+using api_vendace.Mapper;
+using api_vendace.Models;
+using api_vendace.Models.Dtos.ProductDto;
+using api_vendace.Models.Dtos.ProductDto.Category;
+using api_vendace.Models.Dtos.ProductDto.Sizes;
+using api_vendace.Models.Dtos.ProductDto.Stock;
+using api_vendace.Models.Query;
+using api_vendace.Utility;
 using api_vendamode.Models.Dtos.ProductDto.Sizes;
-using api_vendamode.Models.Dtos.ProductDto.Stock;
-using api_vendamode.Utility;
 using Microsoft.EntityFrameworkCore;
 
 public class ProductServices : IProductServices
@@ -39,41 +42,74 @@ public class ProductServices : IProductServices
             };
         }
         var product = productCreateDTO.ToProducts(_byteFileUtility);
+        var productId = Guid.NewGuid();
 
         // load feature
         // Null-checks 
-        List<Guid> featureIds = productCreateDTO.FeatureIds ?? new List<Guid>();
         List<Guid> featureValueIds = productCreateDTO.FeatureValueIds ?? new List<Guid>();
-        var features = await _context.Features
-            .Include(v => v.Values)
-            .Where(c => (!featureIds.Contains(c.Id)
-                || c.Values != null) && c.Values!.Any(fv => featureValueIds.Contains(fv.Id)))
-            .ToListAsync();
-
+        var scaleId = Guid.NewGuid();
         var productScale = new ProductScale
         {
-            Id = Guid.NewGuid(),
-            Columns = productCreateDTO.ProductScale?.Columns,
-            Rows = productCreateDTO.ProductScale?.Rows,
+            Id = scaleId,
+            Columns = productCreateDTO.ProductScale?.Columns?.Select(s => new SizeIds
+            {
+                Id = Guid.NewGuid(),
+                SizeId = Guid.Parse(s.Id),
+                Name = s.Name
+            }).ToList(),
+            Rows = productCreateDTO.ProductScale?.Rows?.Select(r => new SizeModel
+            {
+                Id = Guid.NewGuid().ToString(),
+                ProductSizeValueId = r.ProductSizeValueId,
+                ProductSizeValueName = r.ProductSizeValueName,
+                ScaleValues = r.ScaleValues
+            }).ToList(),
+            ProductId = productId,
             Created = DateTime.UtcNow,
             LastUpdated = DateTime.UtcNow
         };
-        product.Code = GenerateProductCode();
-        product.Features = features;
+        var productCode = GenerateProductCode();
+        var productSlug = GenerateSlug(productCreateDTO.Title, productCode);
+        product.Id = productId;
+        product.Slug = productSlug;
+        product.Code = productCode;
+        product.FeatureValueIds = featureValueIds;
         product.ProductScale = productScale;
-
-        var stockItems = productCreateDTO.StockItems.Select(stockItemDTO => new StockItem
+        product.ProductScaleId = scaleId;
+        if (productCreateDTO.StockItems is not null)
         {
-            Id = Guid.NewGuid(),
-            ProductId = product.Id,
-            FeatureId = stockItemDTO.FeatureId,
-            SizeId = stockItemDTO.SizeId,
-            Quantity = stockItemDTO.Quantity,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        }).ToList();
+            var stockItemsDto = productCreateDTO.StockItems.Select(stockItemDTO =>
+            {
+                Guid featureId;
+                if (!Guid.TryParse(stockItemDTO.FeatureId, out featureId))
+                {
+                    // Handle the error, e.g., by logging a message or throwing an exception.
+                    throw new FormatException($"Invalid FeatureId '{stockItemDTO.FeatureId}'");
+                }
 
-        product.InStock = stockItems.Sum(stockItem => stockItem.Quantity);
+                Guid sizeId;
+                if (!Guid.TryParse(stockItemDTO.SizeId, out sizeId))
+                {
+                    // Handle the error, e.g., by logging a message or throwing an exception.
+                    throw new FormatException($"Invalid SizeId '{stockItemDTO.SizeId}'");
+                }
+
+                return new StockItem
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = product.Id,
+                    FeatureId = featureId,
+                    SizeId = sizeId,
+                    Quantity = stockItemDTO.Quantity,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+            }).ToList();
+
+            product.InStock = stockItemsDto.Sum(stockItem => stockItem.Quantity);
+        }
+
+
 
         await _productRepository.CreateAsync(product);
         await _unitOfWork.SaveChangesAsync();
@@ -93,6 +129,25 @@ public class ProductServices : IProductServices
         string newCode = prefix + formattedCodeNumber;
         return newCode;
     }
+    public static string GenerateSlug(string title, string code)
+    {
+        // Convert to lowercase
+        string slug = title.ToLowerInvariant();
+
+        // Replace spaces with hyphens
+        slug = Regex.Replace(slug, @"\s+", "-");
+
+        // Remove invalid characters
+        slug = Regex.Replace(slug, @"[^a-z0-9\u0600-\u06FF-]", "");
+
+        // Trim hyphens from the ends
+        slug = slug.Trim('-');
+
+        // Append the product code
+        slug = $"{slug}-{code}";
+
+        return slug;
+    }
     // admin
     public async Task<ServiceResponse<IEnumerable<Product>>> GetAll()
     {
@@ -107,18 +162,24 @@ public class ProductServices : IProductServices
         };
     }
 
-    // customer
-    public async Task<ServiceResponse<Pagination<ProductDTO>>> GetProductsPagination(int pageNumber, int pageSize)
+    public async Task<ServiceResponse<GetProductsResult>> GetProductsPagination(RequestQuery requestQuery)
     {
         try
         {
+            int pageNumber = requestQuery.PageNumber ?? 1;
+            int pageSize = requestQuery.PageSize;
+
             var paginatedProducts = await _productRepository.GetPaginationAsync(pageNumber, pageSize);
+            var productList = paginatedProducts.Data.ToList();
+            var productDtoList = new List<ProductDTO>();
 
-            var productDTOs = paginatedProducts.Data
-                .Select(product => product.ToProductResponse(_byteFileUtility))
-                .ToList();
+            foreach (var product in productList)
+            {
+                var result = await BuildProductResponse(product);
+                productDtoList.Add(result);
+            }
 
-            var paginatedResult = new Pagination<ProductDTO>
+            var pagination = new Pagination<ProductDTO>
             {
                 CurrentPage = pageNumber,
                 NextPage = pageNumber < (paginatedProducts.TotalCount / pageSize) ? pageNumber + 1 : pageNumber,
@@ -126,33 +187,133 @@ public class ProductServices : IProductServices
                 HasNextPage = pageNumber < (paginatedProducts.TotalCount / pageSize),
                 HasPreviousPage = pageNumber > 1,
                 LastPage = (int)Math.Ceiling((double)paginatedProducts.TotalCount / pageSize),
-                Data = productDTOs,
+                Data = productDtoList,
                 TotalCount = paginatedProducts.TotalCount
             };
 
-            return new ServiceResponse<Pagination<ProductDTO>>
+            var results = new GetProductsResult
             {
-                Data = paginatedResult,
+                ProductsLength = paginatedProducts.TotalCount,
+                MainMaxPrice = paginatedProducts.Data.Max(p => p.Price),
+                MainMinPrice = paginatedProducts.Data.Min(p => p.Price),
+                Pagination = pagination
+            };
+
+            return new ServiceResponse<GetProductsResult>
+            {
+                Data = results,
+                Success = true
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ServiceResponse<GetProductsResult>
+            {
+                Success = false,
+                Message = $"خطایی رخ داد در هنگام دریافت لیست محصولات: {ex.Message}"
+            };
+        }
+    }
+
+    public async Task<ServiceResponse<GetProductsResult>> GetProducts(RequestQuery requestQuery)
+    {
+        try
+        {
+            int pageNumber = requestQuery.PageNumber ?? 1;
+            int pageSize = requestQuery.PageSize;
+
+            // Apply filtering logic based on the query parameters
+            var productPaginationList = await _productRepository.GetPaginationAsync(pageNumber, pageSize);
+            var query = _productRepository.GetQuery();
+            if (!string.IsNullOrEmpty(requestQuery.Category))
+            {
+                query = query.Where(p => p.Category!.Name == requestQuery.Category);
+            }
+
+            if (requestQuery.MinPrice.HasValue)
+            {
+                query = query.Where(p => p.Price >= requestQuery.MinPrice.Value);
+            }
+
+            if (requestQuery.MaxPrice.HasValue)
+            {
+                query = query.Where(p => p.Price <= requestQuery.MaxPrice.Value);
+            }
+
+            if ((requestQuery.FeatureIds?.Any() ?? false) && (requestQuery.FeatureValueIds?.Any() ?? false))
+            {
+                var featureFilters = requestQuery.FeatureIds.Concat(requestQuery.FeatureValueIds).ToList();
+                foreach (var featureFilter in featureFilters)
+                {
+                    query = query.Where(p => p.ProductFeatures != null && p.ProductFeatures
+                        .Any(f => f.Id == featureFilter && f.Values != null && f.Values.Any(v => v.Id == featureFilter)));
+                }
+            }
+
+            if (!string.IsNullOrEmpty(requestQuery.SortBy))
+            {
+                if (requestQuery.Sort?.ToLower() == "desc")
+                {
+                    query = query.OrderByDescending(p => EF.Property<object>(p, requestQuery.SortBy));
+                }
+                else
+                {
+                    query = query.OrderBy(p => EF.Property<object>(p, requestQuery.SortBy));
+                }
+            }
+
+            var totalCount = await query.CountAsync();
+            var paginatedProducts = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            var productDtoList = new List<ProductDTO>();
+
+            foreach (var product in paginatedProducts)
+            {
+                var result = await BuildProductResponse(product);
+                productDtoList.Add(result);
+            }
+
+            var pagination = new Pagination<ProductDTO>
+            {
+                CurrentPage = pageNumber,
+                NextPage = pageNumber < (totalCount / pageSize) ? pageNumber + 1 : pageNumber,
+                PreviousPage = pageNumber > 1 ? pageNumber - 1 : 1,
+                HasNextPage = pageNumber < (totalCount / pageSize),
+                HasPreviousPage = pageNumber > 1,
+                LastPage = (int)Math.Ceiling((double)totalCount / pageSize),
+                Data = productDtoList,
+                TotalCount = totalCount
+            };
+
+            var results = new GetProductsResult
+            {
+                ProductsLength = totalCount,
+                MainMaxPrice = paginatedProducts.Max(p => p.Price),
+                MainMinPrice = paginatedProducts.Min(p => p.Price),
+                Pagination = pagination
+            };
+
+            return new ServiceResponse<GetProductsResult>
+            {
+                Data = results,
                 Success = true
             };
         }
         catch (Exception)
         {
-            return new ServiceResponse<Pagination<ProductDTO>>
+            return new ServiceResponse<GetProductsResult>
             {
                 Success = false,
-                Message = "خطایی رخ داد در هنگام دریافت لیست محصولات"
+                Message = "An error occurred while processing your request."
             };
         }
     }
 
-    //admin
     public async Task<ServiceResponse<ProductDTO>> GetSingleProductBy(Guid id)
     {
         try
         {
             var product = await _productRepository.GetAsyncBy(id);
-
             if (product == null)
             {
                 return new ServiceResponse<ProductDTO>
@@ -162,109 +323,109 @@ public class ProductServices : IProductServices
                 };
             }
 
-            var result = product.ToProductResponse(_byteFileUtility);
-
-            var categoryLevelIds = GetCategoryLevelIds(product.Category!);
-            var categories = await _context.Categories
-                .Where(c => categoryLevelIds.Contains(c.Id))
-                .ToListAsync();
-
-            // tree category
-            result.CategoryLevels = categories.Select(c => new CategoryLevels
+            var result = await BuildProductResponse(product);
+            return new ServiceResponse<ProductDTO> { Data = result };
+        }
+        catch (Exception ex)
+        {
+            return new ServiceResponse<ProductDTO>
             {
-                Id = c.Id,
-                Name = c.Name,
-                Level = c.Level,
-                Url = c.Name.ToLower()
-            }).ToList();
-            result.CategoryList = categoryLevelIds;
+                Success = false,
+                Message = "خطایی رخ داد در هنگام دریافت محصول" + ex.Message
+            };
+        }
+    }
 
-            // sizes guide
-            var productSize = await _context.ProductSizes
+    public Task<ServiceResponse<bool>> UpdateProduct(Guid id)
+    {
+        throw new NotImplementedException();
+    }
+
+    private async Task<ProductDTO> BuildProductResponse(Product product)
+    {
+        var result = product.ToProductResponse(_byteFileUtility);
+
+        var categoryLevelIds = GetCategoryLevelIds(product.Category!);
+        var categories = await _context.Categories
+            .Where(c => categoryLevelIds.Contains(c.Id))
+            .ToListAsync();
+
+        result.CategoryLevels = categories.Select(c => new CategoryLevels
+        {
+            Id = c.Id,
+            Name = c.Name,
+            Level = c.Level,
+            Url = c.Name.ToLower()
+        }).ToList();
+        result.CategoryList = categoryLevelIds;
+
+        var productSize = await _context.ProductSizes
             .Where(x => x.CategoryId == product.CategoryId)
             .Include(s => s.Images)
             .Include(s => s.Sizes)
             .Include(s => s.ProductSizeValues)
             .FirstOrDefaultAsync();
-            var productScale = product.ProductScale;
 
-            List<Sizes>? sizeList = null;
-            if (productScale?.Columns?.Any() == true)
-            {
-                sizeList = await _context.Sizes
-                    .Where(x => productScale.Columns.Any(c => c.Id == x.Id))
-                    .ToListAsync();
-            }
-
-            var scaleValues = new List<string>();
-
-            if (productScale?.Rows?.Any() == true)
-            {
-                foreach (var row in productScale.Rows)
-                {
-                    if (row.ScaleValues?.Any() == true)
-                    {
-                        scaleValues.AddRange(row.ScaleValues);
-                    }
-                }
-            }
-
-            if (productSize?.ProductSizeValues?.Any() == true)
-            {
-                var productSizeInfo = new ProductSizeInfo
-                {
-                    Columns = sizeList?.Select(s => new SizeDTO
-                    {
-                        Id = s.Id,
-                        Name = s.Name
-                    }).ToList(),
-
-                    Rows = productSize.ProductSizeValues.Select(ps => new SizeInfoModel
-                    {
-                        ProductSizeValue = ps.Name,
-                        ScaleValues = scaleValues
-                    }).ToList()
-                };
-                result.ProductSizeInfo = productSizeInfo;
-            }
-
-            // feature
-            var productFeatureInfo = new ProductFeatureInfo(product);
-
-            result.ProductFeatureInfo = productFeatureInfo;
-
-            // Calculate the average rating
-            double sumOfRatings = 0;
-            if (product.Review != null && product.Review.Count > 0)
-            {
-                foreach (var review in product.Review)
-                {
-                    sumOfRatings += review.Rating;
-                }
-                result.Rating = sumOfRatings / product.Review.Count;
-            }
-            else
-            {
-                result.Rating = 0;
-            }
-
-            result.ReviewCount = product.Review?.Count;
-            result.InStock = product.InStock;
-
-            return new ServiceResponse<ProductDTO>
-            {
-                Data = result
-            };
-        }
-        catch (Exception)
+        var productScale = await _context.ProductScales.Include(x => x.Columns).Include(x => x.Rows).FirstOrDefaultAsync(p => p.ProductId == product.Id);
+        List<Sizes>? sizeList = null;
+        if (productScale?.Columns?.Any() == true)
         {
-            return new ServiceResponse<ProductDTO>
-            {
-                Success = false,
-                Message = "خطایی رخ داد در هنگام دریافت محصول"
-            };
+            var sizeIds = productScale.Columns.Select(c => c.SizeId).ToList();
+            sizeList = await _context.Sizes
+                .Where(x => sizeIds.Contains(x.Id))
+                .ToListAsync();
         }
+
+        var scaleValues = new List<string>();
+        if (productScale?.Rows?.Any() == true)
+        {
+            foreach (var row in productScale.Rows)
+            {
+                if (row.ScaleValues?.Any() == true)
+                {
+                    scaleValues.AddRange(row.ScaleValues);
+                }
+            }
+        }
+
+        if (productSize?.ProductSizeValues?.Any() == true)
+        {
+            var productSizeInfo = new ProductSizeInfo
+            {
+                Columns = sizeList?.Select(s => new SizeDTO
+                {
+                    Id = s.Id,
+                    Name = s.Name
+                }).ToList(),
+
+                Rows = productSize.ProductSizeValues.Select(ps => new SizeInfoModel
+                {
+                    ProductSizeValue = ps.Name,
+                    ScaleValues = scaleValues
+                }).ToList()
+            };
+            result.ProductSizeInfo = productSizeInfo;
+        }
+
+        result.ProductFeatureInfo = new ProductFeatureInfo(product);
+
+        double sumOfRatings = 0;
+        if (product.Review != null && product.Review.Count > 0)
+        {
+            sumOfRatings = product.Review.Sum(review => review.Rating);
+            result.Rating = sumOfRatings / product.Review.Count;
+        }
+        else
+        {
+            result.Rating = 0;
+        }
+
+        result.ReviewCount = product.Review?.Count;
+        result.InStock = product.InStock;
+
+        return result;
     }
+
 
     private List<Guid?> GetCategoryLevelIds(Category category)
     {
@@ -289,8 +450,4 @@ public class ProductServices : IProductServices
         return categoryLevelIds;
     }
 
-    public Task<ServiceResponse<bool>> UpdateProduct(Guid id)
-    {
-        throw new NotImplementedException();
-    }
 }

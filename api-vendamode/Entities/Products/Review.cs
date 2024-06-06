@@ -1,7 +1,7 @@
-using api_vendamode.Entities.Users;
-using api_vendamode.Models;
+using api_vendace.Entities.Users;
+using api_vendace.Models;
 
-namespace api_vendamode.Entities.Products;
+namespace api_vendace.Entities.Products;
 public class Review : BaseClass<Guid>
 {
     public string Comment { get; set; } = string.Empty;

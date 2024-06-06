@@ -1,12 +1,11 @@
-using api_vendamode.Models;
+using api_vendace.Models;
 
-namespace api_vendamode.Entities.Products;
+namespace api_vendace.Entities.Products;
 
 public class Sizes : BaseClass<Guid>
 {
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public bool IsDeleted { get; set; }
-    public Guid ProductSizeId { get; set; }
-    public ProductSize? ProductSize { get; set; }
+    public Guid? ProductSizeId { get; set; }
+    public virtual ProductSize? ProductSize { get; set; }
 }

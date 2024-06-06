@@ -1,16 +1,16 @@
-using api_vendamode.Data;
-using api_vendamode.Entities;
-using api_vendamode.Entities.Products;
-using api_vendamode.Interfaces;
-using api_vendamode.Interfaces.IServices;
-using api_vendamode.Models;
-using api_vendamode.Models.Dtos;
-using api_vendamode.Models.Dtos.ProductDto.Brand;
-using api_vendamode.Models.Query;
-using api_vendamode.Utility;
+using api_vendace.Data;
+using api_vendace.Entities;
+using api_vendace.Entities.Products;
+using api_vendace.Interfaces;
+using api_vendace.Interfaces.IServices;
+using api_vendace.Models;
+using api_vendace.Models.Dtos;
+using api_vendace.Models.Dtos.ProductDto.Brand;
+using api_vendace.Models.Query;
+using api_vendace.Utility;
 using Microsoft.EntityFrameworkCore;
 
-namespace api_vendamode.Services.Products;
+namespace api_vendace.Services.Products;
 
 public class BrandServices : IBrandServices
 {
@@ -50,7 +50,7 @@ public class BrandServices : IBrandServices
         };
 
         var result = await _context.Brands.AddAsync(brand);
-
+        await _unitOfWork.SaveChangesAsync();
         return new ServiceResponse<bool>
         {
             Data = true,
@@ -206,7 +206,7 @@ public class BrandServices : IBrandServices
         {
             if (brand.Images != null)
             {
-                _byteFileUtility.DeleteFiles(brand.Images , nameof(Brand));
+                _byteFileUtility.DeleteFiles(brand.Images, nameof(Brand));
             }
             brand.Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Brand>>(brandUpdate.Thumbnail, nameof(Brand), false);
         }

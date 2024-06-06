@@ -1,4 +1,4 @@
-namespace api_vendamode.Models.Dtos.ProductDto.Sizes;
+namespace api_vendace.Models.Dtos.ProductDto.Sizes;
 
 public class SizeDTO : BaseClass<Guid>
 {

@@ -1,10 +1,11 @@
-using api_vendamode.Entities.Users.Security;
-using api_vendamode.Enums;
+using api_vendace.Entities.Users.Security;
+using api_vendace.Enums;
 
-namespace api_vendamode.Models.Dtos.AuthDto;
+namespace api_vendace.Models.Dtos.AuthDto;
 
 public class UserSpecificationDTO : BaseClass<Guid>
 {
+    public Guid UserId { get; set; }
     public UserTypes UserType { get; set; }
     public List<Role>? Roles { get; set; }
     public bool IsActive { get; set; }
@@ -23,6 +24,7 @@ public class UserSpecificationDTO : BaseClass<Guid>
     public string SecondAddress { get; set; } = string.Empty;
     public string BirthDate { get; set; } = string.Empty;
     public string IdNumber { get; set; } = string.Empty;
+    public string NationalCode { get; set; } = string.Empty;
     public string BankAccountNumber { get; set; } = string.Empty;
     public string ShabaNumber { get; set; } = string.Empty;
     public string Note { get; set; } = string.Empty;

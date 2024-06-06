@@ -1,6 +1,6 @@
-using api_vendamode.Entities.Users.Security;
+using api_vendace.Entities.Users.Security;
 
-namespace api_vendamode.Models.Dtos.AuthDto;
+namespace api_vendace.Models.Dtos.AuthDto;
 
 public class UserDTO : BaseClass<Guid>
 {

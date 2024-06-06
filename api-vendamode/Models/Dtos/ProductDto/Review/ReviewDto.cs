@@ -1,6 +1,6 @@
-using api_vendamode.Entities.Products;
+using api_vendace.Entities.Products;
 
-namespace api_vendamode.Models.Dtos.ProductDto.Review;
+namespace api_vendace.Models.Dtos.ProductDto.Review;
 
 public class ReviewDto : BaseClass<Guid>
 {

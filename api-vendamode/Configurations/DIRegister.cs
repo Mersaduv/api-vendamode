@@ -1,19 +1,21 @@
 using System.Text;
-using api_vendamode.Framework;
-using api_vendamode.Interfaces;
-using api_vendamode.Interfaces.IRepository;
+using api_vendace;
+using api_vendace.Framework;
+using api_vendace.Interfaces;
+using api_vendace.Interfaces.IRepository;
+using api_vendace.Interfaces.IServices;
+using api_vendace.Models;
+using api_vendace.Repository;
+using api_vendace.Services.Auth;
+using api_vendace.Services.Products;
+using api_vendace.Utility;
 using api_vendamode.Interfaces.IServices;
-using api_vendamode.Models;
-using api_vendamode.Repository;
-using api_vendamode.Services.Auth;
-using api_vendamode.Services.Products;
-using api_vendamode.Utility;
 using ApiAryanakala.Interfaces.IServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
-namespace api_vendamode.Configurations;
+namespace api_vendace.Configurations;
 
 public static class DIRegister
 {
@@ -26,12 +28,14 @@ public static class DIRegister
     {
         services.AddScoped(_ => appSettings)
                 .AddScoped<IProductServices, ProductServices>()
+                .AddScoped<IBrandServices, BrandServices>()
                 .AddScoped<IUserServices, UserServices>()
                 .AddScoped<ICategoryServices, CategoryServices>()
                 .AddScoped<IReviewServices, ReviewServices>()
-                .AddScoped<IPermissionServices, PermissionServices>()
                 .AddScoped<IFeatureServices, FeatureServices>()
-                .AddScoped<IProductSizeServices, ProductSizeServices>();
+                .AddScoped<IProductSizeServices, ProductSizeServices>()
+                .AddScoped<IPermissionServices, PermissionServices>()
+                .AddScoped<IRoleServices, RoleServices>();
         // services.AddScoped<IPaymentService, PaymentService>();
     }
 
@@ -62,7 +66,7 @@ public static class DIRegister
             x.SaveToken = true;
             x.TokenValidationParameters = new TokenValidationParameters
             {
-                ClockSkew = TimeSpan.FromMinutes(appSettings.AuthSettings.TokenTimeout),
+                ClockSkew = TimeSpan.FromDays(appSettings.AuthSettings.TokenTimeout),
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(key),

@@ -1,4 +1,4 @@
-namespace api_vendamode.Models.Dtos;
+namespace api_vendace.Models.Dtos;
 
 public class ObjectValue
 {

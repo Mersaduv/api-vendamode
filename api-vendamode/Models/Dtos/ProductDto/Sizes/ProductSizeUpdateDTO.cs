@@ -1,7 +1,8 @@
-using api_vendamode.Entities.Products;
-using api_vendamode.Models;
+using api_vendace.Entities.Products;
+using api_vendace.Enums;
+using api_vendace.Models;
 
-namespace api_vendamode.Models.Dtos.ProductDto.Sizes;
+namespace api_vendace.Models.Dtos.ProductDto.Sizes;
 
 public class ProductSizeUpdateDTO : BaseClass<Guid>
 {

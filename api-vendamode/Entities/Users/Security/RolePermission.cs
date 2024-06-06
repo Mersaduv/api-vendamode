@@ -1,4 +1,4 @@
-namespace api_vendamode.Entities.Users.Security;
+namespace api_vendace.Entities.Users.Security;
 
 public class RolePermission
 {

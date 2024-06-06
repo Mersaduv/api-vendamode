@@ -1,7 +1,7 @@
-using api_vendamode.Data;
-using api_vendamode.Interfaces;
+using api_vendace.Data;
+using api_vendace.Interfaces;
 
-namespace api_vendamode.Framework
+namespace api_vendace.Framework
 {
     public class UnitOfWork : IUnitOfWork
     {

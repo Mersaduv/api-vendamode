@@ -1,13 +1,13 @@
-using api_vendamode.Const;
-using api_vendamode.Entities.Products;
-using api_vendamode.Filter;
-using api_vendamode.Interfaces.IServices;
-using api_vendamode.Models;
-using api_vendamode.Models.Dtos.ProductDto.Brand;
-using api_vendamode.Models.Query;
+using api_vendace.Const;
+using api_vendace.Entities.Products;
+using api_vendace.Filter;
+using api_vendace.Interfaces.IServices;
+using api_vendace.Models;
+using api_vendace.Models.Dtos.ProductDto.Brand;
+using api_vendace.Models.Query;
 using Microsoft.AspNetCore.Http.HttpResults;
 
-namespace api_vendamode.Endpoints;
+namespace api_vendace.Endpoints;
 
 public static class BrandEndpoints
 {
@@ -19,12 +19,10 @@ public static class BrandEndpoints
         apiGroup.MapGet(Constants.Brands, GetBrands);
 
         brandGroup.MapPost(string.Empty, CreateBrand)
-        .AddEndpointFilter<ModelValidationFilter<BrandCommandDTO>>()
         .Accepts<BrandCommandDTO>("multipart/form-data")
         .ProducesValidationProblem();
 
         brandGroup.MapPost("update", UpdateBrand)
-        .AddEndpointFilter<ModelValidationFilter<BrandCommandDTO>>()
         .Accepts<BrandCommandDTO>("multipart/form-data")
         .ProducesValidationProblem();
 

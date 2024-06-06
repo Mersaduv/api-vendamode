@@ -1,24 +1,24 @@
 using System.Security.Claims;
-using api_vendamode.Data;
-using api_vendamode.Entities.Users;
-using api_vendamode.Entities.Users.Security;
-using api_vendamode.Interfaces.IServices;
-using api_vendamode.Models;
-using api_vendamode.Models.Dtos.AuthDto;
+using api_vendace.Data;
+using api_vendace.Entities.Users;
+using api_vendace.Entities.Users.Security;
+using api_vendace.Interfaces.IServices;
+using api_vendace.Models;
+using api_vendace.Models.Dtos.AuthDto;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.Extensions.Caching.Memory;
-using api_vendamode.Interfaces;
+using api_vendace.Interfaces;
 using System.Security.Cryptography;
 using Newtonsoft.Json;
-using api_vendamode.Utility;
-using api_vendamode.Entities;
-using api_vendamode.Models.Query;
-using api_vendamode.Models.Dtos;
+using api_vendace.Utility;
+using api_vendace.Entities;
+using api_vendace.Models.Query;
+using api_vendace.Models.Dtos;
 
-namespace api_vendamode.Services.Auth;
+namespace api_vendace.Services.Auth;
 
 public class UserServices : IUserServices
 {
@@ -45,17 +45,44 @@ public class UserServices : IUserServices
     {
         var passwordSalt = _passwordHasher.GenerateSalt();
         var hashedPassword = _passwordHasher.HashPassword(userCreate.PassCode, passwordSalt);
+        var passCode = _passwordHasher.EncryptPassword(userCreate.PassCode);
         var userId = Guid.NewGuid();
 
+
+        var defaultRole = await _context.Roles.FirstOrDefaultAsync(r => r.Title == "مشتری");
+        List<Role>? roles = new List<Role>();
+        if (userCreate.RoleIds is not null)
+        {
+            roles = await _context.Roles.Where(r => userCreate.RoleIds.Contains(r.Id)).ToListAsync();
+        }
+        if (defaultRole == null)
+        {
+            return new ServiceResponse<bool>
+            {
+                Message = "مشکلی در هنگام شناسایی سمت مشتری پیش آمده "
+            };
+        }
+        if (roles == null)
+        {
+            return new ServiceResponse<bool>
+            {
+                Message = "مشکلی در هنگام اضافه کردن سمت برای کاربر پیش آمده "
+            };
+        }
+        if (!roles.Any(x => x.Title == defaultRole.Title))
+        {
+            roles.Add(defaultRole);
+        }
         var specification = new UserSpecification
         {
             Id = Guid.NewGuid(),
             UserId = userId,
-            Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, User>>(userCreate.Thumbnail!, nameof(User), false),
+            Roles = roles.Select(r => r.Title).ToList(),
             IdCardImages = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, UserSpecification>>(userCreate.IdCardThumbnail!, nameof(UserSpecification), false),
             MobileNumber = userCreate.MobileNumber,
             PasswordSalt = passwordSalt,
             Password = hashedPassword,
+            PassCode = passCode,
             FirstName = userCreate.FirstName,
             FamilyName = userCreate.FamilyName,
             FatherName = userCreate.FatherName,
@@ -75,32 +102,19 @@ public class UserServices : IUserServices
             Created = DateTime.UtcNow,
             LastUpdated = DateTime.UtcNow
         };
-
-        var defaultRole = await _context.Roles.FirstOrDefaultAsync(r => r.Title == "customer");
-        var role = await _context.Roles.FirstOrDefaultAsync(r => r.Id == userCreate.RoleId);
-        if (defaultRole == null)
-        {
-            return new ServiceResponse<bool>
-            {
-                Message = "مشکلی در هنگام شناسایی سمت مشتری پیش آمده "
-            };
-        }
-        if (role == null)
-        {
-            return new ServiceResponse<bool>
-            {
-                Message = "مشکلی در هنگام اضافه کردن سمت برای کاربر پیش آمده "
-            };
-        }
         var user = new User
         {
             Id = userId,
             UserType = userCreate.UserType,
+            Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, User>>(userCreate.Thumbnail!, nameof(User), false),
             UserSpecification = specification,
-            Roles = new List<Role> { defaultRole, role },
+            Roles = roles,
             Created = DateTime.UtcNow,
             LastUpdated = DateTime.UtcNow
         };
+
+        await _context.Users.AddAsync(user);
+        await _unitOfWork.SaveChangesAsync();
 
         return new ServiceResponse<bool>
         {
@@ -108,7 +122,7 @@ public class UserServices : IUserServices
         };
     }
 
-    public async Task<ServiceResponse<Guid>> RegisterUserAsync(string mobileNumber, string passCode)
+    public async Task<ServiceResponse<Guid>> RegisterUserAsync(string mobileNumber, string password)
     {
         var response = new ServiceResponse<Guid>();
         try
@@ -122,9 +136,10 @@ public class UserServices : IUserServices
             }
 
             var passwordSalt = _passwordHasher.GenerateSalt();
-            var hashedPassword = _passwordHasher.HashPassword(passCode, passwordSalt);
+            var hashedPassword = _passwordHasher.HashPassword(password, passwordSalt);
+            var passCode = _passwordHasher.EncryptPassword(password);
 
-            var defaultRole = await _context.Roles.FirstOrDefaultAsync(r => r.Title == "customer");
+            var defaultRole = await _context.Roles.FirstOrDefaultAsync(r => r.Title == "مشتری");
             if (defaultRole == null)
             {
                 return new ServiceResponse<Guid>
@@ -141,13 +156,16 @@ public class UserServices : IUserServices
                 MobileNumber = mobileNumber,
                 Password = hashedPassword,
                 PasswordSalt = passwordSalt,
+                PassCode = passCode,
                 Created = DateTime.UtcNow,
                 LastUpdated = DateTime.UtcNow
             };
             var user = new User
             {
                 UserSpecification = specification,
-                Roles = new List<Role> { defaultRole }
+                Roles = new List<Role> { defaultRole },
+                Created = DateTime.UtcNow,
+                LastUpdated = DateTime.UtcNow
             };
 
             await _context.Users.AddAsync(user);
@@ -165,7 +183,7 @@ public class UserServices : IUserServices
         return response;
     }
 
-    public async Task<ServiceResponse<LoginDTO>> AuthenticateUserAsync(string mobileNumber, string passCode)
+    public async Task<ServiceResponse<LoginDTO>> AuthenticateUserAsync(string mobileNumber, string password)
     {
         var response = new ServiceResponse<LoginDTO>();
         try
@@ -178,7 +196,7 @@ public class UserServices : IUserServices
                 return response;
             }
 
-            if (!_passwordHasher.VerifyPassword(passCode, user.UserSpecification.Password, user.UserSpecification.PasswordSalt))
+            if (!_passwordHasher.VerifyPassword(password, user.UserSpecification.Password, user.UserSpecification.PasswordSalt))
             {
                 response.Success = false;
                 response.Message = "کد یا پسورد شما اشتباه است";
@@ -211,18 +229,21 @@ public class UserServices : IUserServices
                 userRefreshToken.Created = DateTime.UtcNow;
                 userRefreshToken.LastUpdated = DateTime.UtcNow;
                 userRefreshToken.IsValid = true;
+                _context.UserRefreshTokens.Update(userRefreshToken);
             }
             await _unitOfWork.SaveChangesAsync();
 
 
             var result = new LoginDTO
             {
+                Roles = user.UserSpecification.Roles,
                 MobileNumber = user.UserSpecification.MobileNumber,
                 FullName = user.UserSpecification.FirstName + " " + user.UserSpecification.FamilyName,
                 Token = token,
                 ExpireTime = _appSettings.AuthSettings.TokenTimeout,
                 RefreshToken = refreshToken,
-                RefreshTokenExpireTime = _appSettings.AuthSettings.RefreshTokenTimeout
+                RefreshTokenExpireTime = _appSettings.AuthSettings.RefreshTokenTimeout,
+                LoggedIn = true
             };
             response.Data = result;
         }
@@ -235,22 +256,55 @@ public class UserServices : IUserServices
         return response;
     }
 
-    public async Task<ServiceResponse<User>> GetUserByIdAsync(Guid userId)
+    public async Task<ServiceResponse<LoginDTO>> GetUserInfo(string mobileNumber, HttpContext context)
     {
-        var response = new ServiceResponse<User>();
+
+        var response = new ServiceResponse<LoginDTO>();
         try
         {
-            var user = await _context.Users.Include(u => u.Roles).Include(us => us.UserSpecification).FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await _context.Users.Include(us => us.UserSpecification).Include(u => u.Roles).FirstOrDefaultAsync(u => u.UserSpecification.MobileNumber == mobileNumber);
             if (user == null)
             {
-                return new ServiceResponse<User>
-                {
-                    Message = "کاربری با این آیدی پیدا نشد"
-                };
+                response.Success = false;
+                response.Message = "کاربر مد نظر پیدا نشد";
+                return response;
             }
 
-            response.Data = user;
-            response.Count = 1;
+            var token = CreateToken(user);
+            var refreshToken = GenerateRefreshToken(user.Id);
+            var userRefreshToken = await _context.UserRefreshTokens
+                .SingleOrDefaultAsync(q => q.UserId == user.Id);
+
+            if (userRefreshToken == null)
+            {
+                // If there is no existing refresh token, create a new one
+                userRefreshToken = new UserRefreshToken
+                {
+                    UserId = user.Id,
+                    RefreshToken = refreshToken,
+                    RefreshTokenTimeout = _appSettings.AuthSettings.RefreshTokenTimeout,
+                    Created = DateTime.UtcNow,
+                    IsValid = true
+                };
+
+                await _context.UserRefreshTokens.AddAsync(userRefreshToken);
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+
+
+            var result = new LoginDTO
+            {
+                Roles = user.UserSpecification.Roles,
+                MobileNumber = user.UserSpecification.MobileNumber,
+                FullName = user.UserSpecification.FirstName + " " + user.UserSpecification.FamilyName,
+                Token = token,
+                ExpireTime = _appSettings.AuthSettings.TokenTimeout,
+                RefreshToken = refreshToken,
+                RefreshTokenExpireTime = _appSettings.AuthSettings.RefreshTokenTimeout,
+                LoggedIn = true
+            };
+            response.Data = result;
         }
         catch (Exception ex)
         {
@@ -291,22 +345,22 @@ public class UserServices : IUserServices
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_appSettings.AuthSettings.TokenKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
         var token = new JwtSecurityToken(claims: claims,
-            expires: DateTime.Now.AddMinutes(_appSettings.AuthSettings.TokenTimeout), signingCredentials: creds);
+            expires: DateTime.Now.AddDays(_appSettings.AuthSettings.TokenTimeout), signingCredentials: creds);
         var jwt = new JwtSecurityTokenHandler().WriteToken(token);
         return jwt;
     }
 
-    public async Task<ServiceResponse<GenerateNewTokenDTO>> GenerateNewToken(GenerateNewTokenDTO command)
+    public async Task<ServiceResponse<GenerateNewTokenResultDTO>> GenerateNewToken(GenerateNewTokenDTO command)
     {
         var userRefreshToken = await _context.UserRefreshTokens
         .SingleOrDefaultAsync(q => q.RefreshToken == command.RefreshToken);
 
         var userId = ValidateRefreshToken(command.RefreshToken);
-        var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == userId);
+        var user = await _context.Users.Include(u => u.Roles).Include(u => u.Images).Include(u => u.UserSpecification).FirstOrDefaultAsync(x => x.Id == userId);
 
         if (user is null)
         {
-            return new ServiceResponse<GenerateNewTokenDTO>()
+            return new ServiceResponse<GenerateNewTokenResultDTO>()
             {
                 Data = null,
                 Success = false,
@@ -315,7 +369,7 @@ public class UserServices : IUserServices
         }
         if (userRefreshToken is null)
         {
-            return new ServiceResponse<GenerateNewTokenDTO>()
+            return new ServiceResponse<GenerateNewTokenResultDTO>()
             {
                 Data = null,
                 Success = false,
@@ -354,13 +408,17 @@ public class UserServices : IUserServices
 
         await _unitOfWork.SaveChangesAsync();
 
-        var result = new GenerateNewTokenDTO
+        var result = new GenerateNewTokenResultDTO
         {
+            MobileNumber = user.UserSpecification.MobileNumber,
+            FullName = user.UserSpecification.FirstName + " " + user.UserSpecification.FamilyName,
             Token = token,
-            RefreshToken = refreshToken
+            RefreshToken = refreshToken,
+            ExpireTime = _appSettings.AuthSettings.RefreshTokenTimeout,
+            LoggedIn = true
         };
 
-        return new ServiceResponse<GenerateNewTokenDTO>
+        return new ServiceResponse<GenerateNewTokenResultDTO>
         {
             Data = result
         };
@@ -380,7 +438,7 @@ public class UserServices : IUserServices
         var cacheData = Encoding.UTF8.GetBytes(serializedUser);
         var cacheOptions = new MemoryCacheEntryOptions
         {
-            AbsoluteExpiration = DateTimeOffset.Now.AddMinutes(_appSettings.AuthSettings.RefreshTokenTimeout)
+            AbsoluteExpiration = DateTimeOffset.Now.AddDays(_appSettings.AuthSettings.RefreshTokenTimeout)
         };
         _cache.Set(refreshToken, cacheData, cacheOptions);
         return refreshToken;
@@ -403,33 +461,36 @@ public class UserServices : IUserServices
         var lastPage = (int)Math.Ceiling((double)totalCount / requestQuery.PageSize);
         var pageNumber = requestQuery.PageNumber ?? 1;
         var pageSize = requestQuery.PageSize;
+        var skipCount = (pageNumber - 1) * pageSize;
         var users = await _context.Users.Include(us => us.UserSpecification)
-            .Skip((pageNumber - 1) * pageSize)
+            .Skip(skipCount)
             .Take(pageSize)
-            .Select(user => new UserDTO
+            .ToListAsync();
+        var userDto = users.Select(user => new UserDTO
+        {
+            Id = user.Id,
+            ImageSrc = user.UserSpecification != null && user.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(user.Images.Select(img => new EntityImageDto
             {
-                Id = user.Id,
-                ImageSrc = user.UserSpecification != null && user.UserSpecification.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(user.UserSpecification.Images.Select(img => new EntityImageDto
-                {
-                    Id = img.Id,
-                    ImageUrl = img.ImageUrl ?? string.Empty,
-                    Placeholder = img.Placeholder ?? string.Empty
-                }).ToList(), nameof(User)).First() : null,
-                FullName = user.UserSpecification != null ? user.UserSpecification.FirstName : string.Empty + " " + user.UserSpecification.FamilyName,
-                RoleNames = user.Roles.Select(role => role.Title).ToList(),
-                MobileNumber = user.UserSpecification.MobileNumber,
-                LastActivity = user.UserSpecification.LastActivity,
-                OrderCount = 0,
-                City = user.UserSpecification.City,
-                Wallet = false,
+                Id = img.Id,
+                ImageUrl = img.ImageUrl ?? string.Empty,
+                Placeholder = img.Placeholder ?? string.Empty
+            }).ToList(), nameof(User)).First() : null,
+            FullName = user.UserSpecification != null ? user.UserSpecification.FirstName : string.Empty + " " + user.UserSpecification!.FamilyName,
+            RoleNames = user.Roles.Select(role => role.Title).ToList(),
+            MobileNumber = user.UserSpecification.MobileNumber,
+            LastActivity = user.UserSpecification.LastActivity,
+            OrderCount = 0,
+            City = user.UserSpecification.City,
+            Wallet = false,
+            IsActive = user.UserSpecification.IsActive,
+            UserSpecification = new UserSpecificationDTO
+            {
+                UserId = user.UserSpecification.UserId,
+                Id = user.UserSpecification.Id,
+                UserType = user.UserType,
+                Roles = user.Roles.ToList(),
                 IsActive = user.UserSpecification.IsActive,
-                UserSpecification = new UserSpecificationDTO 
-                {
-                    Id = user.UserSpecification.Id,
-                    UserType = user.UserType,
-                    Roles = user.Roles.ToList(),
-                    IsActive  = user.UserSpecification.IsActive,
-                    ImageScr =  user.UserSpecification.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(user.UserSpecification.Images.Select(img => new EntityImageDto
+                ImageScr = user.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(user.Images.Select(img => new EntityImageDto
                 {
                     Id = img.Id,
                     ImageUrl = img.ImageUrl ?? string.Empty,
@@ -442,11 +503,129 @@ public class UserServices : IUserServices
                     Placeholder = img.Placeholder ?? string.Empty
                 }).ToList(), nameof(UserSpecification)).First() : null,
                 MobileNumber = user.UserSpecification.MobileNumber,
-                PassCode =
+                PassCode = _passwordHasher.DecryptPassword(user.UserSpecification.PassCode),
+                FirstName = user.UserSpecification.FirstName,
+                FamilyName = user.UserSpecification.FamilyName,
+                FatherName = user.UserSpecification.FatherName,
+                TelePhone = user.UserSpecification.TelePhone,
+                Province = user.UserSpecification.Province,
+                City = user.UserSpecification.City,
+                PostalCode = user.UserSpecification.PostalCode,
+                FirstAddress = user.UserSpecification.FirstAddress,
+                SecondAddress = user.UserSpecification.SecondAddress,
+                BirthDate = user.UserSpecification.BirthDate,
+                IdNumber = user.UserSpecification.IdNumber,
+                NationalCode = user.UserSpecification.NationalCode,
+                BankAccountNumber = user.UserSpecification.BankAccountNumber,
+                ShabaNumber = user.UserSpecification.ShabaNumber,
+                Note = user.UserSpecification.Note,
+                Created = user.UserSpecification.Created,
+                LastUpdated = user.UserSpecification.LastUpdated
+            },
+            Created = user.Created,
+            LastUpdated = user.LastUpdated
+        }).ToList();
+
+        var pagination = new Pagination<UserDTO>
+        {
+            CurrentPage = pageNumber,
+            NextPage = pageNumber + 1,
+            PreviousPage = pageNumber > 1 ? pageNumber - 1 : 0,
+            HasNextPage = (skipCount + pageSize) < totalCount,
+            HasPreviousPage = pageNumber > 1,
+            LastPage = (int)Math.Ceiling((decimal)totalCount / pageSize),
+            TotalCount = totalCount,
+            Data = userDto
+        };
+
+        return new ServiceResponse<Pagination<UserDTO>>
+        {
+            Data = pagination
+        };
+    }
+
+    public async Task<ServiceResponse<UserDTO>> GetUserBy(Guid userId)
+    {
+        var data = await _context.Users
+            .Include(u => u.Roles)
+            .Include(u => u.Images)
+            .Include(u => u.UserSpecification)
+            .ThenInclude(u => u.IdCardImages)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+            var user = new UserDTO {
+                Id = data!.Id,
+                ImageSrc = data.UserSpecification != null && data.Images?.Count > 0  ? _byteFileUtility.GetEncryptedFileActionUrl(data.Images.Select(img => new EntityImageDto
+                {
+                    Id = img.Id,
+                    ImageUrl = img.ImageUrl ?? string.Empty,
+                    Placeholder = img.Placeholder ?? string.Empty
+                }).ToList(), nameof(User)).First() : null,
+                FullName = data.UserSpecification != null ? data.UserSpecification!.FirstName + " " + data.UserSpecification!.FamilyName : string.Empty,
+                RoleNames = data.Roles.Select(role => role.Title).ToList(),
+                MobileNumber = data.UserSpecification!.MobileNumber,
+                LastActivity = data.UserSpecification.LastActivity,
+                OrderCount = 0,
+                City = data.UserSpecification.City,
+                Wallet = false,
+                IsActive = data.UserSpecification.IsActive,
+                UserSpecification = new UserSpecificationDTO
+                {
+                    UserId = data.UserSpecification.UserId,
+                    Id = data.UserSpecification.Id,
+                    UserType = data.UserType,
+                    Roles = data.Roles.ToList(),
+                    IsActive = data.UserSpecification.IsActive,
+                    ImageScr = data.Images?.Count > 0 ? _byteFileUtility.GetEncryptedFileActionUrl(data.Images.Select(img => new EntityImageDto
+                    {
+                        Id = img.Id,
+                        ImageUrl = img.ImageUrl ?? string.Empty,
+                        Placeholder = img.Placeholder ?? string.Empty
+                    }).ToList(), nameof(User)).First() : null,
+                    IdCardImageSrc = data.UserSpecification?.IdCardImages?.Count > 0 ? _byteFileUtility.GetEncryptedFileActionUrl(data.UserSpecification.IdCardImages.Select(img => new EntityImageDto
+                    {
+                        Id = img.Id,
+                        ImageUrl = img.ImageUrl ?? string.Empty,
+                        Placeholder = img.Placeholder ?? string.Empty
+                    }).ToList(), nameof(UserSpecification)).First() : null,
+                    MobileNumber = data.UserSpecification!.MobileNumber,
+                    PassCode = _passwordHasher.DecryptPassword(data.UserSpecification.PassCode),
+                    FirstName = data.UserSpecification.FirstName,
+                    FamilyName = data.UserSpecification.FamilyName,
+                    FatherName = data.UserSpecification.FatherName,
+                    TelePhone = data.UserSpecification.TelePhone,
+                    Province = data.UserSpecification.Province,
+                    City = data.UserSpecification.City,
+                    PostalCode = data.UserSpecification.PostalCode,
+                    FirstAddress = data.UserSpecification.FirstAddress,
+                    SecondAddress = data.UserSpecification.SecondAddress,
+                    BirthDate = data.UserSpecification.BirthDate,
+                    IdNumber = data.UserSpecification.IdNumber,
+                    NationalCode = data.UserSpecification.NationalCode,
+                    BankAccountNumber = data.UserSpecification.BankAccountNumber,
+                    ShabaNumber = data.UserSpecification.ShabaNumber,
+                    Note = data.UserSpecification.Note,
+                    Created = data.UserSpecification.Created,
+                    LastUpdated = data.UserSpecification.LastUpdated
                 },
-                Created = user.Created,
-                LastUpdated = user.LastUpdated
-            })
-            .ToListAsync();
+                Created = data.Created,
+                LastUpdated = data.LastUpdated
+            };
+
+        return new ServiceResponse<UserDTO>
+        {
+            Data = user
+        };
+    }
+
+    public async Task<ServiceResponse<UserDTO>> GetUserInfoMe(HttpContext context)
+    {
+        var userId = GetUserId();
+        var result = (await GetUserBy(userId)).Data;
+
+        return new ServiceResponse<UserDTO>
+        {
+            Data = result
+        };
     }
 }

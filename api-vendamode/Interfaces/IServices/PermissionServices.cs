@@ -1,7 +1,7 @@
-using api_vendamode.Entities.Users.Security;
-using api_vendamode.Models;
+using api_vendace.Entities.Users.Security;
+using api_vendace.Models;
 
-namespace api_vendamode.Interfaces.IServices;
+namespace api_vendace.Interfaces.IServices;
 
 public interface IPermissionServices
 {

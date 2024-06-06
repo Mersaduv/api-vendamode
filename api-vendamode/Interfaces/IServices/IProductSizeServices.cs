@@ -1,9 +1,9 @@
-using api_vendamode.Entities.Products;
-using api_vendamode.Models;
-using api_vendamode.Models.Dtos.ProductDto;
-using api_vendamode.Models.Dtos.ProductDto.Sizes;
+using api_vendace.Entities.Products;
+using api_vendace.Models;
+using api_vendace.Models.Dtos.ProductDto;
+using api_vendace.Models.Dtos.ProductDto.Sizes;
 
-namespace api_vendamode.Interfaces.IServices;
+namespace api_vendace.Interfaces.IServices;
 
 public interface IProductSizeServices
 {

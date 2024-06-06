@@ -1,7 +1,7 @@
-using api_vendamode.Entities.Products;
-using api_vendamode.Models.Dtos.ProductDto.Category;
+using api_vendace.Entities.Products;
+using api_vendace.Models.Dtos.ProductDto.Category;
 
-namespace api_vendamode.Models.Dtos.ProductDto;
+namespace api_vendace.Models.Dtos.ProductDto;
 
 public class ProductDTO
 {
@@ -12,7 +12,7 @@ public class ProductDTO
     public string Slug { get; set; } = string.Empty;
     public double Price { get; set; }
     public bool IsFake { get; set; }
-    public int? BrandId { get; set; }
+    public Guid? BrandId { get; set; }
     public int InStock { get; set; }
     public ProductSizeInfo? ProductSizeInfo { get; set; }
     public ProductFeatureInfo? ProductFeatureInfo { get; set; }

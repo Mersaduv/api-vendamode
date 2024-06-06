@@ -1,9 +1,9 @@
 
-using api_vendamode.Entities.Products;
-using api_vendamode.Models;
-using api_vendamode.Models.Dtos.ProductDto.Feature;
+using api_vendace.Entities.Products;
+using api_vendace.Models;
+using api_vendace.Models.Dtos.ProductDto.Feature;
 
-namespace api_vendamode.Interfaces.IServices;
+namespace api_vendace.Interfaces.IServices;
 
 public interface IFeatureServices
 {
@@ -16,6 +16,6 @@ public interface IFeatureServices
     Task<ServiceResponse<ProductFeature>> GetFeatureBy(Guid id);
     Task<ServiceResponse<FeatureValue>> GetFeatureValueBy(Guid id);
     Task<ServiceResponse<List<ProductFeature>>> GetFeaturesByCategory(Guid id);
-    Task<ServiceResponse<IReadOnlyList<ProductFeature>>> GetAllFeatures();
+    Task<ServiceResponse<List<ProductFeature>>> GetAllFeatures();
     Task<ServiceResponse<IReadOnlyList<FeatureValue>>> GetAllFeatureValues();
 }

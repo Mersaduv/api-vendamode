@@ -1,4 +1,4 @@
-namespace api_vendamode.Filter;
+namespace api_vendace.Filter;
 
 public class ErrorResponse
 {

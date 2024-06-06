@@ -1,4 +1,4 @@
-namespace api_vendamode.Entities.Products;
+namespace api_vendace.Entities.Products;
 
 public class Points
 {

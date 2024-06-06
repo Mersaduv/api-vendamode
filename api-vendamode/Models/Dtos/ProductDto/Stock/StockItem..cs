@@ -1,4 +1,4 @@
-namespace api_vendamode.Models.Dtos.ProductDto.Stock;
+namespace api_vendace.Models.Dtos.ProductDto.Stock;
 
 public class StockItem
 {

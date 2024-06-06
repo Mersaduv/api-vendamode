@@ -1,6 +1,6 @@
-using api_vendamode.Models.Dtos;
+using api_vendace.Models.Dtos;
 
-namespace api_vendamode.Models.Dtos.ProductDto.Category;
+namespace api_vendace.Models.Dtos.ProductDto.Category;
 
 public class CategoryDTO : BaseClass<Guid>
 {
@@ -17,5 +17,5 @@ public class CategoryDTO : BaseClass<Guid>
     public bool IsDeleted { get; set; }
     public CategoryDTO? ParentCategory { get; set; }
     public List<CategoryDTO>? ChildCategories { get; set; }
-    public List<CategoryDTO>? Categories { get; set; }
+    public IEnumerable<CategoryDTO>? Categories { get; set; }
 }

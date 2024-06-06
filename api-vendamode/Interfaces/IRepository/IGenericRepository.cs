@@ -1,6 +1,6 @@
-using api_vendamode.Models;
+using api_vendace.Models;
 
-namespace api_vendamode.Interfaces.IRepository;
+namespace api_vendace.Interfaces.IRepository;
 
 public interface IGenericRepository<T> where T : BaseClass<int>
 {

@@ -1,4 +1,4 @@
-namespace api_vendamode.Models.Dtos.ProductDto.Category;
+namespace api_vendace.Models.Dtos.ProductDto.Category;
 public class CategoryLevels
 {
     public Guid Id { get; set; }

@@ -1,9 +1,9 @@
-using api_vendamode.Entities.Products;
-using api_vendamode.Models.Dtos;
-using api_vendamode.Models.Dtos.ProductDto;
-using api_vendamode.Utility;
+using api_vendace.Entities.Products;
+using api_vendace.Models.Dtos;
+using api_vendace.Models.Dtos.ProductDto;
+using api_vendace.Utility;
 
-namespace api_vendamode.Mapper;
+namespace api_vendace.Mapper;
 
 public static class GetProductMapper
 {

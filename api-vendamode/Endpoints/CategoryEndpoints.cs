@@ -1,10 +1,14 @@
-using api_vendamode.Const;
-using api_vendamode.Models;
+using api_vendace.Const;
+using api_vendace.Filter;
+using api_vendace.Models;
+using api_vendace.Models.Dtos.ProductDto.Category;
+using api_vendace.Models.Dtos.ProductDto.Feature;
 using api_vendamode.Models.Dtos.ProductDto.Category;
 using ApiAryanakala.Interfaces.IServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 
-namespace api_vendamode.Endpoints;
+namespace api_vendace.Endpoints;
 
 public static class CategoryEndpoints
 {
@@ -12,12 +16,22 @@ public static class CategoryEndpoints
     {
         var categoryGroup = apiGroup.MapGroup(Constants.Category);
 
-        apiGroup.MapGet(Constants.Categories, GetAllCategory);
+        apiGroup.MapGet(Constants.Categories, GetCategories);
+        apiGroup.MapGet(Constants.CategoriesTree, CategoriesTree).RequireAuthorization();
+
+        categoryGroup.MapGet("{id:guid}", GetCategory);
+        categoryGroup.MapGet("parentSub/{id:guid}", GetParentSubCategory);
+        categoryGroup.MapGet("subCategories/{id:guid}", GetSubCategory);
 
         categoryGroup.MapPost(string.Empty, CreateCategory)
         .Accepts<CategoryCreateDTO>("multipart/form-data");
 
-        categoryGroup.MapDelete("{id:int}", DeleteCategory);
+        categoryGroup.MapPost("update", UpdateCategory)
+        .Accepts<CategoryUpdateDTO>("multipart/form-data");
+
+        categoryGroup.MapPost($"feature-update", CategoryFeatureUpdate);
+
+        categoryGroup.MapDelete("{id:guid}", DeleteCategory);
 
         return apiGroup;
     }
@@ -32,13 +46,57 @@ public static class CategoryEndpoints
         return TypedResults.Ok(result);
     }
 
-    private async static Task<Ok<ServiceResponse<IEnumerable<CategoryDTO>>>> GetAllCategory(ICategoryServices categoryServices, ILogger<Program> _logger)
+    private async static Task<Ok<ServiceResponse<List<CategoryDTO>>>> GetParentSubCategory(ICategoryServices categoryServices, ILogger<Program> _logger, Guid id)
     {
-        _logger.Log(LogLevel.Information, "Getting all Categories");
+        _logger.Log(LogLevel.Information, "Getting parent SubCategories");
 
         // await AccessControl.CheckProductPermissionFlag(context , "product-get-all");
 
-        var result = await categoryServices.GetAllCategories(null, 10);
+        var result = await categoryServices.GetParentSubCategoryAsync(id);
+
+        return TypedResults.Ok(result);
+    }
+
+    private async static Task<Ok<ServiceResponse<List<CategoryDTO>>>> GetSubCategory(ICategoryServices categoryServices, ILogger<Program> _logger, Guid id)
+    {
+        _logger.Log(LogLevel.Information, "Getting SubCategories");
+
+        // await AccessControl.CheckProductPermissionFlag(context , "product-get-all");
+
+        var result = await categoryServices.GetSubCategoryAsync(id);
+
+        return TypedResults.Ok(result);
+    }
+
+    private async static Task<Ok<ServiceResponse<bool>>> CategoryFeatureUpdate(ICategoryServices categoryServices, ILogger<Program> _logger, [AsParameters] CategoryFeatureUpdateDTO categoryFeatureUpdate)
+    {
+        _logger.Log(LogLevel.Information, "Getting parent SubCategories");
+
+        // await AccessControl.CheckProductPermissionFlag(context , "product-get-all");
+
+        var result = await categoryServices.UpdateFeatureInCategory(categoryFeatureUpdate);
+
+        return TypedResults.Ok(result);
+    }
+
+    private async static Task<Ok<ServiceResponse<IEnumerable<CategoryDTO>>>> CategoriesTree(ICategoryServices categoryServices, ILogger<Program> _logger)
+    {
+        _logger.Log(LogLevel.Information, "Categories Tree");
+
+        // await AccessControl.CheckProductPermissionFlag(context , "product-get-all");
+
+        var result = await categoryServices.GetCategoriesTreeAsync();
+
+        return TypedResults.Ok(result);
+    }
+
+    private async static Task<Ok<ServiceResponse<CategoryResult>>> GetCategories(ICategoryServices categoryServices, ILogger<Program> _logger)
+    {
+        _logger.Log(LogLevel.Information, "Categories Tree");
+
+        // await AccessControl.CheckProductPermissionFlag(context , "product-get-all");
+
+        var result = await categoryServices.GetAllCategories();
 
         return TypedResults.Ok(result);
     }
@@ -50,6 +108,27 @@ public static class CategoryEndpoints
         // await AccessControl.CheckProductPermissionFlag(context , "product-get-all");
 
         var result = await categoryServices.Delete(id);
+
+        return TypedResults.Ok(result);
+    }
+
+    private async static Task<Ok<ServiceResponse<CategoryDTO>>> GetCategory(ICategoryServices categoryServices,
+  ILogger<Program> _logger, Guid id)
+    {
+        _logger.Log(LogLevel.Information, "Get Category");
+
+        // await AccessControl.CheckProductPermissionFlag(context , "product-get-all");
+
+        var result = await categoryServices.GetBy(id);
+
+        return TypedResults.Ok(result);
+    }
+
+    private async static Task<Ok<ServiceResponse<bool>>> UpdateCategory(ICategoryServices categoryServices, CategoryUpdateDTO categoryUpdate, ILogger<Program> _logger)
+    {
+        _logger.Log(LogLevel.Information, "Update Category");
+
+        var result = await categoryServices.UpdateCategory(categoryUpdate);
 
         return TypedResults.Ok(result);
     }

@@ -1,4 +1,4 @@
-namespace api_vendamode.Enums;
+namespace api_vendace.Enums;
 
 public enum OrderTypes
 {

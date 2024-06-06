@@ -1,5 +1,5 @@
 
-namespace api_vendamode.Models;
+namespace api_vendace.Models;
 
 public class ServiceResponse<T>
 {

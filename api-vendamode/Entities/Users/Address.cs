@@ -1,6 +1,6 @@
-using api_vendamode.Models;
+using api_vendace.Models;
 
-namespace api_vendamode.Entities.Users;
+namespace api_vendace.Entities.Users;
 
 public class Address : BaseClass<Guid>
 {

@@ -1,11 +1,12 @@
-using api_vendamode.Data;
-using api_vendamode.Entities.Users.Security;
-using api_vendamode.Models;
+using api_vendace.Data;
+using api_vendace.Entities.Users.Security;
+using api_vendace.Models;
+using api_vendamode.Interfaces.IServices;
 using Microsoft.EntityFrameworkCore;
 
-namespace api_vendamode.Services.Auth;
+namespace api_vendace.Services.Auth;
 
-public class RoleServices
+public class RoleServices : IRoleServices
 {
     private readonly ApplicationDbContext _context;
 

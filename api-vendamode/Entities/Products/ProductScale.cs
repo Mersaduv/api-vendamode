@@ -1,7 +1,7 @@
-using api_vendamode.Models;
-using api_vendamode.Models.Dtos.ProductDto.Sizes;
+using api_vendace.Models;
+using api_vendace.Models.Dtos.ProductDto.Sizes;
 
-namespace api_vendamode.Entities.Products;
+namespace api_vendace.Entities.Products;
 
 public class ProductScale : BaseClass<Guid>
 {

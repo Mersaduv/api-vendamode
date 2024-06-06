@@ -1,4 +1,4 @@
-namespace api_vendamode.Models.Dtos.AuthDto;
+namespace api_vendace.Models.Dtos.AuthDto;
 
 public class GenerateNewTokenDTO
 {

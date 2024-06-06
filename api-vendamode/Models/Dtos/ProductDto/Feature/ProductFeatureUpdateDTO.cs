@@ -1,4 +1,4 @@
-namespace api_vendamode.Models.Dtos.ProductDto.Feature;
+namespace api_vendace.Models.Dtos.ProductDto.Feature;
 
 public class ProductFeatureUpdateDTO
 {

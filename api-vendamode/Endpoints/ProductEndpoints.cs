@@ -1,13 +1,15 @@
-using api_vendamode.Const;
-using api_vendamode.Filter;
-using api_vendamode.Interfaces.IServices;
-using api_vendamode.Mapper;
-using api_vendamode.Models;
-using api_vendamode.Models.Dtos.ProductDto;
-using api_vendamode.Utility;
+using api_vendace.Const;
+using api_vendace.Entities.Products;
+using api_vendace.Filter;
+using api_vendace.Interfaces.IServices;
+using api_vendace.Mapper;
+using api_vendace.Models;
+using api_vendace.Models.Dtos.ProductDto;
+using api_vendace.Models.Query;
+using api_vendace.Utility;
 using Microsoft.AspNetCore.Http.HttpResults;
 
-namespace api_vendamode.Endpoints;
+namespace api_vendace.Endpoints;
 
 public static class ProductEndpoints
 {
@@ -15,19 +17,43 @@ public static class ProductEndpoints
     {
         var productsGroup = apiGroup.MapGroup(Constants.Products);
         var productGroup = apiGroup.MapGroup(Constants.Product);
+
         productsGroup.MapGet(string.Empty, GetAllProduct);
+
+        productsGroup.MapGet(Constants.Main, GetProductQuery);
+        apiGroup.MapGet(Constants.ProductList, GetProductList);
 
         productGroup.MapGet("/{id:guid}", GetProduct);
 
+        apiGroup.MapGet($"/{Constants.ImageApi}/{{entity}}/{{fileName}}", MediaEndpoint);
 
         var adminProductGroup = productGroup.MapGroup(string.Empty); //.RequireAuthorization();
+
         adminProductGroup.MapPost(string.Empty, CreateProduct)
-        .AddEndpointFilter<ModelValidationFilter<ProductCreateDTO>>()
         .Accepts<ProductCreateDTO>("multipart/form-data")
         .ProducesValidationProblem();
 
         return apiGroup;
     }
+
+    private async static Task<Ok<ServiceResponse<GetProductsResult>>> GetProductQuery([AsParameters] RequestQuery parameters, IProductServices productService, ILogger<Program> _logger)
+    {
+        _logger.Log(LogLevel.Information, "Get Products by Query");
+
+        var result = await productService.GetProductsPagination(parameters);
+
+        return TypedResults.Ok(result);
+    }
+
+    private async static Task<Ok<ServiceResponse<GetProductsResult>>> GetProductList([AsParameters] RequestQuery parameters, IProductServices productService, ILogger<Program> _logger)
+    {
+        _logger.Log(LogLevel.Information, "Get Products by Query");
+
+        var result = await productService.GetProducts(parameters);
+
+        return TypedResults.Ok(result);
+    }
+
 
     //Write
     private static async Task<Ok<ServiceResponse<bool>>> CreateProduct(IProductServices productServices,
@@ -51,7 +77,8 @@ public static class ProductEndpoints
 
         return TypedResults.Ok(result);
     }
-    private async static Task<Ok<ServiceResponse<GetAllResponse>>> GetAllProduct(IProductServices productService, ILogger<Program> _logger, HttpContext context)
+
+    private async static Task<Ok<ServiceResponse<IEnumerable<Product>>>> GetAllProduct(IProductServices productService, ILogger<Program> _logger, HttpContext context)
     {
         _logger.Log(LogLevel.Information, "Getting all Products");
 

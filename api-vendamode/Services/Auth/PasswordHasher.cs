@@ -1,13 +1,15 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace api_vendamode.Services.Auth;
+namespace api_vendace.Services.Auth;
 
 public interface IPasswordHasher
 {
     byte[] GenerateSalt();
     byte[] HashPassword(string password, byte[] salt);
     bool VerifyPassword(string password, byte[] hashedPassword, byte[] salt);
+    byte[] EncryptPassword(string password);
+    string DecryptPassword(byte[] cipherText);
 }
 
 public class PasswordHasher : IPasswordHasher
@@ -20,6 +22,12 @@ public class PasswordHasher : IPasswordHasher
     {
         _configuration = configuration;
         string encryptionKey = configuration.GetValue<string>("EncryptionKey") ?? "";
+
+        if (encryptionKey.Length < 32)
+        {
+            encryptionKey = encryptionKey.PadRight(32, '0');
+        }
+
         _key = Encoding.UTF8.GetBytes(encryptionKey.Substring(0, 32));
         _iv = Encoding.UTF8.GetBytes(encryptionKey.Substring(0, 16));
     }

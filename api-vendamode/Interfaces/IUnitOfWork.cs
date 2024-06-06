@@ -1,4 +1,4 @@
-﻿namespace api_vendamode.Interfaces
+﻿namespace api_vendace.Interfaces
 {
     public interface IUnitOfWork : IDisposable
     {

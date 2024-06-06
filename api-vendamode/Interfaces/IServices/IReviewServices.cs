@@ -1,8 +1,8 @@
-using api_vendamode.Models;
-using api_vendamode.Models.Dtos.ProductDto.Review;
-using api_vendamode.Models.Query;
+using api_vendace.Models;
+using api_vendace.Models.Dtos.ProductDto.Review;
+using api_vendace.Models.Query;
 
-namespace api_vendamode.Interfaces.IServices;
+namespace api_vendace.Interfaces.IServices;
 
 public interface IReviewServices
 {

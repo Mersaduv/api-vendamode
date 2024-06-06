@@ -1,16 +1,18 @@
-using api_vendamode.Data;
-using api_vendamode.Entities.Products;
-using api_vendamode.Interfaces;
-using api_vendamode.Models;
-using api_vendamode.Models.Dtos;
-using api_vendamode.Models.Dtos.ProductDto;
+using api_vendace.Data;
+using api_vendace.Entities;
+using api_vendace.Entities.Products;
+using api_vendace.Interfaces;
+using api_vendace.Models;
+using api_vendace.Models.Dtos;
+using api_vendace.Models.Dtos.ProductDto;
+using api_vendace.Models.Dtos.ProductDto.Category;
+using api_vendace.Models.Dtos.ProductDto.Feature;
+using api_vendace.Utility;
 using api_vendamode.Models.Dtos.ProductDto.Category;
-using api_vendamode.Models.Dtos.ProductDto.Feature;
-using api_vendamode.Utility;
 using ApiAryanakala.Interfaces.IServices;
 using Microsoft.EntityFrameworkCore;
 
-namespace api_vendamode.Services.Products;
+namespace api_vendace.Services.Products;
 
 public class CategoryServices : ICategoryServices
 {
@@ -29,7 +31,11 @@ public class CategoryServices : ICategoryServices
 
     public async Task<ServiceResponse<bool>> AddCategory(CategoryCreateDTO categoryCreate)
     {
-        if (await GetBy(categoryCreate.Name) != null)
+        var categoryInDb = await _context.Categories
+                                    .Include(c => c.Images)
+                                    .Include(c => c.ChildCategories)
+                                    .FirstOrDefaultAsync(c => c.Name == categoryCreate.Name);
+        if (categoryInDb != null)
         {
             return new ServiceResponse<bool>
             {
@@ -70,6 +76,8 @@ public class CategoryServices : ICategoryServices
             MainCategoryId = categoryCreate.MainCategoryId ?? null,
             ParentCategoryId = categoryCreate.ParentCategoryId ?? null,
             Level = categoryCreate.Level,
+            Created = DateTime.UtcNow,
+            LastUpdated = DateTime.UtcNow,
         };
 
         await _context.Categories.AddAsync(category);
@@ -154,7 +162,7 @@ public class CategoryServices : ICategoryServices
         };
     }
 
-    public async Task<ServiceResponse<IEnumerable<CategoryDTO>>> GetAllSubCategories()
+    public async Task<ServiceResponse<List<CategoryDTO>>> GetAllSubCategories()
     {
         var categories = await GetCategoriesAsync();
 
@@ -168,16 +176,16 @@ public class CategoryServices : ICategoryServices
         var categoriesTree = BuildCategoryTree(filteredCategories, sortedCategories);
 
         // Flatten the tree and select only the name and id properties
-        var categoriesDto = categoriesTree.Select(c => new CategoryDTO { Id = c.Id, Name = c.Name }).ToList();
+        var categoriesDto = categoriesTree.Select(c => new CategoryDTO { Id = c.Id, Name = c.Name, Level = c.Level }).ToList();
         foreach (var categoryDto in categoriesDto)
         {
             if (categoryDto.ChildCategories != null)
             {
-                categoriesDto.AddRange(categoryDto.ChildCategories.Select(c => new CategoryDTO { Id = c.Id, Name = c.Name }));
+                categoriesDto.AddRange(categoryDto.ChildCategories.Select(c => new CategoryDTO { Id = c.Id, Name = c.Name, Level = c.Level }));
             }
         }
 
-        return new ServiceResponse<IEnumerable<CategoryDTO>>
+        return new ServiceResponse<List<CategoryDTO>>
         {
             Data = categoriesDto
         };
@@ -208,7 +216,9 @@ public class CategoryServices : ICategoryServices
                 SubCategoryCount = allCategories.Count(c => c.ParentCategoryId == category.Id),
                 FeatureCount = category.ProductFeatures != null ? category.ProductFeatures.Count : 0,
                 SizeCount = category.ProductSizes != null && category.ProductSizes.ProductSizeValues != null ? category.ProductSizes.ProductSizeValues.Count : 0,
-                BrandCount = 0
+                BrandCount = 0,
+                Created = category.Created,
+                LastUpdated = category.LastUpdated
             };
 
             // Get child categories recursively
@@ -253,8 +263,7 @@ public class CategoryServices : ICategoryServices
             };
         }
 
-        category.IsDeleted = true;
-        _context.Categories.Update(category);
+        _context.Categories.Remove(category);
         await _context.SaveChangesAsync();
 
         return new ServiceResponse<bool>
@@ -366,12 +375,12 @@ public class CategoryServices : ICategoryServices
             };
         }
 
-        if (categoryFeatureDTO.Features != null)
+        if (categoryFeatureDTO.FeatureIds != null)
         {
-            foreach (var featureDTO in categoryFeatureDTO.Features)
+            foreach (var featureId in categoryFeatureDTO.FeatureIds)
             {
                 // Find the feature in the category's features
-                var feature = category.ProductFeatures?.FirstOrDefault(f => f.Id == featureDTO.Id);
+                var feature = await _context.ProductFeatures.FirstOrDefaultAsync(f => f.Id == featureId);
 
                 if (feature == null)
                 {
@@ -415,19 +424,23 @@ public class CategoryServices : ICategoryServices
                 Message = "دسته بندی مورد نظر یافت نشد"
             };
         }
-
+        var subCategoryList = (await GetAllSubCategories()).Data?.Where(c => c.Level > 0);
         var categoryDTO = new CategoryDTO
         {
             Id = category.Id,
+            Name = category.Name,
             IsActive = category.IsActive,
             Level = category.Level,
+
             ImagesSrc = category.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(category.Images.Select(img => new EntityImageDto
             {
                 Id = img.Id,
                 ImageUrl = img.ImageUrl ?? string.Empty,
                 Placeholder = img.Placeholder ?? string.Empty
             }).ToList(), nameof(Category)).First() : null,
-            Categories = category.Level > 0 ? await GetCategorList() : null
+            Categories = subCategoryList,
+            Created = category.Created,
+            LastUpdated = category.LastUpdated
         };
 
         return new ServiceResponse<CategoryDTO>
@@ -435,32 +448,6 @@ public class CategoryServices : ICategoryServices
             Data = categoryDTO,
             Success = true
         };
-    }
-
-    private async Task<List<CategoryDTO>> GetCategorList()
-    {
-        List<Category> getCategoryList = await _context.Categories.AsNoTracking().Include(c => c.ChildCategories).Include(c => c.Images).Include(c => c.ParentCategory).ToListAsync();
-
-        var getCategoryListDTO = new List<CategoryDTO>();
-
-        foreach (var category in getCategoryList)
-        {
-            var categoryDTO = new CategoryDTO
-            {
-                Id = category.Id,
-                Name = category.Name
-            };
-
-            getCategoryListDTO.Add(categoryDTO);
-
-            if (category.ChildCategories != null && category.ChildCategories.Any())
-            {
-                var childCategoriesDTO = GetChildCategories(category.ChildCategories);
-                getCategoryListDTO.AddRange(childCategoriesDTO);
-            }
-        }
-
-        return getCategoryListDTO;
     }
 
     private List<CategoryDTO> GetChildCategories(List<Category> childCategories)
@@ -487,7 +474,48 @@ public class CategoryServices : ICategoryServices
         return childCategoriesDTO;
     }
 
-    public Task<ServiceResponse<CategoryDTO?>> GetBy(string name)
+    public async Task<ServiceResponse<CategoryDTO>> GetBy(string name)
+    {
+        var category = await _context.Categories
+                                    .Include(c => c.Images)
+                                    .Include(c => c.ChildCategories)
+                                    .FirstOrDefaultAsync(c => c.Name == name);
+
+        if (category == null)
+        {
+            return new ServiceResponse<CategoryDTO>
+            {
+                Data = null,
+                Success = false,
+                Message = "دسته بندی مورد نظر یافت نشد"
+            };
+        }
+        var subCategoryList = (await GetAllSubCategories()).Data?.Where(c => c.Level > 0);
+        var categoryDTO = new CategoryDTO
+        {
+            Id = category.Id,
+            Name = category.Name,
+            IsActive = category.IsActive,
+            Level = category.Level,
+            ImagesSrc = category.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(category.Images.Select(img => new EntityImageDto
+            {
+                Id = img.Id,
+                ImageUrl = img.ImageUrl ?? string.Empty,
+                Placeholder = img.Placeholder ?? string.Empty
+            }).ToList(), nameof(Category)).First() : null,
+            Categories = subCategoryList,
+            Created = category.Created,
+            LastUpdated = category.LastUpdated
+        };
+
+        return new ServiceResponse<CategoryDTO>
+        {
+            Data = categoryDTO,
+            Success = true
+        };
+    }
+
+    public Task<ServiceResponse<List<CategoryDTO>>> GetParentSubCategoryAsync(Guid id)
     {
         throw new NotImplementedException();
     }
@@ -497,6 +525,7 @@ public class CategoryServices : ICategoryServices
         return await _context.Categories
                     .Include(c => c.ProductFeatures)
                     .Include(c => c.ProductSizes)
+                    .ThenInclude(c => c != null ? c.ProductSizeValues : default)
                     .Include(c => c.ChildCategories)
                     .Include(c => c.Images)
                     .AsNoTracking()
@@ -508,7 +537,50 @@ public class CategoryServices : ICategoryServices
         throw new NotImplementedException();
     }
 
+    public async Task<ServiceResponse<List<CategoryDTO>>> GetSubCategoryAsync(Guid parentId)
+    {
+        var category = await _context.Categories.Include(c => c.ChildCategories).FirstOrDefaultAsync(c => c.Id == parentId);
 
+        if (category is null)
+        {
+            return new ServiceResponse<List<CategoryDTO>>
+            {
+                Data = null,
+                Success = false,
+                Message = "دسته بندی پدر یافت نشد"
+            };
+        }
+
+        if (category.ChildCategories is null)
+        {
+            return new ServiceResponse<List<CategoryDTO>>
+            {
+                Data = null,
+                Success = false,
+                Message = "زیر دسته های مورد نظر یافت نشد"
+            };
+        }
+
+        var categoriesDto = category.ChildCategories.Select(c => new CategoryDTO
+        {
+            Id = category.Id,
+            Name = category.Name,
+            IsActive = category.IsActive,
+            Level = category.Level,
+            ImagesSrc = category.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(category.Images.Select(img => new EntityImageDto
+            {
+                Id = img.Id,
+                ImageUrl = img.ImageUrl ?? string.Empty,
+                Placeholder = img.Placeholder ?? string.Empty
+            }).ToList(), nameof(Category)).First() : null,
+            Created = category.Created,
+            LastUpdated = category.LastUpdated
+        }).ToList();
+        return new ServiceResponse<List<CategoryDTO>>
+        {
+            Data = categoriesDto
+        };
+    }
 
     public IEnumerable<Guid> GetAllChildCategoriesHelper(Guid parentCategoryId, List<Category> allCategories, List<Category> allChildCategories)
     {
@@ -520,9 +592,70 @@ public class CategoryServices : ICategoryServices
         throw new NotImplementedException();
     }
 
-    public Task<ServiceResponse<IEnumerable<CategoryDTO>>> GetAllCategories(int? page, int? pageSize)
+    public async Task<ServiceResponse<CategoryResult>> GetAllCategories()
     {
-        throw new NotImplementedException();
+        var categories = await GetCategoriesAsync();
+
+        // Convert entities to DTOs
+        var categoriesDto = categories.Select(category => new CategoryDTO
+        {
+            Id = category.Id,
+            Name = category.Name,
+            Level = category.Level,
+            IsActive = category.IsActive,
+            IsDeleted = category.IsDeleted,
+            ParentCategoryId = category.ParentCategoryId,
+            ImagesSrc = category.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(category.Images.Select(img => new EntityImageDto
+            {
+                Id = img.Id,
+                ImageUrl = img.ImageUrl ?? string.Empty,
+                Placeholder = img.Placeholder ?? string.Empty
+            }).ToList(), nameof(Category)).FirstOrDefault() : null,
+            Count = category.Products?.Count ?? 0,
+            FeatureCount = category.ProductFeatures?.Count ?? 0,
+            SizeCount = category.ProductSizes?.ProductSizeValues?.Count ?? 0,
+            BrandCount = 0,
+            Created = category.Created,
+            LastUpdated = category.LastUpdated
+        }).ToList();
+
+        // Method to find children recursively
+        List<CategoryDTO> GetCategoriesWithChildren(CategoryDTO parentCategory)
+        {
+            var children = categoriesDto
+                .Where(c => c.ParentCategoryId == parentCategory.Id)
+                .Select(childCategory =>
+                {
+                    childCategory.ChildCategories = GetCategoriesWithChildren(childCategory);
+                    return childCategory;
+                })
+                .ToList();
+
+            return children;
+        }
+
+        // Find root categories
+        var rootCategories = categoriesDto
+            .Where(c => c.ParentCategoryId == null)
+            .Select(rootCategory =>
+            {
+                rootCategory.ChildCategories = GetCategoriesWithChildren(rootCategory);
+                return rootCategory;
+            })
+            .ToList();
+
+        var result = new CategoryResult
+        {
+            CategoryDTO = categoriesDto,
+            CategoryList = rootCategories
+        };
+
+        return new ServiceResponse<CategoryResult>
+        {
+            Count = categories.Count,
+            Data = result
+        };
     }
+
 }
 

@@ -1,11 +1,11 @@
-using api_vendamode.Data;
-using api_vendamode.Entities.Users.Security;
-using api_vendamode.Interfaces;
-using api_vendamode.Interfaces.IServices;
-using api_vendamode.Models;
+using api_vendace.Data;
+using api_vendace.Entities.Users.Security;
+using api_vendace.Interfaces;
+using api_vendace.Interfaces.IServices;
+using api_vendace.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace api_vendamode.Services.Auth;
+namespace api_vendace.Services.Auth;
 
 public class PermissionServices : IPermissionServices
 {

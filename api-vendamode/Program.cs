@@ -1,12 +1,20 @@
-using api_vendamode.Configurations;
-using api_vendamode.Const;
-using api_vendamode.Data;
-using api_vendamode.Endpoints;
-using api_vendamode.Models;
+using api_vendace.Configurations;
+using api_vendace.Const;
+using api_vendace.Data;
+using api_vendace.Endpoints;
+using api_vendace.Models;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Mvc;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    ApplicationName = typeof(Program).Assembly.FullName,
+    ContentRootPath = Path.GetFullPath(Directory.GetCurrentDirectory()),
+    WebRootPath = Path.GetFullPath(Directory.GetCurrentDirectory()),
+    Args = args
+});
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -26,23 +34,37 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 });
 builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 builder.Services.AddJWT(appSettings);
+builder.Services.AddSwagger();
 builder.Services.AddOptions();
 builder.Services.AddCors();
+
 builder.Services.AddAuthentication();
 builder.Services.AddAuthorization();
 builder.Services.AddInfraUtility();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
+builder.Services.Configure<JsonOptions>(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+});
+
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// if (app.Environment.IsDevelopment())
+// {
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-app.UseCors(b => b.AllowAnyOrigin().AllowAnyMethod());
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Api Venda Mode");
+});
+// }
+app.UseCors(builder => builder
+    .AllowAnyOrigin()
+    .AllowAnyMethod()
+    .AllowAnyHeader());
+
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -51,7 +73,10 @@ var apiGroup = app.MapGroup(Constants.Api);
 apiGroup
     .MapProductApi()
     .MapProductFeatureApi()
-    .MapProductFeatureApi();
+    .MapBrandApi()
+    .MapCategoryApi()
+    .MapAuthApi()
+    .MapProductSizeApi();
 
 app.UseHttpsRedirection();
 using (var scope = app.Services.CreateScope())

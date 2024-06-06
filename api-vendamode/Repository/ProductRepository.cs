@@ -1,12 +1,12 @@
-using api_vendamode.Data;
-using api_vendamode.Entities.Products;
-using api_vendamode.Interfaces.IRepository;
-using api_vendamode.Interfaces.IServices;
-using api_vendamode.Mapper;
-using api_vendamode.Models;
-using api_vendamode.Utility;
+using api_vendace.Data;
+using api_vendace.Entities.Products;
+using api_vendace.Interfaces.IRepository;
+using api_vendace.Interfaces.IServices;
+using api_vendace.Mapper;
+using api_vendace.Models;
+using api_vendace.Utility;
 using Microsoft.EntityFrameworkCore;
-namespace api_vendamode.Repository;
+namespace api_vendace.Repository;
 
 public class ProductRepository : IProductRepository
 {
@@ -26,7 +26,7 @@ public class ProductRepository : IProductRepository
         var query = _context.Products
             .Include(x => x.Brand)
             .Include(x => x.Images)
-            .Include(x => x.Features)
+            .Include(x => x.ProductFeatures)
             .Include(x => x.ProductScale)
             .Include(x => x.Review)
             .Include(c => c.Category)
@@ -43,8 +43,20 @@ public class ProductRepository : IProductRepository
             Data = products,
             TotalCount = totalCount,
             CurrentPage = pageNumber,
-            PageSize = pageSize
+            PageSize = pageSize,
         };
+    }
+    public IQueryable<Product> GetQuery()
+    {
+        var query = _context.Products
+                            .Include(x => x.Brand)
+                            .Include(x => x.Images)
+                            .Include(x => x.ProductFeatures)
+                            .Include(x => x.ProductScale)
+                            .Include(x => x.Review)
+                            .Include(c => c.Category)
+                            .AsQueryable();
+        return query;
     }
 
     public async Task<IEnumerable<Product>> GetAllAsync()
@@ -52,7 +64,7 @@ public class ProductRepository : IProductRepository
         var productAll = _context.Products
         .Include(x => x.Brand)
         .Include(x => x.Images)
-        .Include(x => x.Features)
+        .Include(x => x.ProductFeatures)
         .Include(x => x.ProductScale)
         .Include(x => x.Review)
         .Include(c => c.Category)
@@ -72,7 +84,7 @@ public class ProductRepository : IProductRepository
         return await _context.Products
         .Include(x => x.Brand)
         .Include(x => x.Images)
-        .Include(x => x.Features)
+        .Include(x => x.ProductFeatures)
         .Include(x => x.ProductScale)
         .Include(x => x.Review)
         .Include(c => c.Category)
@@ -84,7 +96,7 @@ public class ProductRepository : IProductRepository
         return await _context.Products
         .Include(x => x.Brand)
         .Include(x => x.Images)
-        .Include(x => x.Features)
+        .Include(x => x.ProductFeatures)
         .Include(x => x.ProductScale)
         .Include(x => x.Review)
         .Include(c => c.Category)

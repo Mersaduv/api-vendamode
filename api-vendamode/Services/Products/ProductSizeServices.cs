@@ -1,13 +1,15 @@
 using System.Drawing;
-using api_vendamode.Data;
-using api_vendamode.Entities.Products;
-using api_vendamode.Interfaces;
-using api_vendamode.Interfaces.IServices;
-using api_vendamode.Models;
-using api_vendamode.Models.Dtos;
-using api_vendamode.Models.Dtos.ProductDto;
+using api_vendace.Data;
+using api_vendace.Entities;
+using api_vendace.Entities.Products;
+using api_vendace.Interfaces;
+using api_vendace.Interfaces.IServices;
+using api_vendace.Models;
+using api_vendace.Models.Dtos;
+using api_vendace.Models.Dtos.ProductDto;
+using api_vendace.Models.Dtos.ProductDto.Sizes;
+using api_vendace.Utility;
 using api_vendamode.Models.Dtos.ProductDto.Sizes;
-using api_vendamode.Utility;
 using Microsoft.EntityFrameworkCore;
 
 public class ProductSizeServices : IProductSizeServices
@@ -31,14 +33,14 @@ public class ProductSizeServices : IProductSizeServices
                                         .Include(s => s.ProductSize)
                                         .AsNoTracking()
                                         .ToListAsync();
-
+        var productSizeId = Guid.NewGuid();
         var sizeValueList = new List<ProductSizeValues>();
         if (productSizeCreate.ProductSizeValues is not null)
         {
             foreach (var sizeValue in productSizeCreate.ProductSizeValues)
             {
                 // Check if sizeValue.Name already exists in the database
-                var existingSizeValue = sizeValueListDatabase.FirstOrDefault(s => s.Name == sizeValue.Name);
+                var existingSizeValue = sizeValueListDatabase.FirstOrDefault(s => s.Name == sizeValue);
 
                 if (existingSizeValue != null)
                 {
@@ -51,8 +53,8 @@ public class ProductSizeServices : IProductSizeServices
                     var nameValue = new ProductSizeValues
                     {
                         Id = Guid.NewGuid(),
-                        Name = sizeValue.Name,
-                        ProductSizeId = sizeValue.ProductSizeId,
+                        Name = sizeValue,
+                        ProductSizeId = productSizeId,
                         Created = DateTime.UtcNow,
                         LastUpdated = DateTime.UtcNow
                     };
@@ -63,11 +65,12 @@ public class ProductSizeServices : IProductSizeServices
 
         var productSize = new ProductSize
         {
-            Id = Guid.NewGuid(),
+            Id = productSizeId,
             Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, ProductSize>>(productSizeCreate.Thumbnail!, nameof(ProductSize), false),
             SizeType = productSizeCreate.SizeType,
             ProductSizeValues = sizeValueList,
             CategoryId = productSizeCreate.CategoryId,
+
             Created = DateTime.UtcNow,
             LastUpdated = DateTime.UtcNow,
         };
@@ -175,7 +178,12 @@ public class ProductSizeServices : IProductSizeServices
                 Placeholder = img.Placeholder ?? string.Empty
             }).ToList(), nameof(ProductSize)).First() : null,
             SizeType = productSize.SizeType,
-            ProductSizeValues = productSize.ProductSizeValues,
+            ProductSizeValues = productSize.ProductSizeValues?.Select(s => new ProductSizeValuesDTO
+            {
+                Id = s.Id,
+                Name = s.Name,
+                ProductSizeId = s.ProductSizeId
+            }).ToList(),
             Created = productSize.Created,
             LastUpdated = productSize.LastUpdated
         };
@@ -217,8 +225,7 @@ public class ProductSizeServices : IProductSizeServices
                 Message = "سایز مورد نظر یافت نشد"
             };
         }
-        sizes.IsDeleted = true;
-        _context.Sizes.Update(sizes);
+        _context.Sizes.Remove(sizes);
         await _unitOfWork.SaveChangesAsync();
 
         return new ServiceResponse<bool>

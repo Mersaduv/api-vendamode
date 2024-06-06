@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 using System.Security.Cryptography;
-using api_vendamode.Entities;
-using api_vendamode.Interfaces;
-using api_vendamode.Models.Dtos;
+using api_vendace.Entities;
+using api_vendace.Interfaces;
+using api_vendace.Models.Dtos;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
-namespace api_vendamode.Utility;
+namespace api_vendace.Utility;
 
 public class ByteFileUtility
 {

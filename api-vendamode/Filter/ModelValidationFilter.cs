@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace api_vendamode.Filter;
+namespace api_vendace.Filter;
 
 public class ModelValidationFilter<T> : IEndpointFilter where T : class
 {

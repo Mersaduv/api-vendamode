@@ -3,16 +3,35 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Query;
-using api_vendamode.Entities.Products;
-using api_vendamode.Entities.Users;
-using api_vendamode.Entities.Users.Security;
-using api_vendamode.Entities;
+using api_vendace.Entities.Products;
+using api_vendace.Entities.Users;
+using api_vendace.Entities.Users.Security;
+using api_vendace.Entities;
+using api_vendace.Models.Dtos.ProductDto.Sizes;
 
-namespace api_vendamode.Data;
+namespace api_vendace.Data;
 public class ApplicationDbContext : DbContext
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
     {
+    }
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.Entity<Review>()
+            .HasMany(r => r.PositivePoints)
+            .WithOne()
+            .HasForeignKey("PositiveReviewId");
+
+        modelBuilder.Entity<Review>()
+            .HasMany(r => r.NegativePoints)
+            .WithOne()
+            .HasForeignKey("NegativeReviewId");
+
+        modelBuilder.Entity<Product>()
+            .HasOne(p => p.ProductScale)
+            .WithOne(ps => ps.Product)
+            .HasForeignKey<Product>(p => p.ProductScaleId);
     }
     public DbSet<User> Users { get; set; } = default!;
     public DbSet<UserRefreshToken> UserRefreshTokens { get; set; } = default!;
@@ -30,10 +49,13 @@ public class ApplicationDbContext : DbContext
     public DbSet<EntityImage<Guid, UserSpecification>> UserSpecificationImages { get; set; } = default!;
     public DbSet<Category> Categories { get; set; } = default!;
     public DbSet<Brand> Brands { get; set; } = default!;
-    public DbSet<ProductFeature> Features { get; set; } = default!;
+    public DbSet<ProductFeature> ProductFeatures { get; set; } = default!;
     public DbSet<FeatureValue> FeatureValues { get; set; } = default!;
     public DbSet<ProductSize> ProductSizes { get; set; } = default!;
     public DbSet<Sizes> Sizes { get; set; } = default!;
+    public DbSet<ProductScale> ProductScales { get; set; } = default!;
+    public DbSet<SizeIds> SizeIds { get; set; } = default!;
+    public DbSet<SizeModel> SizeModels { get; set; } = default!;
     public DbSet<ProductSizeValues> ProductSizeValues { get; set; } = default!;
     public DbSet<Review> Reviews { get; set; } = default!;
     // public DbSet<Details> Details { get; set; } = default!;

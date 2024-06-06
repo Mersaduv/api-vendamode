@@ -1,4 +1,4 @@
-namespace api_vendamode.Const;
+namespace api_vendace.Const;
 
 
 public static class Constants
@@ -10,13 +10,16 @@ public static class Constants
     public const string Auth = "auth";
     public const string User = "user";
     public const string Users = "users";
+    public const string AddUser = "add-user";
     public const string Cart = "cart";
     public const string ChangePassword = "changePassword";
     public const string Checkout = "checkout";
     public const string Count = "count";
     public const string Login = "login";
+    public const string Logout = "logout";
     public const string Payment = "payment";
     public const string Products = "products";
+    public const string ProductList = "product-list";
     public const string Features = "features";
     public const string Feature = "feature";
     public const string Sizes = "sizes";
@@ -45,6 +48,8 @@ public static class Constants
 
     public const string Address = "address";
     public const string Category = "category";
+    public const string SubCategories = "sub-categories";
+    public const string CategoriesTree = "categories-tree";
     public const string Categories = "categories";
     public const string Order = "order";
     public const string Product = "product";

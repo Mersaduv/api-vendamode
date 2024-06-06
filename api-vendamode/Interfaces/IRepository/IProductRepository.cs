@@ -1,12 +1,13 @@
-using api_vendamode.Entities.Products;
-using api_vendamode.Models;
+using api_vendace.Entities.Products;
+using api_vendace.Models;
 
-namespace api_vendamode.Interfaces.IRepository;
+namespace api_vendace.Interfaces.IRepository;
 
 public interface IProductRepository
 {
     Task<IEnumerable<Product>> GetAllAsync();
     Task<PaginatedList<Product>> GetPaginationAsync(int pageNumber, int pageSize);
+    IQueryable<Product> GetQuery();
     Task<int> GetTotalCountAsync();
     long GetLastProductCodeNumber();
     Task<Product?> GetAsyncBy(Guid id);

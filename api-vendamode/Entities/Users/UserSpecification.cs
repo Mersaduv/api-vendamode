@@ -1,20 +1,20 @@
-using api_vendamode.Entities.Products;
-using api_vendamode.Enums;
-using api_vendamode.Models;
+using api_vendace.Entities.Products;
+using api_vendace.Enums;
+using api_vendace.Models;
 
-namespace api_vendamode.Entities.Users;
+namespace api_vendace.Entities.Users;
 
 public class UserSpecification : BaseClass<Guid>
 {
     public Guid UserId { get; set; }
-    public string? Role { get; set; }
+    public List<string> Roles { get; set; } = default!;
     public bool IsActive { get; set; }
     public string? LastActivity { get; set; }
-    public List<EntityImage<Guid, User>>? Images { get; set; }
     public List<EntityImage<Guid, UserSpecification>>? IdCardImages { get; set; }
     public string MobileNumber { get; set; } = string.Empty;
     public byte[] Password { get; set; } = Array.Empty<byte>();
     public byte[] PasswordSalt { get; set; } = Array.Empty<byte>();
+    public byte[] PassCode { get; set; } = Array.Empty<byte>();
     public string FirstName { get; set; } = string.Empty;
     public string FamilyName { get; set; } = string.Empty;
     public string FatherName { get; set; } = string.Empty;

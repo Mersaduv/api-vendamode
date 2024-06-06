@@ -1,9 +1,9 @@
-using api_vendamode.Entities.Products;
-using api_vendamode.Models;
-using api_vendamode.Models.Dtos.ProductDto.Brand;
-using api_vendamode.Models.Query;
+using api_vendace.Entities.Products;
+using api_vendace.Models;
+using api_vendace.Models.Dtos.ProductDto.Brand;
+using api_vendace.Models.Query;
 
-namespace api_vendamode.Interfaces.IServices;
+namespace api_vendace.Interfaces.IServices;
 
 public interface IBrandServices
 {

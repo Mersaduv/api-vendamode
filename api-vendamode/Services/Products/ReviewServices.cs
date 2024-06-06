@@ -1,15 +1,16 @@
-using api_vendamode.Data;
-using api_vendamode.Entities.Products;
-using api_vendamode.Interfaces;
-using api_vendamode.Interfaces.IServices;
-using api_vendamode.Models;
-using api_vendamode.Models.Dtos;
-using api_vendamode.Models.Dtos.ProductDto.Review;
-using api_vendamode.Models.Query;
-using api_vendamode.Utility;
+using api_vendace.Data;
+using api_vendace.Entities;
+using api_vendace.Entities.Products;
+using api_vendace.Interfaces;
+using api_vendace.Interfaces.IServices;
+using api_vendace.Models;
+using api_vendace.Models.Dtos;
+using api_vendace.Models.Dtos.ProductDto.Review;
+using api_vendace.Models.Query;
+using api_vendace.Utility;
 using Microsoft.EntityFrameworkCore;
 
-namespace api_vendamode.Services.Products;
+namespace api_vendace.Services.Products;
 
 public class ReviewServices : IReviewServices
 {
@@ -100,8 +101,8 @@ public class ReviewServices : IReviewServices
 
     public async Task<ServiceResponse<Pagination<ReviewDto>>> GetProductReviews(Guid id, RequestQuery requestQuery)
     {
-        var pageNumber =requestQuery.PageNumber ?? 1;
-        var pageSize =requestQuery.PageSize;
+        var pageNumber = requestQuery.PageNumber ?? 1;
+        var pageSize = requestQuery.PageSize;
         var skipCount = (pageNumber - 1) * pageSize;
         var reviews = await _context.Reviews
             .Where(r => r.ProductId == id)
@@ -116,7 +117,7 @@ public class ReviewServices : IReviewServices
                 NegativePoints = r.NegativePoints,
                 PositivePoints = r.PositivePoints,
                 Rating = r.Rating,
-                UserName = r.User.UserName,
+                UserName = r.User.UserSpecification.FirstName + " " + r.User.UserSpecification.FamilyName,
                 Created = r.Created,
                 LastUpdated = r.LastUpdated
             })
