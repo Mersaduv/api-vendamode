@@ -7,6 +7,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
+using api_vendamode.Endpoints;
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
@@ -52,14 +53,14 @@ builder.Services.Configure<JsonOptions>(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-// if (app.Environment.IsDevelopment())
-// {
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+if (app.Environment.IsDevelopment())
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Api Venda Mode");
-});
-// }
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Api Venda Mode");
+    });
+}
 app.UseCors(builder => builder
     .AllowAnyOrigin()
     .AllowAnyMethod()
@@ -76,9 +77,11 @@ apiGroup
     .MapBrandApi()
     .MapCategoryApi()
     .MapAuthApi()
-    .MapProductSizeApi();
+    .MapProductSizeApi()
+    .MapAddressApi()
+    .MapSliderApi();
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

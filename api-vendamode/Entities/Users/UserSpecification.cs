@@ -10,6 +10,7 @@ public class UserSpecification : BaseClass<Guid>
     public List<string> Roles { get; set; } = default!;
     public bool IsActive { get; set; }
     public string? LastActivity { get; set; }
+    public string Gender { get; set; } = string.Empty;
     public List<EntityImage<Guid, UserSpecification>>? IdCardImages { get; set; }
     public string MobileNumber { get; set; } = string.Empty;
     public byte[] Password { get; set; } = Array.Empty<byte>();
@@ -30,4 +31,5 @@ public class UserSpecification : BaseClass<Guid>
     public string BankAccountNumber { get; set; } = string.Empty;
     public string ShabaNumber { get; set; } = string.Empty;
     public string Note { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
 }

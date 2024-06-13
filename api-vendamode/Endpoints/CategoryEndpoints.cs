@@ -4,9 +4,11 @@ using api_vendace.Models;
 using api_vendace.Models.Dtos.ProductDto.Category;
 using api_vendace.Models.Dtos.ProductDto.Feature;
 using api_vendamode.Models.Dtos.ProductDto.Category;
-using ApiAryanakala.Interfaces.IServices;
+using api_vendamode.Interfaces.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
+using api_vendamode.Models.Query;
+using static api_vendace.Services.Products.CategoryServices;
 
 namespace api_vendace.Endpoints;
 
@@ -17,11 +19,12 @@ public static class CategoryEndpoints
         var categoryGroup = apiGroup.MapGroup(Constants.Category);
 
         apiGroup.MapGet(Constants.Categories, GetCategories);
+        apiGroup.MapGet($"{Constants.Categories}/parents", GetCategories);
         apiGroup.MapGet(Constants.CategoriesTree, CategoriesTree).RequireAuthorization();
 
         categoryGroup.MapGet("{id:guid}", GetCategory);
         categoryGroup.MapGet("parentSub/{id:guid}", GetParentSubCategory);
-        categoryGroup.MapGet("subCategories/{id:guid}", GetSubCategory);
+        categoryGroup.MapGet("subCategories", GetSubCategory);
 
         categoryGroup.MapPost(string.Empty, CreateCategory)
         .Accepts<CategoryCreateDTO>("multipart/form-data");
@@ -57,13 +60,13 @@ public static class CategoryEndpoints
         return TypedResults.Ok(result);
     }
 
-    private async static Task<Ok<ServiceResponse<List<CategoryDTO>>>> GetSubCategory(ICategoryServices categoryServices, ILogger<Program> _logger, Guid id)
+    private async static Task<Ok<ServiceResponse<SubCategoryResult>>> GetSubCategory(ICategoryServices categoryServices, ILogger<Program> _logger,  [AsParameters] RequestSubCategory requestSub)
     {
         _logger.Log(LogLevel.Information, "Getting SubCategories");
 
         // await AccessControl.CheckProductPermissionFlag(context , "product-get-all");
 
-        var result = await categoryServices.GetSubCategoryAsync(id);
+        var result = await categoryServices.GetSubCategoryAsync(requestSub);
 
         return TypedResults.Ok(result);
     }

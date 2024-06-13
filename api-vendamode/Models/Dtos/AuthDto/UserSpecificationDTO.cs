@@ -8,10 +8,12 @@ public class UserSpecificationDTO : BaseClass<Guid>
     public Guid UserId { get; set; }
     public UserTypes UserType { get; set; }
     public List<Role>? Roles { get; set; }
+    public string Gender { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public EntityImageDto? ImageScr { get; set; }
     public EntityImageDto? IdCardImageSrc { get; set; }
     public string MobileNumber { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
     public string PassCode { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
     public string FamilyName { get; set; } = string.Empty;

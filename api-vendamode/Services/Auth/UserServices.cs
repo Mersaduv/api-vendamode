@@ -17,6 +17,7 @@ using api_vendace.Utility;
 using api_vendace.Entities;
 using api_vendace.Models.Query;
 using api_vendace.Models.Dtos;
+using api_vendamode.Models.Dtos.AuthDto;
 
 namespace api_vendace.Services.Auth;
 
@@ -154,6 +155,7 @@ public class UserServices : IUserServices
                 Id = Guid.NewGuid(),
                 UserId = userId,
                 MobileNumber = mobileNumber,
+                Roles = new List<string> { defaultRole.Title },
                 Password = hashedPassword,
                 PasswordSalt = passwordSalt,
                 PassCode = passCode,
@@ -162,6 +164,7 @@ public class UserServices : IUserServices
             };
             var user = new User
             {
+                Id = userId,
                 UserSpecification = specification,
                 Roles = new List<Role> { defaultRole },
                 Created = DateTime.UtcNow,
@@ -457,10 +460,10 @@ public class UserServices : IUserServices
 
     public async Task<ServiceResponse<Pagination<UserDTO>>> GetUsers(RequestQuery requestQuery)
     {
+        var pageSize = requestQuery.PageSize ?? 15;
         var totalCount = await _context.Users.CountAsync();
-        var lastPage = (int)Math.Ceiling((double)totalCount / requestQuery.PageSize);
+        var lastPage = (int)Math.Ceiling((double)totalCount / pageSize);
         var pageNumber = requestQuery.PageNumber ?? 1;
-        var pageSize = requestQuery.PageSize;
         var skipCount = (pageNumber - 1) * pageSize;
         var users = await _context.Users.Include(us => us.UserSpecification)
             .Skip(skipCount)
@@ -476,8 +479,9 @@ public class UserServices : IUserServices
                 Placeholder = img.Placeholder ?? string.Empty
             }).ToList(), nameof(User)).First() : null,
             FullName = user.UserSpecification != null ? user.UserSpecification.FirstName : string.Empty + " " + user.UserSpecification!.FamilyName,
-            RoleNames = user.Roles.Select(role => role.Title).ToList(),
+            Roles = user.UserSpecification.Roles,
             MobileNumber = user.UserSpecification.MobileNumber,
+            Email = user.UserSpecification.Email,
             LastActivity = user.UserSpecification.LastActivity,
             OrderCount = 0,
             City = user.UserSpecification.City,
@@ -547,70 +551,79 @@ public class UserServices : IUserServices
     public async Task<ServiceResponse<UserDTO>> GetUserBy(Guid userId)
     {
         var data = await _context.Users
-            .Include(u => u.Roles)
+            .Include(u => u.Addresses)
+                .ThenInclude(a => a.Province)
+            .Include(u => u.Addresses)
+                .ThenInclude(a => a.City)
             .Include(u => u.Images)
             .Include(u => u.UserSpecification)
-            .ThenInclude(u => u.IdCardImages)
+                .ThenInclude(us => us.IdCardImages)
             .FirstOrDefaultAsync(u => u.Id == userId);
 
-            var user = new UserDTO {
-                Id = data!.Id,
-                ImageSrc = data.UserSpecification != null && data.Images?.Count > 0  ? _byteFileUtility.GetEncryptedFileActionUrl(data.Images.Select(img => new EntityImageDto
+
+        var user = new UserDTO
+        {
+            Id = data!.Id,
+            ImageSrc = data.UserSpecification != null && data.Images?.Count > 0 ? _byteFileUtility.GetEncryptedFileActionUrl(data.Images.Select(img => new EntityImageDto
+            {
+                Id = img.Id,
+                ImageUrl = img.ImageUrl ?? string.Empty,
+                Placeholder = img.Placeholder ?? string.Empty
+            }).ToList(), nameof(User)).First() : null,
+            FullName = data.UserSpecification != null ? data.UserSpecification!.FirstName + " " + data.UserSpecification!.FamilyName : string.Empty,
+            Roles = data.UserSpecification?.Roles,
+            MobileNumber = data.UserSpecification!.MobileNumber,
+            Email = data.UserSpecification.Email,
+            LastActivity = data.UserSpecification.LastActivity,
+            OrderCount = 0,
+            City = data.UserSpecification.City,
+            Wallet = false,
+            IsActive = data.UserSpecification.IsActive,
+            UserSpecification = new UserSpecificationDTO
+            {
+                UserId = data.UserSpecification.UserId,
+                Id = data.UserSpecification.Id,
+                UserType = data.UserType,
+                Roles = data.Roles.ToList(),
+                Gender = data.UserSpecification.Gender,
+                IsActive = data.UserSpecification.IsActive,
+                ImageScr = data.Images?.Count > 0 ? _byteFileUtility.GetEncryptedFileActionUrl(data.Images.Select(img => new EntityImageDto
                 {
                     Id = img.Id,
                     ImageUrl = img.ImageUrl ?? string.Empty,
                     Placeholder = img.Placeholder ?? string.Empty
                 }).ToList(), nameof(User)).First() : null,
-                FullName = data.UserSpecification != null ? data.UserSpecification!.FirstName + " " + data.UserSpecification!.FamilyName : string.Empty,
-                RoleNames = data.Roles.Select(role => role.Title).ToList(),
-                MobileNumber = data.UserSpecification!.MobileNumber,
-                LastActivity = data.UserSpecification.LastActivity,
-                OrderCount = 0,
-                City = data.UserSpecification.City,
-                Wallet = false,
-                IsActive = data.UserSpecification.IsActive,
-                UserSpecification = new UserSpecificationDTO
+                IdCardImageSrc = data.UserSpecification?.IdCardImages?.Count > 0 ? _byteFileUtility.GetEncryptedFileActionUrl(data.UserSpecification.IdCardImages.Select(img => new EntityImageDto
                 {
-                    UserId = data.UserSpecification.UserId,
-                    Id = data.UserSpecification.Id,
-                    UserType = data.UserType,
-                    Roles = data.Roles.ToList(),
-                    IsActive = data.UserSpecification.IsActive,
-                    ImageScr = data.Images?.Count > 0 ? _byteFileUtility.GetEncryptedFileActionUrl(data.Images.Select(img => new EntityImageDto
-                    {
-                        Id = img.Id,
-                        ImageUrl = img.ImageUrl ?? string.Empty,
-                        Placeholder = img.Placeholder ?? string.Empty
-                    }).ToList(), nameof(User)).First() : null,
-                    IdCardImageSrc = data.UserSpecification?.IdCardImages?.Count > 0 ? _byteFileUtility.GetEncryptedFileActionUrl(data.UserSpecification.IdCardImages.Select(img => new EntityImageDto
-                    {
-                        Id = img.Id,
-                        ImageUrl = img.ImageUrl ?? string.Empty,
-                        Placeholder = img.Placeholder ?? string.Empty
-                    }).ToList(), nameof(UserSpecification)).First() : null,
-                    MobileNumber = data.UserSpecification!.MobileNumber,
-                    PassCode = _passwordHasher.DecryptPassword(data.UserSpecification.PassCode),
-                    FirstName = data.UserSpecification.FirstName,
-                    FamilyName = data.UserSpecification.FamilyName,
-                    FatherName = data.UserSpecification.FatherName,
-                    TelePhone = data.UserSpecification.TelePhone,
-                    Province = data.UserSpecification.Province,
-                    City = data.UserSpecification.City,
-                    PostalCode = data.UserSpecification.PostalCode,
-                    FirstAddress = data.UserSpecification.FirstAddress,
-                    SecondAddress = data.UserSpecification.SecondAddress,
-                    BirthDate = data.UserSpecification.BirthDate,
-                    IdNumber = data.UserSpecification.IdNumber,
-                    NationalCode = data.UserSpecification.NationalCode,
-                    BankAccountNumber = data.UserSpecification.BankAccountNumber,
-                    ShabaNumber = data.UserSpecification.ShabaNumber,
-                    Note = data.UserSpecification.Note,
-                    Created = data.UserSpecification.Created,
-                    LastUpdated = data.UserSpecification.LastUpdated
-                },
-                Created = data.Created,
-                LastUpdated = data.LastUpdated
-            };
+                    Id = img.Id,
+                    ImageUrl = img.ImageUrl ?? string.Empty,
+                    Placeholder = img.Placeholder ?? string.Empty
+                }).ToList(), nameof(UserSpecification)).First() : null,
+                MobileNumber = data.UserSpecification!.MobileNumber,
+                Email = data.UserSpecification.Email,
+                PassCode = _passwordHasher.DecryptPassword(data.UserSpecification.PassCode),
+                FirstName = data.UserSpecification.FirstName,
+                FamilyName = data.UserSpecification.FamilyName,
+                FatherName = data.UserSpecification.FatherName,
+                TelePhone = data.UserSpecification.TelePhone,
+                Province = data.UserSpecification.Province,
+                City = data.UserSpecification.City,
+                PostalCode = data.UserSpecification.PostalCode,
+                FirstAddress = data.UserSpecification.FirstAddress,
+                SecondAddress = data.UserSpecification.SecondAddress,
+                BirthDate = data.UserSpecification.BirthDate,
+                IdNumber = data.UserSpecification.IdNumber,
+                NationalCode = data.UserSpecification.NationalCode,
+                BankAccountNumber = data.UserSpecification.BankAccountNumber,
+                ShabaNumber = data.UserSpecification.ShabaNumber,
+                Note = data.UserSpecification.Note,
+                Created = data.UserSpecification.Created,
+                LastUpdated = data.UserSpecification.LastUpdated
+            },
+            Addresses = data.Addresses,
+            Created = data.Created,
+            LastUpdated = data.LastUpdated
+        };
 
         return new ServiceResponse<UserDTO>
         {
@@ -626,6 +639,45 @@ public class UserServices : IUserServices
         return new ServiceResponse<UserDTO>
         {
             Data = result
+        };
+    }
+
+    public async Task<ServiceResponse<Guid>> EditUserProfileAsync(UserProfileUpdateDTO userProfileUpdate)
+    {
+        var userId = GetUserId();
+        var user = await _context.Users
+                                .Include(u => u.Roles)
+                                .Include(u => u.Images)
+                                .Include(u => u.UserSpecification)
+                                .ThenInclude(u => u.IdCardImages)
+                                .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+        {
+
+            return new ServiceResponse<Guid>
+            {
+                Success = false,
+                Message = "کاربری با این آیدی پیدا نشد",
+            };
+        }
+
+        user.UserSpecification.MobileNumber = userProfileUpdate.MobileNumber;
+        user.UserSpecification.Gender = userProfileUpdate.Gender;
+        user.UserSpecification.FirstName = userProfileUpdate.FirstName;
+        user.UserSpecification.FamilyName = userProfileUpdate.FamilyName;
+        user.UserSpecification.NationalCode = userProfileUpdate.NationalCode;
+        user.UserSpecification.BirthDate = userProfileUpdate.BirthDate;
+        user.UserSpecification.BankAccountNumber = userProfileUpdate.BankAccountNumber;
+        user.UserSpecification.ShabaNumber = userProfileUpdate.ShabaNumber;
+        user.UserSpecification.Email = userProfileUpdate.Email;
+
+        _context.Users.Update(user);
+        await _unitOfWork.SaveChangesAsync();
+
+        return new ServiceResponse<Guid>
+        {
+            Data = userId
         };
     }
 }

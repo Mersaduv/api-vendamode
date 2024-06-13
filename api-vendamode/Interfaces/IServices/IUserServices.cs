@@ -2,6 +2,7 @@ using api_vendace.Entities.Users;
 using api_vendace.Models;
 using api_vendace.Models.Dtos.AuthDto;
 using api_vendace.Models.Query;
+using api_vendamode.Models.Dtos.AuthDto;
 
 namespace api_vendace.Interfaces.IServices;
 
@@ -9,6 +10,7 @@ public interface IUserServices
 {
     Task<ServiceResponse<bool>> CreateUserAsync(UserCreateDTO userCreate);
     Task<ServiceResponse<Guid>> RegisterUserAsync(string mobileNumber, string passCode);
+    Task<ServiceResponse<Guid>> EditUserProfileAsync(UserProfileUpdateDTO userProfileUpdate);
     Task<ServiceResponse<LoginDTO>> AuthenticateUserAsync(string mobileNumber, string plainPassword);
     Task<ServiceResponse<LoginDTO>> GetUserInfo(string mobileNumber,HttpContext context);
     Task<ServiceResponse<UserDTO>> GetUserBy(Guid userId);

@@ -1,5 +1,4 @@
 using System.Text;
-using api_vendace;
 using api_vendace.Framework;
 using api_vendace.Interfaces;
 using api_vendace.Interfaces.IRepository;
@@ -10,7 +9,8 @@ using api_vendace.Services.Auth;
 using api_vendace.Services.Products;
 using api_vendace.Utility;
 using api_vendamode.Interfaces.IServices;
-using ApiAryanakala.Interfaces.IServices;
+using api_vendamode.Services;
+using api_vendamode.Services.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -35,7 +35,9 @@ public static class DIRegister
                 .AddScoped<IFeatureServices, FeatureServices>()
                 .AddScoped<IProductSizeServices, ProductSizeServices>()
                 .AddScoped<IPermissionServices, PermissionServices>()
-                .AddScoped<IRoleServices, RoleServices>();
+                .AddScoped<IRoleServices, RoleServices>()
+                .AddScoped<IAddressServices, AddressServices>()
+                .AddScoped<ISliderServices, SliderServices>();
         // services.AddScoped<IPaymentService, PaymentService>();
     }
 

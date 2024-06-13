@@ -102,7 +102,7 @@ public class ReviewServices : IReviewServices
     public async Task<ServiceResponse<Pagination<ReviewDto>>> GetProductReviews(Guid id, RequestQuery requestQuery)
     {
         var pageNumber = requestQuery.PageNumber ?? 1;
-        var pageSize = requestQuery.PageSize;
+        var pageSize = requestQuery.PageSize ?? 15;
         var skipCount = (pageNumber - 1) * pageSize;
         var reviews = await _context.Reviews
             .Where(r => r.ProductId == id)

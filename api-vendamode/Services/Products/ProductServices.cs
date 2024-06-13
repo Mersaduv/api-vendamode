@@ -13,6 +13,7 @@ using api_vendace.Models.Dtos.ProductDto.Stock;
 using api_vendace.Models.Query;
 using api_vendace.Utility;
 using api_vendamode.Models.Dtos.ProductDto.Sizes;
+using api_vendamode.Interfaces.IServices;
 using Microsoft.EntityFrameworkCore;
 
 public class ProductServices : IProductServices
@@ -20,15 +21,17 @@ public class ProductServices : IProductServices
 
     private readonly ApplicationDbContext _context;
     private readonly IProductRepository _productRepository;
+    private readonly ICategoryServices _categoryServices;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ByteFileUtility _byteFileUtility;
 
-    public ProductServices(IProductRepository productRepository, IUnitOfWork unitOfWork, ByteFileUtility byteFileUtility, ApplicationDbContext context)
+    public ProductServices(IProductRepository productRepository, IUnitOfWork unitOfWork, ByteFileUtility byteFileUtility, ApplicationDbContext context, ICategoryServices categoryServices)
     {
         _productRepository = productRepository;
         _unitOfWork = unitOfWork;
         _byteFileUtility = byteFileUtility;
         _context = context;
+        _categoryServices = categoryServices;
     }
     //admin
     public async Task<ServiceResponse<bool>> CreateProduct(ProductCreateDTO productCreateDTO)
@@ -167,7 +170,7 @@ public class ProductServices : IProductServices
         try
         {
             int pageNumber = requestQuery.PageNumber ?? 1;
-            int pageSize = requestQuery.PageSize;
+            int pageSize = requestQuery.PageSize ?? 15;
 
             var paginatedProducts = await _productRepository.GetPaginationAsync(pageNumber, pageSize);
             var productList = paginatedProducts.Data.ToList();
@@ -220,16 +223,32 @@ public class ProductServices : IProductServices
         try
         {
             int pageNumber = requestQuery.PageNumber ?? 1;
-            int pageSize = requestQuery.PageSize;
+            int pageSize = requestQuery.PageSize ?? 15;
 
-            // Apply filtering logic based on the query parameters
-            var productPaginationList = await _productRepository.GetPaginationAsync(pageNumber, pageSize);
+            // Initial query
             var query = _productRepository.GetQuery();
+
+            // Category filter
             if (!string.IsNullOrEmpty(requestQuery.Category))
             {
-                query = query.Where(p => p.Category!.Name == requestQuery.Category);
+                var categoryResponse = await _categoryServices.GetBySlugAsync(requestQuery.Category);
+                if (categoryResponse.Success && categoryResponse.Data != null)
+                {
+                    var category = categoryResponse.Data;
+                    var categoryIds = new List<Guid> { category.Id };
+                    categoryIds.AddRange(GetAllSubCategoryIds(category));
+
+                    query = query.Where(p => categoryIds.Contains(p.CategoryId));
+                }
             }
 
+            // Search filter
+            if (!string.IsNullOrEmpty(requestQuery.Search))
+            {
+                query = query.Where(p => p.Title.Contains(requestQuery.Search));
+            }
+
+            // Price filter
             if (requestQuery.MinPrice.HasValue)
             {
                 query = query.Where(p => p.Price >= requestQuery.MinPrice.Value);
@@ -240,6 +259,19 @@ public class ProductServices : IProductServices
                 query = query.Where(p => p.Price <= requestQuery.MaxPrice.Value);
             }
 
+            // InStock filter
+            if (requestQuery.InStock.HasValue && requestQuery.InStock.Value)
+            {
+                query = query.Where(p => p.InStock >= 1);
+            }
+
+            // Discount filter
+            if (requestQuery.Discount.HasValue && requestQuery.Discount.Value)
+            {
+                query = query.Where(p => p.Discount >= 1 && p.InStock >= 1);
+            }
+
+            // Feature filters
             if ((requestQuery.FeatureIds?.Any() ?? false) && (requestQuery.FeatureValueIds?.Any() ?? false))
             {
                 var featureFilters = requestQuery.FeatureIds.Concat(requestQuery.FeatureValueIds).ToList();
@@ -250,6 +282,7 @@ public class ProductServices : IProductServices
                 }
             }
 
+            // Sort
             if (!string.IsNullOrEmpty(requestQuery.SortBy))
             {
                 if (requestQuery.Sort?.ToLower() == "desc")
@@ -262,17 +295,22 @@ public class ProductServices : IProductServices
                 }
             }
 
+            // Pagination and data retrieval
             var totalCount = await query.CountAsync();
             var paginatedProducts = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
 
             var productDtoList = new List<ProductDTO>();
-
             foreach (var product in paginatedProducts)
             {
                 var result = await BuildProductResponse(product);
                 productDtoList.Add(result);
             }
 
+            // Calculate min and max price for the filtered products in stock
+            var mainMaxPrice = await query.Where(p => p.InStock >= 1).MaxAsync(p => (double?)p.Price) ?? 0;
+            var mainMinPrice = await query.Where(p => p.InStock >= 1).MinAsync(p => (double?)p.Price) ?? 0;
+
+            // Prepare pagination information
             var pagination = new Pagination<ProductDTO>
             {
                 CurrentPage = pageNumber,
@@ -285,14 +323,16 @@ public class ProductServices : IProductServices
                 TotalCount = totalCount
             };
 
+            // Prepare the result
             var results = new GetProductsResult
             {
                 ProductsLength = totalCount,
-                MainMaxPrice = paginatedProducts.Max(p => p.Price),
-                MainMinPrice = paginatedProducts.Min(p => p.Price),
+                MainMaxPrice = mainMaxPrice,
+                MainMinPrice = mainMinPrice,
                 Pagination = pagination
             };
 
+            // Return the successful response
             return new ServiceResponse<GetProductsResult>
             {
                 Data = results,
@@ -301,6 +341,7 @@ public class ProductServices : IProductServices
         }
         catch (Exception)
         {
+            // Return the error response
             return new ServiceResponse<GetProductsResult>
             {
                 Success = false,
@@ -308,6 +349,116 @@ public class ProductServices : IProductServices
             };
         }
     }
+
+    private List<Guid> GetAllSubCategoryIds(CategoryDTO category)
+    {
+        var categoryIds = new List<Guid> { category.Id };
+
+        if (category.Categories != null && category.Categories.Any())
+        {
+            foreach (var subCategory in category.Categories)
+            {
+                categoryIds.AddRange(GetAllSubCategoryIds(subCategory));
+            }
+        }
+
+        return categoryIds;
+    }
+
+
+    // public async Task<ServiceResponse<GetProductsResult>> GetProducts(RequestQuery requestQuery)
+    // {
+    //     try
+    //     {
+    //         int pageNumber = requestQuery.PageNumber ?? 1;
+    //         int pageSize = requestQuery.PageSize;
+
+    //         // Apply filtering logic based on the query parameters
+    //         var productPaginationList = await _productRepository.GetPaginationAsync(pageNumber, pageSize);
+    //         var query = _productRepository.GetQuery();
+    //         if (!string.IsNullOrEmpty(requestQuery.Category))
+    //         {
+    //             query = query.Where(p => p.Category!.Name == requestQuery.Category);
+    //         }
+
+    //         if (requestQuery.MinPrice.HasValue)
+    //         {
+    //             query = query.Where(p => p.Price >= requestQuery.MinPrice.Value);
+    //         }
+
+    //         if (requestQuery.MaxPrice.HasValue)
+    //         {
+    //             query = query.Where(p => p.Price <= requestQuery.MaxPrice.Value);
+    //         }
+
+    //         if ((requestQuery.FeatureIds?.Any() ?? false) && (requestQuery.FeatureValueIds?.Any() ?? false))
+    //         {
+    //             var featureFilters = requestQuery.FeatureIds.Concat(requestQuery.FeatureValueIds).ToList();
+    //             foreach (var featureFilter in featureFilters)
+    //             {
+    //                 query = query.Where(p => p.ProductFeatures != null && p.ProductFeatures
+    //                     .Any(f => f.Id == featureFilter && f.Values != null && f.Values.Any(v => v.Id == featureFilter)));
+    //             }
+    //         }
+
+    //         if (!string.IsNullOrEmpty(requestQuery.SortBy))
+    //         {
+    //             if (requestQuery.Sort?.ToLower() == "desc")
+    //             {
+    //                 query = query.OrderByDescending(p => EF.Property<object>(p, requestQuery.SortBy));
+    //             }
+    //             else
+    //             {
+    //                 query = query.OrderBy(p => EF.Property<object>(p, requestQuery.SortBy));
+    //             }
+    //         }
+
+    //         var totalCount = await query.CountAsync();
+    //         var paginatedProducts = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
+
+    //         var productDtoList = new List<ProductDTO>();
+
+    //         foreach (var product in paginatedProducts)
+    //         {
+    //             var result = await BuildProductResponse(product);
+    //             productDtoList.Add(result);
+    //         }
+
+    //         var pagination = new Pagination<ProductDTO>
+    //         {
+    //             CurrentPage = pageNumber,
+    //             NextPage = pageNumber < (totalCount / pageSize) ? pageNumber + 1 : pageNumber,
+    //             PreviousPage = pageNumber > 1 ? pageNumber - 1 : 1,
+    //             HasNextPage = pageNumber < (totalCount / pageSize),
+    //             HasPreviousPage = pageNumber > 1,
+    //             LastPage = (int)Math.Ceiling((double)totalCount / pageSize),
+    //             Data = productDtoList,
+    //             TotalCount = totalCount
+    //         };
+
+    //         var results = new GetProductsResult
+    //         {
+    //             ProductsLength = totalCount,
+    //             MainMaxPrice = paginatedProducts.Max(p => p.Price),
+    //             MainMinPrice = paginatedProducts.Min(p => p.Price),
+    //             Pagination = pagination
+    //         };
+
+    //         return new ServiceResponse<GetProductsResult>
+    //         {
+    //             Data = results,
+    //             Success = true
+    //         };
+    //     }
+    //     catch (Exception)
+    //     {
+    //         return new ServiceResponse<GetProductsResult>
+    //         {
+    //             Success = false,
+    //             Message = "An error occurred while processing your request."
+    //         };
+    //     }
+    // }
 
     public async Task<ServiceResponse<ProductDTO>> GetSingleProductBy(Guid id)
     {

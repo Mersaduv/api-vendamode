@@ -1,14 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 
 namespace api_vendace.Models.Query;
-
 public class RequestQuery
 {
     [FromQuery(Name = "page")]
-    public int? PageNumber { get; set; }
+    public int? PageNumber { get; set; } = 1;
 
     [FromQuery(Name = "pagesize")]
-    public int PageSize { get; set; }
+    public int? PageSize { get; set; } = 15;
 
     [FromQuery(Name = "sortBy")]
     public string? SortBy { get; set; }
@@ -30,4 +29,13 @@ public class RequestQuery
 
     [FromQuery(Name = "featureValueIds")]
     public Guid[]? FeatureValueIds { get; set; }
+
+    [FromQuery(Name = "search")]
+    public string? Search { get; set; }
+
+    [FromQuery(Name = "inStock")]
+    public bool? InStock { get; set; }
+
+    [FromQuery(Name = "discount")]
+    public bool? Discount { get; set; }
 }

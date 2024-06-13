@@ -18,6 +18,8 @@ public static class AuthEndpoints
         apiGroup.MapGet(Constants.Users, GetUsers);
         apiGroup.MapGet($"/{Constants.User}/info", GetUserInfo).RequireAuthorization();
         apiGroup.MapGet($"/{Constants.User}/info/me", GetUserInfoMe).RequireAuthorization();
+        apiGroup.MapPut($"/{Constants.User}", EditUserProfile).Accepts<UserProfileUpdateDTO>("application/json").RequireAuthorization();
+
         authGroup.MapPost($"/{Constants.Register}", RegisterUser).Accepts<UserQueryDTO>("application/json");
         authGroup.MapPost($"/{Constants.Login}", LogInUser).Accepts<UserQueryDTO>("application/json");
         // authGroup.MapPost(Constants.ChangePassword, ChangePasswordAsync).RequireAuthorization();
@@ -33,6 +35,14 @@ public static class AuthEndpoints
         var response = await userServices.GenerateNewToken(request);
         return !response.Success ? TypedResults.BadRequest(response) : TypedResults.Ok(response);
     }
+
+    private static async Task<Results<Ok<ServiceResponse<Guid>>, BadRequest<ServiceResponse<Guid>>>> EditUserProfile(
+    IUserServices userServices, UserProfileUpdateDTO request)
+    {
+        var response = await userServices.EditUserProfileAsync(request);
+        return !response.Success ? TypedResults.BadRequest(response) : TypedResults.Ok(response);
+    }
+
 
     private static async Task<Results<Ok<ServiceResponse<Guid>>, BadRequest<ServiceResponse<Guid>>>> RegisterUser(
     IUserServices userServices, UserQueryDTO userQuery)

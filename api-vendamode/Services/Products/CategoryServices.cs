@@ -9,8 +9,9 @@ using api_vendace.Models.Dtos.ProductDto.Category;
 using api_vendace.Models.Dtos.ProductDto.Feature;
 using api_vendace.Utility;
 using api_vendamode.Models.Dtos.ProductDto.Category;
-using ApiAryanakala.Interfaces.IServices;
+using api_vendamode.Interfaces.IServices;
 using Microsoft.EntityFrameworkCore;
+using api_vendamode.Models.Query;
 
 namespace api_vendace.Services.Products;
 
@@ -26,6 +27,13 @@ public class CategoryServices : ICategoryServices
         _unitOfWork = unitOfWork;
         _byteFileUtility = byteFileUtility;
         _httpContext = httpContext;
+    }
+
+    public class SubCategoryResult
+    {
+        public CategoryDTO Category { get; set; } = default!;
+        public List<CategoryDTO> Children { get; set; } = default!;
+
     }
 
 
@@ -72,6 +80,7 @@ public class CategoryServices : ICategoryServices
             Id = Guid.NewGuid(),
             Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Category>>(categoryCreate.Thumbnail!, nameof(Category), false),
             Name = categoryCreate.Name,
+            Slug = categoryCreate.Slug,
             IsActive = categoryCreate.IsActive,
             MainCategoryId = categoryCreate.MainCategoryId ?? null,
             ParentCategoryId = categoryCreate.ParentCategoryId ?? null,
@@ -202,6 +211,7 @@ public class CategoryServices : ICategoryServices
             {
                 Id = category.Id,
                 Name = category.Name,
+                Slug = category.Name,
                 Level = category.Level,
                 IsActive = category.IsActive,
                 IsDeleted = category.IsDeleted,
@@ -537,13 +547,25 @@ public class CategoryServices : ICategoryServices
         throw new NotImplementedException();
     }
 
-    public async Task<ServiceResponse<List<CategoryDTO>>> GetSubCategoryAsync(Guid parentId)
+    public async Task<ServiceResponse<SubCategoryResult>> GetSubCategoryAsync(RequestSubCategory requestSub)
     {
-        var category = await _context.Categories.Include(c => c.ChildCategories).FirstOrDefaultAsync(c => c.Id == parentId);
+        var parentId = requestSub.Id;
+        var categorySlug = requestSub.Slug;
+        var category = new Category();
+
+        if (parentId is not null)
+        {
+            category = await _context.Categories.Include(c => c.ChildCategories!).ThenInclude(c=>c.Images).Include(c => c.Images).FirstOrDefaultAsync(c => c.Id == parentId);
+        }
+        else
+        {
+            category = await _context.Categories.Include(c => c.ChildCategories!).ThenInclude(c=>c.Images).Include(c => c.Images).FirstOrDefaultAsync(c => c.Slug == categorySlug);
+        }
+
 
         if (category is null)
         {
-            return new ServiceResponse<List<CategoryDTO>>
+            return new ServiceResponse<SubCategoryResult>
             {
                 Data = null,
                 Success = false,
@@ -553,7 +575,7 @@ public class CategoryServices : ICategoryServices
 
         if (category.ChildCategories is null)
         {
-            return new ServiceResponse<List<CategoryDTO>>
+            return new ServiceResponse<SubCategoryResult>
             {
                 Data = null,
                 Success = false,
@@ -561,24 +583,45 @@ public class CategoryServices : ICategoryServices
             };
         }
 
-        var categoriesDto = category.ChildCategories.Select(c => new CategoryDTO
+
+        var categoriesDto = new CategoryDTO
         {
             Id = category.Id,
             Name = category.Name,
-            IsActive = category.IsActive,
-            Level = category.Level,
             ImagesSrc = category.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(category.Images.Select(img => new EntityImageDto
             {
                 Id = img.Id,
                 ImageUrl = img.ImageUrl ?? string.Empty,
                 Placeholder = img.Placeholder ?? string.Empty
             }).ToList(), nameof(Category)).First() : null,
+            ChildCategories = category.ChildCategories.Select(c => new CategoryDTO
+            {
+                Id = c.Id,
+                Name = c.Name,
+                IsActive = c.IsActive,
+                Level = c.Level,
+                Slug = c.Slug,
+                ImagesSrc = c.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(c.Images.Select(img => new EntityImageDto
+                {
+                    Id = img.Id,
+                    ImageUrl = img.ImageUrl ?? string.Empty,
+                    Placeholder = img.Placeholder ?? string.Empty
+                }).ToList(), nameof(Category)).First() : null,
+                Created = c.Created,
+                LastUpdated = c.LastUpdated
+            }).ToList(),
             Created = category.Created,
-            LastUpdated = category.LastUpdated
-        }).ToList();
-        return new ServiceResponse<List<CategoryDTO>>
+            LastUpdated = category.LastUpdated,
+        };
+
+        var result = new SubCategoryResult
         {
-            Data = categoriesDto
+            Category = categoriesDto,
+            Children = categoriesDto.ChildCategories
+        };
+        return new ServiceResponse<SubCategoryResult>
+        {
+            Data = result
         };
     }
 
@@ -655,6 +698,76 @@ public class CategoryServices : ICategoryServices
             Count = categories.Count,
             Data = result
         };
+    }
+
+    public async Task<ServiceResponse<CategoryDTO>> GetBySlugAsync(string categorySlug)
+    {
+        var category = await _context.Categories
+                            .Include(c => c.Images)
+                            .Include(c => c.ChildCategories)
+                            .FirstOrDefaultAsync(c => c.Slug == categorySlug);
+
+        if (category == null)
+        {
+            return new ServiceResponse<CategoryDTO>
+            {
+                Data = null,
+                Success = false,
+                Message = "دسته بندی مورد نظر یافت نشد"
+            };
+        }
+
+        var subCategoryList = await GetSubCategories(category.Id);
+
+        var categoryDTO = new CategoryDTO
+        {
+            Id = category.Id,
+            Name = category.Name,
+            Slug = category.Slug,
+            IsActive = category.IsActive,
+            Level = category.Level,
+            ImagesSrc = category.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(category.Images.Select(img => new EntityImageDto
+            {
+                Id = img.Id,
+                ImageUrl = img.ImageUrl ?? string.Empty,
+                Placeholder = img.Placeholder ?? string.Empty
+            }).ToList(), nameof(Category)).First() : null,
+            Categories = subCategoryList,
+            Created = category.Created,
+            LastUpdated = category.LastUpdated
+        };
+
+        return new ServiceResponse<CategoryDTO>
+        {
+            Data = categoryDTO,
+            Success = true
+        };
+    }
+
+    private async Task<List<CategoryDTO>> GetSubCategories(Guid categoryId)
+    {
+        var categories = await _context.Categories
+                                .Where(c => c.ParentCategoryId == categoryId)
+                                .Include(c => c.ChildCategories)
+                                .ToListAsync();
+
+        var subCategories = new List<CategoryDTO>();
+        foreach (var category in categories)
+        {
+            subCategories.Add(new CategoryDTO
+            {
+                Id = category.Id,
+                Name = category.Name,
+                Slug = category.Slug,
+                IsActive = category.IsActive,
+                Level = category.Level,
+                Created = category.Created,
+                LastUpdated = category.LastUpdated,
+                Categories = await GetSubCategories(category.Id) // Recursively get subcategories
+            });
+        }
+
+        return subCategories;
     }
 
 }

@@ -28,6 +28,7 @@ public static class GetProductMapper
             BrandId = product.BrandId,
             IsFake = product.IsFake,
             InStock = product.InStock,
+            Sold = product.Sold,
             Created = product.Created,
             LastUpdated = product.LastUpdated
         };

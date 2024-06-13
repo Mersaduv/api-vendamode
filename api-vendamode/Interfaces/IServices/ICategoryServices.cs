@@ -4,8 +4,10 @@ using api_vendace.Models.Dtos.ProductDto;
 using api_vendace.Entities.Products;
 using api_vendace.Models.Dtos.ProductDto.Feature;
 using api_vendamode.Models.Dtos.ProductDto.Category;
+using api_vendamode.Models.Query;
+using static api_vendace.Services.Products.CategoryServices;
 
-namespace ApiAryanakala.Interfaces.IServices;
+namespace api_vendamode.Interfaces.IServices;
 
 public interface ICategoryServices
 {
@@ -23,6 +25,8 @@ public interface ICategoryServices
     IEnumerable<Guid> GetAllChildCategoriesHelper(Guid parentCategoryId, List<Category> allCategories, List<Category> allChildCategories);
     IEnumerable<Guid> GetAllChildCategories(Guid parentCategoryId);
     Task<ServiceResponse<List<CategoryDTO>>> GetParentSubCategoryAsync(Guid id);
-    Task<ServiceResponse<List<CategoryDTO>>> GetSubCategoryAsync(Guid id);
+    Task<ServiceResponse<SubCategoryResult>> GetSubCategoryAsync(RequestSubCategory requestSub);
     Task<ServiceResponse<CategoryResult>> GetAllCategories();
+    Task<ServiceResponse<CategoryDTO>> GetBySlugAsync(string category);
+
 }

@@ -125,10 +125,10 @@ public class BrandServices : IBrandServices
 
     public async Task<ServiceResponse<Pagination<BrandDTO>>> GetBrands(RequestQuery requestQuery)
     {
+        var pageSize = requestQuery.PageSize ?? 15;
         var totalCount = await _context.Brands.CountAsync();
-        var lastPage = (int)Math.Ceiling((double)totalCount / requestQuery.PageSize);
+        var lastPage = (int)Math.Ceiling((double)totalCount / pageSize);
         var pageNumber = requestQuery.PageNumber ?? 1;
-        var pageSize = requestQuery.PageSize;
         var brands = await _context.Brands
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)

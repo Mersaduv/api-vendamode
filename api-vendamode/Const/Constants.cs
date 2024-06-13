@@ -16,6 +16,8 @@ public static class Constants
     public const string Checkout = "checkout";
     public const string Count = "count";
     public const string Login = "login";
+    public const string Address = "address";
+    public const string Addresses = "addresses";
     public const string Logout = "logout";
     public const string Payment = "payment";
     public const string Products = "products";
@@ -46,7 +48,6 @@ public static class Constants
     public const string Slider = "slider";
     public const string Sliders = "sliders";
 
-    public const string Address = "address";
     public const string Category = "category";
     public const string SubCategories = "sub-categories";
     public const string CategoriesTree = "categories-tree";
@@ -57,7 +58,6 @@ public static class Constants
     private const string BaseApi = $"{Base}";
     private const string PaymentApi = $"{Api}/{Payment}";
 
-    public const string AddressApi = $"{Api}/{Address}";
     public const string ImageApi = $"{BaseApi}/{Images}";
     public const string AdminCategoryApi = $"{CategoryApi}/{Admin}";
     public const string AdminProductApi = $"{ProductApi}/{Admin}";

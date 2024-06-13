@@ -170,7 +170,14 @@ public class ProductSizeServices : IProductSizeServices
         var productSizeDto = new ProductSizeDTO
         {
             Id = productSize.Id,
-            Sizes = productSize.Sizes,
+            Sizes = productSize.Sizes?.Select(size => new SizeDTO
+            {
+                Id = size.Id,
+                Name = size.Name,
+                Description = size.Description,
+                Created = size.Created,
+                LastUpdated = size.LastUpdated
+            }).ToList(),
             ImagesSrc = productSize.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(productSize.Images.Select(img => new EntityImageDto
             {
                 Id = img.Id,
