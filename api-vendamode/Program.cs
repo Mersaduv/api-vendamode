@@ -79,7 +79,10 @@ apiGroup
     .MapAuthApi()
     .MapProductSizeApi()
     .MapAddressApi()
-    .MapSliderApi();
+    .MapSliderApi()
+    .MapReviewApi()
+    .MapOrderApi()
+    .MapCanceledApi();
 
 // app.UseHttpsRedirection();
 using (var scope = app.Services.CreateScope())

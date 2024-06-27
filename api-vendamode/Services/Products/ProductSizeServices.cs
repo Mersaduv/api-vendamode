@@ -9,8 +9,10 @@ using api_vendace.Models.Dtos;
 using api_vendace.Models.Dtos.ProductDto;
 using api_vendace.Models.Dtos.ProductDto.Sizes;
 using api_vendace.Utility;
+using api_vendamode.Entities.Products;
 using api_vendamode.Models.Dtos.ProductDto.Sizes;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 public class ProductSizeServices : IProductSizeServices
 {
@@ -27,38 +29,103 @@ public class ProductSizeServices : IProductSizeServices
         _httpContext = httpContext;
     }
 
+    // public async Task<ServiceResponse<bool>> AddProductSize(ProductSizeCreateDTO productSizeCreate)
+    // {
+    //     var sizeValueListDatabase = await _context.ProductSizeValues
+    //                                     .Include(s => s.ProductSize)
+    //                                     .AsNoTracking()
+    //                                     .ToListAsync();
+    //     var productSizeId = Guid.NewGuid();
+    //     var sizeValueList = new List<ProductSizeValues>();
+    //     if (productSizeCreate.ProductSizeValues is not null)
+    //     {
+    //         foreach (var sizeValue in productSizeCreate.ProductSizeValues)
+    //         {
+    //             // Check if sizeValue.Name already exists in the database
+    //             var existingSizeValue = sizeValueListDatabase.FirstOrDefault(s => s.Name == sizeValue);
+
+    //             if (existingSizeValue != null)
+    //             {
+    //                 // If it exists, map the existing object with the correct ID
+    //                 existingSizeValue.ProductSizeId = productSizeId;
+    //                 sizeValueList.Add(existingSizeValue);
+    //             }
+    //             else
+    //             {
+    //                 // If it doesn't exist, create a new ProductSizeValues object
+    //                 var nameValue = new ProductSizeValues
+    //                 {
+    //                     Id = Guid.NewGuid(),
+    //                     Name = sizeValue,
+    //                     ProductSizeId = productSizeId,
+    //                     Created = DateTime.UtcNow,
+    //                     LastUpdated = DateTime.UtcNow
+    //                 };
+    //                 sizeValueList.Add(nameValue);
+    //             }
+    //         }
+    //     }
+
+    //     var productSize = new ProductSize
+    //     {
+    //         Id = productSizeId,
+    //         Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, ProductSize>>(productSizeCreate.Thumbnail!, nameof(ProductSize), false),
+    //         SizeType = productSizeCreate.SizeType,
+    //         ProductSizeValues = sizeValueList,
+    //         CategoryId = productSizeCreate.CategoryId,
+
+    //         Created = DateTime.UtcNow,
+    //         LastUpdated = DateTime.UtcNow,
+    //     };
+
+    //     await _context.ProductSizes.AddAsync(productSize);
+    //     await _unitOfWork.SaveChangesAsync();
+
+    //     return new ServiceResponse<bool>
+    //     {
+    //         Data = true
+    //     };
+    // }
+
     public async Task<ServiceResponse<bool>> AddProductSize(ProductSizeCreateDTO productSizeCreate)
     {
-        var sizeValueListDatabase = await _context.ProductSizeValues
-                                        .Include(s => s.ProductSize)
-                                        .AsNoTracking()
-                                        .ToListAsync();
         var productSizeId = Guid.NewGuid();
-        var sizeValueList = new List<ProductSizeValues>();
+        var sizeValueList = new List<ProductSizeProductSizeValue>();
+
         if (productSizeCreate.ProductSizeValues is not null)
         {
             foreach (var sizeValue in productSizeCreate.ProductSizeValues)
             {
                 // Check if sizeValue.Name already exists in the database
-                var existingSizeValue = sizeValueListDatabase.FirstOrDefault(s => s.Name == sizeValue);
+                var existingSizeValue = await _context.ProductSizeValues
+                    .FirstOrDefaultAsync(s => s.Name == sizeValue);
 
                 if (existingSizeValue != null)
                 {
-                    // If it exists, map the existing object with the correct ID
-                    sizeValueList.Add(existingSizeValue);
+                    // Add the existing size value to the junction table
+                    sizeValueList.Add(new ProductSizeProductSizeValue
+                    {
+                        ProductSizeId = productSizeId,
+                        ProductSizeValueId = existingSizeValue.Id
+                    });
                 }
                 else
                 {
-                    // If it doesn't exist, create a new ProductSizeValues object
+                    // Create a new ProductSizeValues object and add it to the junction table
                     var nameValue = new ProductSizeValues
                     {
                         Id = Guid.NewGuid(),
                         Name = sizeValue,
-                        ProductSizeId = productSizeId,
                         Created = DateTime.UtcNow,
                         LastUpdated = DateTime.UtcNow
                     };
-                    sizeValueList.Add(nameValue);
+
+                    _context.ProductSizeValues.Add(nameValue);
+                    sizeValueList.Add(new ProductSizeProductSizeValue
+                    {
+                        ProductSizeId = productSizeId,
+                        ProductSizeValueId = nameValue.Id
+                    });
                 }
             }
         }
@@ -68,15 +135,38 @@ public class ProductSizeServices : IProductSizeServices
             Id = productSizeId,
             Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, ProductSize>>(productSizeCreate.Thumbnail!, nameof(ProductSize), false),
             SizeType = productSizeCreate.SizeType,
-            ProductSizeValues = sizeValueList,
+            ProductSizeProductSizeValues = sizeValueList,
             CategoryId = productSizeCreate.CategoryId,
-
             Created = DateTime.UtcNow,
             LastUpdated = DateTime.UtcNow,
         };
 
         await _context.ProductSizes.AddAsync(productSize);
-        await _unitOfWork.SaveChangesAsync();
+        await _context.ProductSizeProductSizeValues.AddRangeAsync(sizeValueList);
+
+        try
+        {
+            await _unitOfWork.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            // Log the error
+            // Handle the duplicate key exception here
+            var postgresException = ex.GetBaseException() as PostgresException;
+            if (postgresException != null && postgresException.SqlState == "23505")
+            {
+                // Duplicate key exception
+                return new ServiceResponse<bool>
+                {
+                    Data = false,
+                    Message = "Duplicate key value violates unique constraint."
+                };
+            }
+            else
+            {
+                throw;
+            }
+        }
 
         return new ServiceResponse<bool>
         {
@@ -84,19 +174,30 @@ public class ProductSizeServices : IProductSizeServices
         };
     }
 
+
     public async Task<ServiceResponse<bool>> UpdateProductSize(ProductSizeUpdateDTO productSizeUpdate)
     {
         var sizeValueListDatabase = await _context.ProductSizeValues
-                                        .Include(s => s.ProductSize)
-                                        .AsNoTracking()
-                                        .ToListAsync();
-        var productSize = await _context.ProductSizes
-        .Include(s => s.Images)
-        .Include(s => s.ProductSizeValues)
-        .Include(s => s.Sizes)
-        .FirstOrDefaultAsync(ps => ps.Id == productSizeUpdate.Id);
+            .AsNoTracking()
+            .ToListAsync();
 
-        var sizeValueList = new List<ProductSizeValues>();
+        var productSize = await _context.ProductSizes
+            .Include(s => s.Images)
+            .Include(s => s.ProductSizeProductSizeValues)
+            .ThenInclude(pspsv => pspsv.ProductSizeValue)
+            .Include(s => s.Sizes)
+            .FirstOrDefaultAsync(ps => ps.Id == productSizeUpdate.Id);
+
+        if (productSize == null)
+        {
+            return new ServiceResponse<bool>
+            {
+                Success = false,
+                Message = "سایز مد نظر یافت نشد"
+            };
+        }
+
+        var sizeValueList = new List<ProductSizeProductSizeValue>();
         if (productSizeUpdate.ProductSizeValues is not null)
         {
             foreach (var sizeValue in productSizeUpdate.ProductSizeValues)
@@ -108,7 +209,11 @@ public class ProductSizeServices : IProductSizeServices
                 {
                     // If it exists, map the existing object with the correct ID
                     existingSizeValue.LastUpdated = DateTime.UtcNow;
-                    sizeValueList.Add(existingSizeValue);
+                    sizeValueList.Add(new ProductSizeProductSizeValue
+                    {
+                        ProductSizeId = productSize.Id,
+                        ProductSizeValueId = existingSizeValue.Id
+                    });
                 }
                 else
                 {
@@ -117,25 +222,22 @@ public class ProductSizeServices : IProductSizeServices
                     {
                         Id = Guid.NewGuid(),
                         Name = sizeValue.Name,
-                        ProductSizeId = sizeValue.ProductSizeId,
                         Created = DateTime.UtcNow,
                         LastUpdated = DateTime.UtcNow
                     };
-                    sizeValueList.Add(nameValue);
+
+                    _context.ProductSizeValues.Add(nameValue);
+                    sizeValueList.Add(new ProductSizeProductSizeValue
+                    {
+                        ProductSizeId = productSize.Id,
+                        ProductSizeValueId = nameValue.Id
+                    });
                 }
             }
         }
 
-        if (productSize == null)
-        {
-            return new ServiceResponse<bool>
-            {
-                Success = false,
-                Message = "سایز مد نظر یافت نشد"
-            };
-        }
         productSize.Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, ProductSize>>(productSizeUpdate.Thumbnail!, nameof(ProductSize), false);
-        productSize.ProductSizeValues = sizeValueList;
+        productSize.ProductSizeProductSizeValues = sizeValueList;
         productSize.CategoryId = productSizeUpdate.CategoryId;
         productSize.Created = productSizeUpdate.Created;
         productSize.LastUpdated = DateTime.UtcNow;
@@ -154,7 +256,8 @@ public class ProductSizeServices : IProductSizeServices
         var productSize = await _context.ProductSizes
             .Include(s => s.Images)
             .Include(s => s.Sizes)
-            .Include(s => s.ProductSizeValues)
+            .Include(s => s.ProductSizeProductSizeValues)
+            .ThenInclude(pspsv => pspsv.ProductSizeValue)
             .FirstOrDefaultAsync(c => c.CategoryId == id);
 
         if (productSize == null)
@@ -185,11 +288,11 @@ public class ProductSizeServices : IProductSizeServices
                 Placeholder = img.Placeholder ?? string.Empty
             }).ToList(), nameof(ProductSize)).First() : null,
             SizeType = productSize.SizeType,
-            ProductSizeValues = productSize.ProductSizeValues?.Select(s => new ProductSizeValuesDTO
+            ProductSizeValues = productSize.ProductSizeProductSizeValues?.Select(sv => new ProductSizeValuesDTO
             {
-                Id = s.Id,
-                Name = s.Name,
-                ProductSizeId = s.ProductSizeId
+                Id = sv.ProductSizeValue.Id,
+                Name = sv.ProductSizeValue.Name,
+                ProductSizeId = sv.ProductSizeId
             }).ToList(),
             Created = productSize.Created,
             LastUpdated = productSize.LastUpdated
@@ -200,6 +303,7 @@ public class ProductSizeServices : IProductSizeServices
             Data = productSizeDto
         };
     }
+
 
     public async Task<ServiceResponse<bool>> AddSize(SizeCreateDTO sizeCreate)
     {

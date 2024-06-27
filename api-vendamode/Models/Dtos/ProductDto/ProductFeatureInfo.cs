@@ -8,20 +8,25 @@ public class ProductFeatureInfo
     public List<ColorDTO>? ColorDTOs { get; set; }
     public List<ObjectValue>? FeatureValueInfos { get; set; }
 
-    public ProductFeatureInfo(Product product)
+    public ProductFeatureInfo(List<ProductFeature> productFeatures)
     {
-        MapProductFeatures(product);
+        MapProductFeatures(productFeatures);
     }
 
-    private void MapProductFeatures(Product product)
+    private void MapProductFeatures(List<ProductFeature> productFeatures)
     {
         ColorDTOs = new List<ColorDTO>();
         FeatureValueInfos = new List<ObjectValue>();
 
-        if (product.ProductFeatures != null)
+        if (productFeatures != null)
         {
-            foreach (var feature in product.ProductFeatures)
+            foreach (var feature in productFeatures)
             {
+                var featureValue = new ObjectValue
+                {
+                    Id = feature.Id,
+                    Title = feature.Name
+                };
                 if (feature.Values != null)
                 {
                     foreach (var value in feature.Values)
@@ -32,8 +37,13 @@ public class ProductFeatureInfo
                         }
                         else
                         {
-                            FeatureValueInfos.Add(new ObjectValue { Id = feature.Id, Title = feature.Name, Value = value.Name });
+                            featureValue.Value.Add(new Value { Id = value.Id, Name = value.Name });
+
                         }
+                    }
+                    if (featureValue.Value.Count > 0)
+                    {
+                        FeatureValueInfos.Add(featureValue);
                     }
                 }
             }

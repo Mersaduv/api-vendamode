@@ -7,6 +7,7 @@ using api_vendace.Models;
 using api_vendace.Models.Dtos.ProductDto;
 using api_vendace.Models.Query;
 using api_vendace.Utility;
+using api_vendamode.Models.Query;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace api_vendace.Endpoints;
@@ -22,8 +23,9 @@ public static class ProductEndpoints
 
         productsGroup.MapGet(Constants.Main, GetProductQuery);
         apiGroup.MapGet(Constants.ProductList, GetProductList);
-
+        productsGroup.MapGet("/category/{id:guid}", GetProductByCategoryId);
         productGroup.MapGet("/{id:guid}", GetProduct);
+        productGroup.MapGet(string.Empty, GetProductBySlug);
 
         apiGroup.MapGet($"/{Constants.ImageApi}/{{entity}}/{{fileName}}", MediaEndpoint);
 
@@ -74,6 +76,24 @@ public static class ProductEndpoints
         _logger.Log(LogLevel.Information, "Get Product");
 
         var result = await productService.GetSingleProductBy(id);
+
+        return TypedResults.Ok(result);
+    }
+
+    private async static Task<Ok<ServiceResponse<ProductDTO>>> GetProductBySlug(IProductServices productService, ILogger<Program> _logger, [AsParameters] RequestBy request)
+    {
+        _logger.Log(LogLevel.Information, "Get Product");
+
+        var result = await productService.GetBy(request.Slug!);
+
+        return TypedResults.Ok(result);
+    }
+
+    private async static Task<Ok<ServiceResponse<List<ProductDTO>>>> GetProductByCategoryId(IProductServices productService, ILogger<Program> _logger, Guid id)
+    {
+        _logger.Log(LogLevel.Information, "Get Product");
+
+        var result = await productService.GetByCategory(id);
 
         return TypedResults.Ok(result);
     }

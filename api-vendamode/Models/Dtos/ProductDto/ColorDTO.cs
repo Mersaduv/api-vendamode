@@ -1,5 +1,7 @@
-namespace api_vendace.Models.Dtos.ProductDto;
+using Microsoft.EntityFrameworkCore;
 
+namespace api_vendace.Models.Dtos.ProductDto;
+[Owned]
 public class ColorDTO
 {
     public Guid Id { get; set; }

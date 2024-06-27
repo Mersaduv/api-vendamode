@@ -11,6 +11,6 @@ public interface IProductRepository
     Task<int> GetTotalCountAsync();
     long GetLastProductCodeNumber();
     Task<Product?> GetAsyncBy(Guid id);
-    Task<Product?> GetAsyncBy(string productName);
+    Task<Product?> GetAsyncBy(string slug);
     Task CreateAsync(Product product);
 }

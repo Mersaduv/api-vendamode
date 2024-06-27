@@ -10,7 +10,6 @@ public class Review : BaseClass<Guid>
     public List<Points>? PositivePoints { get; set; }
     public List<Points>? NegativePoints { get; set; }
     public List<EntityImage<Guid, Review>> Images { get; set; } = [];
-    public List<EntityImage<Guid, Product>> ProductImage { get; set; } = [];
     public Guid UserId { get; set; }
     public virtual User User { get; set; } = default!;
     public Guid ProductId { get; set; }

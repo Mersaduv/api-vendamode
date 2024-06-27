@@ -9,6 +9,7 @@ using api_vendace.Entities.Users.Security;
 using api_vendace.Entities;
 using api_vendace.Models.Dtos.ProductDto.Sizes;
 using api_vendamode.Entities.Products;
+using api_vendamode.Entities;
 
 namespace api_vendace.Data;
 public class ApplicationDbContext : DbContext
@@ -36,9 +37,30 @@ public class ApplicationDbContext : DbContext
 
         modelBuilder.Entity<Address>().OwnsOne(a => a.Province);
         modelBuilder.Entity<Address>().OwnsOne(a => a.City);
+
+        modelBuilder.Entity<ProductSizeProductSizeValue>()
+    .HasKey(pspsv => new { pspsv.ProductSizeId, pspsv.ProductSizeValueId });
+
+        modelBuilder.Entity<ProductSizeProductSizeValue>()
+            .HasOne(pspsv => pspsv.ProductSize)
+            .WithMany(ps => ps.ProductSizeProductSizeValues)
+            .HasForeignKey(pspsv => pspsv.ProductSizeId);
+
+        modelBuilder.Entity<ProductSizeProductSizeValue>()
+            .HasOne(pspsv => pspsv.ProductSizeValue)
+            .WithMany(psv => psv.ProductSizeProductSizeValues)
+            .HasForeignKey(pspsv => pspsv.ProductSizeValueId);
+
+        modelBuilder.Entity<ProductSizeValues>()
+            .HasIndex(psv => psv.Name)
+            .IsUnique();
     }
     public DbSet<User> Users { get; set; } = default!;
     public DbSet<Address> Addresses { get; set; } = default!;
+    public DbSet<Order> Orders { get; set; } = default!;
+    public DbSet<Cart> Cart { get; set; } = default!;
+    public DbSet<Canceled> Canceleds { get; set; } = default!;
+    public DbSet<Returned> Returneds { get; set; } = default!;
     public DbSet<UserRefreshToken> UserRefreshTokens { get; set; } = default!;
     public DbSet<UserSpecification> UserSpecifications { get; set; } = default!;
     public DbSet<Role> Roles { get; set; } = default!;
@@ -54,11 +76,13 @@ public class ApplicationDbContext : DbContext
     public DbSet<EntityImage<Guid, User>> UserImages { get; set; } = default!;
     public DbSet<EntityImage<Guid, UserSpecification>> UserSpecificationImages { get; set; } = default!;
     public DbSet<EntityImage<Guid, Slider>> SliderImages { get; set; } = default!;
+    public DbSet<EntityImage<Guid, Order>> PurchaseInvoice { get; set; } = default!;
     public DbSet<Category> Categories { get; set; } = default!;
     public DbSet<Brand> Brands { get; set; } = default!;
     public DbSet<ProductFeature> ProductFeatures { get; set; } = default!;
     public DbSet<FeatureValue> FeatureValues { get; set; } = default!;
     public DbSet<ProductSize> ProductSizes { get; set; } = default!;
+     public DbSet<ProductSizeProductSizeValue> ProductSizeProductSizeValues { get; set; } = default!;
     public DbSet<Sizes> Sizes { get; set; } = default!;
     public DbSet<ProductScale> ProductScales { get; set; } = default!;
     public DbSet<SizeIds> SizeIds { get; set; } = default!;

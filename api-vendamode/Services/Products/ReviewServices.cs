@@ -8,6 +8,7 @@ using api_vendace.Models.Dtos;
 using api_vendace.Models.Dtos.ProductDto.Review;
 using api_vendace.Models.Query;
 using api_vendace.Utility;
+using api_vendamode.Models.Dtos.ProductDto.Review;
 using Microsoft.EntityFrameworkCore;
 
 namespace api_vendace.Services.Products;
@@ -46,25 +47,27 @@ public class ReviewServices : IReviewServices
             return new ServiceResponse<bool>
             {
                 Success = false,
-                Message = "در مقداردهی رضایت از محصول مشکی پیش آمده."
+                Message = "در مقداردهی رضایت از محصول مشکلی پیش آمده."
             };
         }
 
         var review = new Review
         {
+            Id = Guid.NewGuid(),
             UserId = userId,
             ProductId = reviewCreate.ProductId,
             Comment = reviewCreate.Comment,
             Rating = reviewCreate.Rating,
+            Status = 1,
             Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Review>>(reviewCreate.ProductThumbnails, nameof(reviewCreate), false),
             NegativePoints = reviewCreate.NegativePoints?.Select(p => new Points
             {
-                Id = Guid.NewGuid(),
+                Id = p.Id,
                 Title = p.Title
             }).ToList(),
             PositivePoints = reviewCreate.PositivePoints?.Select(p => new Points
             {
-                Id = Guid.NewGuid(),
+                Id = p.Id,
                 Title = p.Title
             }).ToList(),
             Created = DateTime.UtcNow,
@@ -76,7 +79,8 @@ public class ReviewServices : IReviewServices
 
         return new ServiceResponse<bool>
         {
-            Data = true
+            Data = true,
+            Message = "دیدگاه شما بعد از تایید ناظر منتشر خواهد شد"
         };
     }
 
@@ -99,7 +103,7 @@ public class ReviewServices : IReviewServices
         };
     }
 
-    public async Task<ServiceResponse<Pagination<ReviewDto>>> GetProductReviews(Guid id, RequestQuery requestQuery)
+    public async Task<ServiceResponse<ReviewResult>> GetProductReviews(Guid id, RequestQuery requestQuery)
     {
         var pageNumber = requestQuery.PageNumber ?? 1;
         var pageSize = requestQuery.PageSize ?? 15;
@@ -117,7 +121,16 @@ public class ReviewServices : IReviewServices
                 NegativePoints = r.NegativePoints,
                 PositivePoints = r.PositivePoints,
                 Rating = r.Rating,
-                UserName = r.User.UserSpecification.FirstName + " " + r.User.UserSpecification.FamilyName,
+                Status = r.Status,
+                UserName = r.User.UserSpecification.FirstName,
+                ImageUrls = _byteFileUtility.GetEncryptedFileActionUrl
+                            (r.Images.Select(img => new EntityImageDto
+                            {
+                                Id = img.Id,
+                                ImageUrl = img.ImageUrl!,
+                                Placeholder = img.Placeholder!
+                            }).ToList(), nameof(Review)),
+                UserId = r.User.Id,
                 Created = r.Created,
                 LastUpdated = r.LastUpdated
             })
@@ -137,9 +150,15 @@ public class ReviewServices : IReviewServices
             Data = reviews
         };
 
-        return new ServiceResponse<Pagination<ReviewDto>>
+        var result = new ReviewResult
         {
-            Data = pagination
+            ReviewsLength = totalReviews,
+            Pagination = pagination
+        };
+
+        return new ServiceResponse<ReviewResult>
+        {
+            Data = result
         };
     }
 

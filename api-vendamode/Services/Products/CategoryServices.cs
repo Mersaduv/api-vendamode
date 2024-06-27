@@ -113,7 +113,7 @@ public class CategoryServices : ICategoryServices
                 Placeholder = img.Placeholder ?? string.Empty
             }).ToList(), nameof(Category)).First() : null,
             Name = category.Name,
-            SizeCount = category.ProductSizes != null && category.ProductSizes.ProductSizeValues != null ? category.ProductSizes.ProductSizeValues.Count : 0,
+            SizeCount = category.ProductSizes?.ProductSizeProductSizeValues?.Count ?? 0,
             Level = category.Level,
             BrandCount = 0,
             SubCategoryCount = await GetSubcategoriesCount(category.Id),
@@ -225,7 +225,8 @@ public class CategoryServices : ICategoryServices
                 Count = category.Products != null ? category.Products.Count : 0,
                 SubCategoryCount = allCategories.Count(c => c.ParentCategoryId == category.Id),
                 FeatureCount = category.ProductFeatures != null ? category.ProductFeatures.Count : 0,
-                SizeCount = category.ProductSizes != null && category.ProductSizes.ProductSizeValues != null ? category.ProductSizes.ProductSizeValues.Count : 0,
+                SizeCount = category.ProductSizes?.ProductSizeProductSizeValues?.Count ?? 0,
+
                 BrandCount = 0,
                 Created = category.Created,
                 LastUpdated = category.LastUpdated
@@ -535,19 +536,21 @@ public class CategoryServices : ICategoryServices
         return await _context.Categories
                     .Include(c => c.ProductFeatures)
                     .Include(c => c.ProductSizes)
-                    .ThenInclude(c => c != null ? c.ProductSizeValues : default)
+                    .ThenInclude(ps => ps.ProductSizeProductSizeValues)
+                    .ThenInclude(pspsv => pspsv.ProductSizeValue)
                     .Include(c => c.ChildCategories)
                     .Include(c => c.Images)
                     .AsNoTracking()
                     .ToListAsync();
     }
 
+
     public Task<Category?> GetCategoryAsyncBy(Guid id)
     {
         throw new NotImplementedException();
     }
 
-    public async Task<ServiceResponse<SubCategoryResult>> GetSubCategoryAsync(RequestSubCategory requestSub)
+    public async Task<ServiceResponse<SubCategoryResult>> GetSubCategoryAsync(RequestBy requestSub)
     {
         var parentId = requestSub.Id;
         var categorySlug = requestSub.Slug;
@@ -555,11 +558,11 @@ public class CategoryServices : ICategoryServices
 
         if (parentId is not null)
         {
-            category = await _context.Categories.Include(c => c.ChildCategories!).ThenInclude(c=>c.Images).Include(c => c.Images).FirstOrDefaultAsync(c => c.Id == parentId);
+            category = await _context.Categories.Include(c => c.ChildCategories!).ThenInclude(c => c.Images).Include(c => c.Images).FirstOrDefaultAsync(c => c.Id == parentId);
         }
         else
         {
-            category = await _context.Categories.Include(c => c.ChildCategories!).ThenInclude(c=>c.Images).Include(c => c.Images).FirstOrDefaultAsync(c => c.Slug == categorySlug);
+            category = await _context.Categories.Include(c => c.ChildCategories!).ThenInclude(c => c.Images).Include(c => c.Images).FirstOrDefaultAsync(c => c.Slug == categorySlug);
         }
 
 
@@ -656,7 +659,7 @@ public class CategoryServices : ICategoryServices
             }).ToList(), nameof(Category)).FirstOrDefault() : null,
             Count = category.Products?.Count ?? 0,
             FeatureCount = category.ProductFeatures?.Count ?? 0,
-            SizeCount = category.ProductSizes?.ProductSizeValues?.Count ?? 0,
+            SizeCount = category.ProductSizes?.ProductSizeProductSizeValues?.Count ?? 0,
             BrandCount = 0,
             Created = category.Created,
             LastUpdated = category.LastUpdated

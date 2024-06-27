@@ -10,6 +10,8 @@ public interface IProductServices
 {
     Task<ServiceResponse<bool>> CreateProduct(ProductCreateDTO productCreateDTO);
     Task<ServiceResponse<IEnumerable<Product>>> GetAll();
+    Task<ServiceResponse<ProductDTO>> GetBy(string slug);
+    Task<ServiceResponse<List<ProductDTO>>> GetByCategory(Guid id);
     Task<ServiceResponse<GetProductsResult>> GetProducts(RequestQuery parameters);
     Task<ServiceResponse<GetProductsResult>> GetProductsPagination(RequestQuery requestQuery);
     Task<ServiceResponse<ProductDTO>> GetSingleProductBy(Guid id);

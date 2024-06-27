@@ -13,6 +13,7 @@ public class ProductDTO
     public double Price { get; set; }
     public bool IsFake { get; set; }
     public Guid? BrandId { get; set; }
+    public string BrandName { get; set; } = string.Empty;
     public int InStock { get; set; }
     public ProductSizeInfo? ProductSizeInfo { get; set; }
     public ProductFeatureInfo? ProductFeatureInfo { get; set; }

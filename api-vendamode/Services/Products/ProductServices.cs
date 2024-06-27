@@ -15,6 +15,7 @@ using api_vendace.Utility;
 using api_vendamode.Models.Dtos.ProductDto.Sizes;
 using api_vendamode.Interfaces.IServices;
 using Microsoft.EntityFrameworkCore;
+using api_vendace.Models.Dtos;
 
 public class ProductServices : IProductServices
 {
@@ -125,7 +126,7 @@ public class ProductServices : IProductServices
 
     private string GenerateProductCode()
     {
-        string prefix = "K";
+        string prefix = "Km";
         long lastCodeNumber = _productRepository.GetLastProductCodeNumber();
         long newCodeNumber = lastCodeNumber + 1;
         string formattedCodeNumber = newCodeNumber.ToString("D9");
@@ -487,6 +488,88 @@ public class ProductServices : IProductServices
         }
     }
 
+    public async Task<ServiceResponse<ProductDTO>> GetBy(string slug)
+    {
+        try
+        {
+            var product = await _productRepository.GetAsyncBy(slug);
+            if (product == null)
+            {
+                return new ServiceResponse<ProductDTO>
+                {
+                    Success = false,
+                    Message = "محصولی پیدا نشد."
+                };
+            }
+
+            var result = await BuildProductResponse(product);
+            return new ServiceResponse<ProductDTO> { Data = result };
+        }
+        catch (Exception ex)
+        {
+            return new ServiceResponse<ProductDTO>
+            {
+                Success = false,
+                Message = "خطایی رخ داد در هنگام دریافت محصول" + ex.Message
+            };
+        }
+    }
+
+    public async Task<ServiceResponse<List<ProductDTO>>> GetByCategory(Guid id)
+    {
+        try
+        {
+            int pageNumber = 1;
+            int pageSize = 15;
+
+            var paginatedProducts = await _productRepository.GetPaginationAsync(pageNumber, pageSize);
+            var productList = paginatedProducts.Data.ToList();
+            var productDtoList = new List<ProductDTO>();
+
+            foreach (var product in productList)
+            {
+                var result = await BuildProductResponse(product);
+                productDtoList.Add(result);
+            }
+
+            var pagination = new Pagination<ProductDTO>
+            {
+                CurrentPage = pageNumber,
+                NextPage = pageNumber < (paginatedProducts.TotalCount / pageSize) ? pageNumber + 1 : pageNumber,
+                PreviousPage = pageNumber > 1 ? pageNumber - 1 : 1,
+                HasNextPage = pageNumber < (paginatedProducts.TotalCount / pageSize),
+                HasPreviousPage = pageNumber > 1,
+                LastPage = (int)Math.Ceiling((double)paginatedProducts.TotalCount / pageSize),
+                Data = productDtoList,
+                TotalCount = paginatedProducts.TotalCount
+            };
+
+            var results = new GetProductsResult
+            {
+                ProductsLength = paginatedProducts.TotalCount,
+                MainMaxPrice = paginatedProducts.Data.Max(p => p.Price),
+                MainMinPrice = paginatedProducts.Data.Min(p => p.Price),
+                Pagination = pagination
+            };
+
+            var similarProducts = results.Pagination.Data.Where(c => c.CategoryId == id).ToList();
+
+            return new ServiceResponse<List<ProductDTO>>
+            {
+                Data = similarProducts,
+                Success = true
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ServiceResponse<List<ProductDTO>>
+            {
+                Success = false,
+                Message = $"خطایی رخ داد در هنگام دریافت لیست محصولات مشابه با دسته مورد نظر: {ex.Message}"
+            };
+        }
+    }
+
     public Task<ServiceResponse<bool>> UpdateProduct(Guid id)
     {
         throw new NotImplementedException();
@@ -496,6 +579,7 @@ public class ProductServices : IProductServices
     {
         var result = product.ToProductResponse(_byteFileUtility);
 
+        result.BrandName = product.Brand?.Name ?? string.Empty;
         var categoryLevelIds = GetCategoryLevelIds(product.Category!);
         var categories = await _context.Categories
             .Where(c => categoryLevelIds.Contains(c.Id))
@@ -511,11 +595,17 @@ public class ProductServices : IProductServices
         result.CategoryList = categoryLevelIds;
 
         var productSize = await _context.ProductSizes
-            .Where(x => x.CategoryId == product.CategoryId)
-            .Include(s => s.Images)
-            .Include(s => s.Sizes)
-            .Include(s => s.ProductSizeValues)
-            .FirstOrDefaultAsync();
+        .Where(x => x.CategoryId == product.CategoryId)
+        .Include(s => s.Images)
+        .Include(s => s.Sizes)
+        .Include(s => s.ProductSizeProductSizeValues)
+        .ThenInclude(pspsv => pspsv.ProductSizeValue)
+        .FirstOrDefaultAsync();
+
+        if (productSize == null)
+        {
+            return null; // یا هرگونه هندلینگ خطای مناسب دیگری
+        }
 
         var productScale = await _context.ProductScales.Include(x => x.Columns).Include(x => x.Rows).FirstOrDefaultAsync(p => p.ProductId == product.Id);
         List<Sizes>? sizeList = null;
@@ -539,26 +629,60 @@ public class ProductServices : IProductServices
             }
         }
 
-        if (productSize?.ProductSizeValues?.Any() == true)
+        if (productSize.ProductSizeProductSizeValues?.Any() == true)
         {
+
             var productSizeInfo = new ProductSizeInfo
             {
+                SizeType = productSize.SizeType,
                 Columns = sizeList?.Select(s => new SizeDTO
                 {
                     Id = s.Id,
                     Name = s.Name
                 }).ToList(),
 
-                Rows = productSize.ProductSizeValues.Select(ps => new SizeInfoModel
+                Rows = productSize.ProductSizeProductSizeValues.Select(pspsv => new SizeInfoModel
                 {
-                    ProductSizeValue = ps.Name,
-                    ScaleValues = scaleValues
-                }).ToList()
+                    ProductSizeValue = pspsv.ProductSizeValue.Name,
+                    ScaleValues = scaleValues // فرض می‌کنیم که scaleValues از قبل تعیین شده است
+                }).ToList(),
+
+                ImagesSrc = productSize.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(productSize.Images.Select(img => new EntityImageDto
+                {
+                    Id = img.Id,
+                    ImageUrl = img.ImageUrl ?? string.Empty,
+                    Placeholder = img.Placeholder ?? string.Empty
+                }).ToList(), nameof(ProductSize)).First() : null
             };
+
             result.ProductSizeInfo = productSizeInfo;
         }
 
-        result.ProductFeatureInfo = new ProductFeatureInfo(product);
+        var featureValueIds = product.FeatureValueIds ?? new List<Guid>();
+
+
+        var featreValueDb = await _context.FeatureValues.ToListAsync();
+
+        var featureValueData = featreValueDb
+            .Where(fv => featureValueIds.Contains(fv.Id))
+            .ToList();
+
+        // Load featureData and include FeatureValues
+        var featureData = await _context.ProductFeatures
+            .Include(pf => pf.Values)
+            .Where(pf => pf.Values != null ? pf.Values.Any(v => featureValueIds.Contains(v.Id)) : default)
+            .ToListAsync();
+
+        // Filter FeatureValues for each ProductFeature
+        foreach (var productFeature in featureData)
+        {
+            productFeature.Values = productFeature.Values?
+                .Where(fv => featureValueData.Any(fvd => fvd.Id == fv.Id))
+                .ToList();
+        }
+
+        result.ProductFeatureInfo = new ProductFeatureInfo(featureData);
+
 
         double sumOfRatings = 0;
         if (product.Review != null && product.Review.Count > 0)
@@ -600,5 +724,4 @@ public class ProductServices : IProductServices
 
         return categoryLevelIds;
     }
-
 }

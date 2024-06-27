@@ -13,8 +13,8 @@ using api_vendace.Data;
 namespace api_vendamode.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20240611064520_InitSliderImage")]
-    partial class InitSliderImage
+    [Migration("20240625161612_Init")]
+    partial class Init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -85,14 +85,9 @@ namespace api_vendamode.Migrations
                     b.Property<string>("Placeholder")
                         .HasColumnType("text");
 
-                    b.Property<Guid?>("ReviewId")
-                        .HasColumnType("uuid");
-
                     b.HasKey("Id");
 
                     b.HasIndex("EntityId");
-
-                    b.HasIndex("ReviewId");
 
                     b.ToTable("ProductImages");
                 });
@@ -183,6 +178,29 @@ namespace api_vendamode.Migrations
                     b.HasIndex("EntityId");
 
                     b.ToTable("UserSpecificationImages");
+                });
+
+            modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Products.Order>", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Placeholder")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityId")
+                        .IsUnique();
+
+                    b.ToTable("PurchaseInvoice");
                 });
 
             modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Products.Slider>", b =>
@@ -276,6 +294,10 @@ namespace api_vendamode.Migrations
                     b.Property<Guid?>("ParentCategoryId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ParentCategoryId");
@@ -323,9 +345,8 @@ namespace api_vendamode.Migrations
 
             modelBuilder.Entity("api_vendace.Entities.Products.Points", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
 
                     b.Property<Guid?>("NegativeReviewId")
                         .HasColumnType("uuid");
@@ -903,28 +924,19 @@ namespace api_vendamode.Migrations
                     b.ToTable("UserSpecifications");
                 });
 
-            modelBuilder.Entity("api_vendace.Models.Dtos.EntityImageDto", b =>
+            modelBuilder.Entity("api_vendace.Models.Dtos.ObjectValue", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("CategoryLevelsId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ImageUrl")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Placeholder")
+                    b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CategoryLevelsId");
-
-                    b.ToTable("EntityImageDto");
+                    b.ToTable("ObjectValue");
                 });
 
             modelBuilder.Entity("api_vendace.Models.Dtos.ProductDto.Category.CategoryLevels", b =>
@@ -1001,13 +1013,163 @@ namespace api_vendamode.Migrations
                     b.ToTable("SizeModels");
                 });
 
+            modelBuilder.Entity("api_vendamode.Entities.Canceled", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("CanceledType")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("Updated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Canceleds");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Products.Cart", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<double>("Discount")
+                        .HasColumnType("double precision");
+
+                    b.Property<Guid?>("FeaturesId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("InStock")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ItemID")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<double>("Price")
+                        .HasColumnType("double precision");
+
+                    b.Property<Guid>("ProductID")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Sold")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FeaturesId");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("Cart");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Products.Order", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AddressId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CanceledId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("DateOfPayment")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Delivered")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OrderNum")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<double>("OrgPrice")
+                        .HasColumnType("double precision");
+
+                    b.Property<bool>("Paid")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("ReturnedId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<double>("TotalDiscount")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("TotalItems")
+                        .HasColumnType("integer");
+
+                    b.Property<double>("TotalPrice")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateTime>("Updated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserID")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AddressId");
+
+                    b.HasIndex("CanceledId");
+
+                    b.HasIndex("ReturnedId");
+
+                    b.HasIndex("UserID");
+
+                    b.ToTable("Orders");
+                });
+
             modelBuilder.Entity("api_vendamode.Entities.Products.Slider", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("CategoryId")
+                    b.Property<Guid?>("CategoryId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("Created")
@@ -1032,6 +1194,33 @@ namespace api_vendamode.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Sliders");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Returned", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("CanceledType")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("Updated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Returneds");
                 });
 
             modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendace.Entities.Products.Brand>", b =>
@@ -1063,10 +1252,6 @@ namespace api_vendamode.Migrations
                         .HasForeignKey("EntityId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("api_vendace.Entities.Products.Review", null)
-                        .WithMany("ProductImage")
-                        .HasForeignKey("ReviewId");
 
                     b.Navigation("Entity");
                 });
@@ -1109,6 +1294,17 @@ namespace api_vendamode.Migrations
                     b.HasOne("api_vendace.Entities.Users.UserSpecification", "Entity")
                         .WithMany("IdCardImages")
                         .HasForeignKey("EntityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Entity");
+                });
+
+            modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Products.Order>", b =>
+                {
+                    b.HasOne("api_vendamode.Entities.Products.Order", "Entity")
+                        .WithOne("PurchaseInvoice")
+                        .HasForeignKey("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Products.Order>", "EntityId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1380,11 +1576,60 @@ namespace api_vendamode.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("api_vendace.Models.Dtos.EntityImageDto", b =>
+            modelBuilder.Entity("api_vendace.Models.Dtos.ObjectValue", b =>
                 {
-                    b.HasOne("api_vendace.Models.Dtos.ProductDto.Category.CategoryLevels", null)
-                        .WithMany("ImagesSrc")
-                        .HasForeignKey("CategoryLevelsId");
+                    b.OwnsMany("api_vendace.Models.Dtos.Value", "Value", b1 =>
+                        {
+                            b1.Property<Guid>("ObjectValueId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<Guid>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("Name")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.HasKey("ObjectValueId", "Id");
+
+                            b1.ToTable("Value");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ObjectValueId");
+                        });
+
+                    b.Navigation("Value");
+                });
+
+            modelBuilder.Entity("api_vendace.Models.Dtos.ProductDto.Category.CategoryLevels", b =>
+                {
+                    b.OwnsMany("api_vendace.Models.Dtos.EntityImageDto", "ImagesSrc", b1 =>
+                        {
+                            b1.Property<Guid>("CategoryLevelsId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<Guid>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("ImageUrl")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<string>("Placeholder")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.HasKey("CategoryLevelsId", "Id");
+
+                            b1.ToTable("CategoryLevels_ImagesSrc");
+
+                            b1.WithOwner()
+                                .HasForeignKey("CategoryLevelsId");
+                        });
+
+                    b.Navigation("ImagesSrc");
                 });
 
             modelBuilder.Entity("api_vendace.Models.Dtos.ProductDto.Sizes.SizeIds", b =>
@@ -1399,6 +1644,143 @@ namespace api_vendamode.Migrations
                     b.HasOne("api_vendace.Entities.Products.ProductScale", null)
                         .WithMany("Rows")
                         .HasForeignKey("ProductScaleId");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Products.Cart", b =>
+                {
+                    b.HasOne("api_vendace.Models.Dtos.ObjectValue", "Features")
+                        .WithMany()
+                        .HasForeignKey("FeaturesId");
+
+                    b.HasOne("api_vendamode.Entities.Products.Order", null)
+                        .WithMany("Cart")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsOne("api_vendace.Models.Dtos.ProductDto.ColorDTO", "Color", b1 =>
+                        {
+                            b1.Property<Guid>("CartId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("HexCode")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("Name")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.HasKey("CartId");
+
+                            b1.ToTable("Cart");
+
+                            b1.WithOwner()
+                                .HasForeignKey("CartId");
+                        });
+
+                    b.OwnsOne("api_vendace.Models.Dtos.ProductDto.Sizes.SizeDTO", "Size", b1 =>
+                        {
+                            b1.Property<Guid>("CartId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("Count")
+                                .HasColumnType("integer");
+
+                            b1.Property<DateTime>("Created")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<string>("Description")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uuid");
+
+                            b1.Property<bool>("IsDeleted")
+                                .HasColumnType("boolean");
+
+                            b1.Property<DateTime?>("LastUpdated")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<string>("Name")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.HasKey("CartId");
+
+                            b1.ToTable("Cart");
+
+                            b1.WithOwner()
+                                .HasForeignKey("CartId");
+                        });
+
+                    b.OwnsOne("api_vendace.Models.Dtos.EntityImageDto", "Img", b1 =>
+                        {
+                            b1.Property<Guid>("CartId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("ImageUrl")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<string>("Placeholder")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.HasKey("CartId");
+
+                            b1.ToTable("Cart");
+
+                            b1.WithOwner()
+                                .HasForeignKey("CartId");
+                        });
+
+                    b.Navigation("Color");
+
+                    b.Navigation("Features");
+
+                    b.Navigation("Img")
+                        .IsRequired();
+
+                    b.Navigation("Size");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Products.Order", b =>
+                {
+                    b.HasOne("api_vendace.Entities.Users.Address", "Address")
+                        .WithMany()
+                        .HasForeignKey("AddressId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("api_vendamode.Entities.Canceled", "Canceled")
+                        .WithMany()
+                        .HasForeignKey("CanceledId");
+
+                    b.HasOne("api_vendamode.Entities.Returned", "Returned")
+                        .WithMany()
+                        .HasForeignKey("ReturnedId");
+
+                    b.HasOne("api_vendace.Entities.Users.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Address");
+
+                    b.Navigation("Canceled");
+
+                    b.Navigation("Returned");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("api_vendace.Entities.Products.Brand", b =>
@@ -1462,8 +1844,6 @@ namespace api_vendamode.Migrations
                     b.Navigation("NegativePoints");
 
                     b.Navigation("PositivePoints");
-
-                    b.Navigation("ProductImage");
                 });
 
             modelBuilder.Entity("api_vendace.Entities.Users.Security.Permission", b =>
@@ -1493,9 +1873,11 @@ namespace api_vendamode.Migrations
                     b.Navigation("IdCardImages");
                 });
 
-            modelBuilder.Entity("api_vendace.Models.Dtos.ProductDto.Category.CategoryLevels", b =>
+            modelBuilder.Entity("api_vendamode.Entities.Products.Order", b =>
                 {
-                    b.Navigation("ImagesSrc");
+                    b.Navigation("Cart");
+
+                    b.Navigation("PurchaseInvoice");
                 });
 
             modelBuilder.Entity("api_vendamode.Entities.Products.Slider", b =>

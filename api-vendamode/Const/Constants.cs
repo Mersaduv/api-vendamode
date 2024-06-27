@@ -17,6 +17,8 @@ public static class Constants
     public const string Count = "count";
     public const string Login = "login";
     public const string Address = "address";
+    public const string Canceleds = "canceled-orders";
+     public const string Returned = "returned-orders";
     public const string Addresses = "addresses";
     public const string Logout = "logout";
     public const string Payment = "payment";

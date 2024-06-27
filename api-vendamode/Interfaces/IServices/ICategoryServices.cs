@@ -25,7 +25,7 @@ public interface ICategoryServices
     IEnumerable<Guid> GetAllChildCategoriesHelper(Guid parentCategoryId, List<Category> allCategories, List<Category> allChildCategories);
     IEnumerable<Guid> GetAllChildCategories(Guid parentCategoryId);
     Task<ServiceResponse<List<CategoryDTO>>> GetParentSubCategoryAsync(Guid id);
-    Task<ServiceResponse<SubCategoryResult>> GetSubCategoryAsync(RequestSubCategory requestSub);
+    Task<ServiceResponse<SubCategoryResult>> GetSubCategoryAsync(RequestBy requestSub);
     Task<ServiceResponse<CategoryResult>> GetAllCategories();
     Task<ServiceResponse<CategoryDTO>> GetBySlugAsync(string category);
 

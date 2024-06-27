@@ -6,6 +6,7 @@ public class ReviewDto : BaseClass<Guid>
 {
     public string Comment { get; set; } = string.Empty;
     public int Rating { get; set; }
+    public int Status { get; set; }
     public List<Points>? PositivePoints { get; set; }
     public List<Points>? NegativePoints { get; set; }
     public List<EntityImageDto>? ImageUrls { get; set; }

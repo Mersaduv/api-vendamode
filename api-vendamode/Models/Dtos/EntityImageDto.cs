@@ -1,5 +1,7 @@
-namespace api_vendace.Models.Dtos;
+using Microsoft.EntityFrameworkCore;
 
+namespace api_vendace.Models.Dtos;
+[Owned]
 public class EntityImageDto
 {
     public Guid Id { get; set; }

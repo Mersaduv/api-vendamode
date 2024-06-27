@@ -60,7 +60,7 @@ public static class CategoryEndpoints
         return TypedResults.Ok(result);
     }
 
-    private async static Task<Ok<ServiceResponse<SubCategoryResult>>> GetSubCategory(ICategoryServices categoryServices, ILogger<Program> _logger,  [AsParameters] RequestSubCategory requestSub)
+    private async static Task<Ok<ServiceResponse<SubCategoryResult>>> GetSubCategory(ICategoryServices categoryServices, ILogger<Program> _logger,  [AsParameters] RequestBy requestSub)
     {
         _logger.Log(LogLevel.Information, "Getting SubCategories");
 

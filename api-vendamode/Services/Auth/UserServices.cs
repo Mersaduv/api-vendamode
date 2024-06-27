@@ -336,7 +336,10 @@ public class UserServices : IUserServices
         return response;
     }
 
-    public Guid GetUserId() => Guid.Parse(_httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    public Guid GetUserId()
+    {
+        return Guid.Parse(_httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    }
 
     private string CreateToken(User user)
     {

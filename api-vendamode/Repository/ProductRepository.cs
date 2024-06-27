@@ -91,7 +91,7 @@ public class ProductRepository : IProductRepository
         .AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
     }
 
-    public async Task<Product?> GetAsyncBy(string productName)
+    public async Task<Product?> GetAsyncBy(string slug)
     {
         return await _context.Products
         .Include(x => x.Brand)
@@ -100,25 +100,30 @@ public class ProductRepository : IProductRepository
         .Include(x => x.ProductScale)
         .Include(x => x.Review)
         .Include(c => c.Category)
-        .FirstOrDefaultAsync(u => u.Title.ToLower() == productName.ToLower());
+        .FirstOrDefaultAsync(u => u.Slug == slug);
     }
 
-    public long GetLastProductCodeNumber()
-    {
-        // Get the last product from the database, ordered by the product code in descending order
-        var lastProduct = _context.Products
+public long GetLastProductCodeNumber()
+{
+         var lastProduct = _context.Products
             .OrderByDescending(p => p.Code)
             .FirstOrDefault();
 
-        // If there are no products in the database, return 0
         if (lastProduct == null)
         {
             return 0;
         }
 
-        // Extract the numeric part from the last product code, convert it to a long, and return it
-        string numericPart = lastProduct.Code.Substring(1); // Remove the 'K' prefix
-        long lastCodeNumber = long.Parse(numericPart);
-        return lastCodeNumber;
-    }
+        string prodNum = lastProduct.Code;
+        string numericPart = new string(prodNum.Where(char.IsDigit).ToArray());
+
+        if (long.TryParse(numericPart, out long lastCodeNumber))
+        {
+            return lastCodeNumber;
+        }
+        else
+        {
+            throw new FormatException($"Invalid order number format: {prodNum}");
+        }
+}
 }

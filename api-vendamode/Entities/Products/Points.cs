@@ -2,6 +2,6 @@ namespace api_vendace.Entities.Products;
 
 public class Points
 {
-    public Guid Id { get; set; }
+    public string Id { get; set; }  =default!;
     public string Title { get; set; } = string.Empty;
 }

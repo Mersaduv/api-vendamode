@@ -11,6 +11,7 @@ using api_vendace.Utility;
 using api_vendamode.Interfaces.IServices;
 using api_vendamode.Services;
 using api_vendamode.Services.Auth;
+using api_vendamode.Services.Products;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -37,7 +38,9 @@ public static class DIRegister
                 .AddScoped<IPermissionServices, PermissionServices>()
                 .AddScoped<IRoleServices, RoleServices>()
                 .AddScoped<IAddressServices, AddressServices>()
-                .AddScoped<ISliderServices, SliderServices>();
+                .AddScoped<ISliderServices, SliderServices>()
+                .AddScoped<IOrderServices, OrderService>()
+                .AddScoped<ICanceledServices, CanceledServices>();
         // services.AddScoped<IPaymentService, PaymentService>();
     }
 
