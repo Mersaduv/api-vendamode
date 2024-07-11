@@ -3,7 +3,12 @@ using api_vendace.Entities.Products;
 using api_vendace.Interfaces;
 using api_vendace.Interfaces.IServices;
 using api_vendace.Models;
+using api_vendace.Models.Dtos;
 using api_vendace.Models.Dtos.ProductDto.Feature;
+using api_vendace.Models.Dtos.ProductDto.Sizes;
+using api_vendace.Utility;
+using api_vendamode.Models.Dtos.ProductDto;
+using api_vendamode.Models.Dtos.ProductDto.Sizes;
 using Microsoft.EntityFrameworkCore;
 
 namespace api_vendace.Services.Products;
@@ -11,11 +16,13 @@ public class FeatureServices : IFeatureServices
 {
     private readonly ApplicationDbContext _context;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ByteFileUtility _byteFileUtility;
 
-    public FeatureServices(ApplicationDbContext context, IUnitOfWork unitOfWork)
+    public FeatureServices(ApplicationDbContext context, IUnitOfWork unitOfWork, ByteFileUtility byteFileUtility)
     {
         _context = context;
         _unitOfWork = unitOfWork;
+        _byteFileUtility = byteFileUtility;
     }
 
     public async Task<ServiceResponse<bool>> AddFeature(ProductFeatureCreateDTO productFeatureCreate)
@@ -226,18 +233,71 @@ public class FeatureServices : IFeatureServices
         };
     }
 
-    public async Task<ServiceResponse<List<ProductFeature>>> GetFeaturesByCategory(Guid id)
+    public async Task<ServiceResponse<GetCategoryFeaturesByCategory>> GetFeaturesByCategory(Guid categoryId)
     {
-        var features = await _context.ProductFeatures.Where(f => f.CategoryId == id)
-                                 .Include(f => f.Values)
-                                 .Include(f => f.Product)
-                                 .AsNoTracking()
-                                 .ToListAsync();
+        // Fetch features related to the category
+        var features = await _context.ProductFeatures
+            .Where(f => f.CategoryId == categoryId)
+            .Include(f => f.Values)
+            .Include(f => f.Product)
+            .ToListAsync();
 
-        return new ServiceResponse<List<ProductFeature>>
+        // Fetch product sizes related to the category
+        var productSizes = await _context.ProductSizes
+            .Include(ps => ps.Images)
+            .Include(ps => ps.ProductSizeProductSizeValues)
+            .ThenInclude(pspsv => pspsv.ProductSizeValue)
+            .Include(ps => ps.CategoryProductSizes)
+            .ThenInclude(cps => cps.Category)
+            .Where(ps => ps.CategoryProductSizes.Any(cps => cps.CategoryId == categoryId))
+            .ToListAsync();
+
+
+        var categorySizes = await _context.Sizes
+        .Where(ps => ps.CategorySizes.Any(cps => cps.CategoryId == categoryId))
+        .ToListAsync();
+
+        var sizesDto = categorySizes.Select(size => new SizeDTO
+        {
+            Id = size.Id,
+            Count = 0,
+            Description = size.Description,
+            Name = size.Name,
+            Created = size.Created,
+            LastUpdated = size.LastUpdated
+        }).ToList();
+
+        // Map product sizes to ProductSizeDTO
+        var productSizeDto = productSizes.Select(productSize => new ProductSizeDTO
+        {
+            Id = productSize.Id,
+            ImagesSrc = productSize.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(productSize.Images.Select(img => new EntityImageDto
+            {
+                Id = img.Id,
+                ImageUrl = img.ImageUrl ?? string.Empty,
+                Placeholder = img.Placeholder ?? string.Empty
+            }).ToList(), nameof(ProductSize)).First() : null,
+            SizeType = productSize.SizeType,
+            ProductSizeValues = productSize.ProductSizeProductSizeValues?.Select(sv => new ProductSizeValuesDTO
+            {
+                Id = sv.ProductSizeValue!.Id,
+                Name = sv.ProductSizeValue.Name,
+                ProductSizeId = sv.ProductSizeId
+            }).ToList(),
+            Created = productSize.Created,
+            LastUpdated = productSize.LastUpdated
+        }).ToList();
+
+        // Return the response
+        return new ServiceResponse<GetCategoryFeaturesByCategory>
         {
             Count = features.Count,
-            Data = features,
+            Data = new GetCategoryFeaturesByCategory
+            {
+                ProductFeatures = features,
+                ProductSizes = productSizeDto,
+                SizeDTOs = sizesDto
+            },
         };
     }
 }

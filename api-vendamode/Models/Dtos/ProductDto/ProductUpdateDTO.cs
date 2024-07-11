@@ -10,18 +10,16 @@ namespace api_vendace.Models.Dtos.ProductDto;
 
 public class ProductUpdateDTO
 {
+    public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public bool IsActive { get; set; }
+    public IFormFile MainThumbnail { get; set; } = default!;
     public List<IFormFile> Thumbnail { get; set; } = [];
     public Guid CategoryId { get; set; }
     public string Description { get; set; } = string.Empty;
     public bool IsFake { get; set; }
     public Guid? BrandId { get; set; }
     public List<Guid>? FeatureValueIds { get; set; }
-    public int InStock { get; set; }
-    public int Sold { get; set; }
-    public double Price { get; set; }
-    public double? Discount { get; set; }
     public ProductScaleDTO? ProductScale { get; set; }
     public List<StockItemDTO>? StockItems { get; set; }
 
@@ -29,9 +27,10 @@ public class ProductUpdateDTO
                                                                  ParameterInfo parameter)
     {
         var form = await context.Request.ReadFormAsync();
-
+        var mainThumbnail = form.Files.GetFile("MainThumbnail");
         var thumbnailFiles = form.Files.GetFiles("Thumbnail");
         var thumbnail = thumbnailFiles.Any() ? thumbnailFiles.ToList() : null;
+        var productId = Guid.Parse(form["Id"]!);
         var title = form["Title"];
         var isActive = bool.Parse(form["IsActive"]!);
         var categoryId = Guid.Parse(form["CategoryId"]!);
@@ -56,20 +55,17 @@ public class ProductUpdateDTO
                 }
             }
         }
-        var inStock = Convert.ToInt32(form["InStock"]);
-        var sold = Convert.ToInt32(form["Sold"]);
-        var price = Convert.ToDouble(form["Price"]);
-        var discount = string.IsNullOrEmpty(form["Discount"]) ? null : (double?)Convert.ToDouble(form["Discount"]);
-
 
         var stockItemData = form["StockItems"].ToList();
-        var stockItems = ParseHelper.ParseData<StockItemDTO>(stockItemData);
+        var stockItems = ParseHelperV2.ParseData<StockItemDTO>(stockItemData);
 
         var productScaleData = form["ProductScale"];
         var productScale = string.IsNullOrEmpty(productScaleData) ? null : JsonConvert.DeserializeObject<ProductScaleDTO>(productScaleData!);
 
         return new ProductUpdateDTO
         {
+            Id = productId,
+            MainThumbnail = mainThumbnail!,
             Thumbnail = thumbnail!,
             Title = title!,
             IsActive = isActive,
@@ -78,10 +74,6 @@ public class ProductUpdateDTO
             IsFake = isFake,
             BrandId = brandId,
             FeatureValueIds = featureValueIds,
-            InStock = inStock,
-            Sold = sold,
-            Price = price,
-            Discount = discount,
             StockItems = stockItems,
             ProductScale = productScale
         };

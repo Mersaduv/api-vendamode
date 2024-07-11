@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using api_vendamode.Endpoints;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
@@ -31,6 +32,9 @@ builder.Services.AddUnitOfWork();
 string connectionString = builder.Configuration.GetConnectionString("SqlConnection") ?? string.Empty;
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
+    // var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+    // dataSourceBuilder.EnableDynamicJson();
+    // options.UseNpgsql(dataSourceBuilder.Build());
     options.UseNpgsql(connectionString);
 });
 builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
@@ -48,7 +52,6 @@ builder.Services.Configure<JsonOptions>(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
 });
-
 
 var app = builder.Build();
 

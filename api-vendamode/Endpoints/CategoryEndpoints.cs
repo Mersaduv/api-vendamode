@@ -32,7 +32,8 @@ public static class CategoryEndpoints
         categoryGroup.MapPost("update", UpdateCategory)
         .Accepts<CategoryUpdateDTO>("multipart/form-data");
 
-        categoryGroup.MapPost($"feature-update", CategoryFeatureUpdate);
+        categoryGroup.MapPost($"feature-update", CategoryFeatureUpdate)
+        .Accepts<CategoryFeatureUpdateDTO>("application/json");
 
         categoryGroup.MapDelete("{id:guid}", DeleteCategory);
 
@@ -71,7 +72,7 @@ public static class CategoryEndpoints
         return TypedResults.Ok(result);
     }
 
-    private async static Task<Ok<ServiceResponse<bool>>> CategoryFeatureUpdate(ICategoryServices categoryServices, ILogger<Program> _logger, [AsParameters] CategoryFeatureUpdateDTO categoryFeatureUpdate)
+    private async static Task<Ok<ServiceResponse<bool>>> CategoryFeatureUpdate(ICategoryServices categoryServices, ILogger<Program> _logger,CategoryFeatureUpdateDTO categoryFeatureUpdate)
     {
         _logger.Log(LogLevel.Information, "Getting parent SubCategories");
 
@@ -86,7 +87,6 @@ public static class CategoryEndpoints
     {
         _logger.Log(LogLevel.Information, "Categories Tree");
 
-        // await AccessControl.CheckProductPermissionFlag(context , "product-get-all");
 
         var result = await categoryServices.GetCategoriesTreeAsync();
 

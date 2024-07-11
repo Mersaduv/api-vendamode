@@ -3,6 +3,7 @@ using api_vendace.Entities.Products;
 using api_vendace.Interfaces.IServices;
 using api_vendace.Models;
 using api_vendace.Models.Dtos.ProductDto.Feature;
+using api_vendamode.Models.Dtos.ProductDto;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace api_vendace.Endpoints;
@@ -106,7 +107,7 @@ public static class ProductFeatureEndpoints
         return TypedResults.Ok(result);
     }
 
-    private async static Task<Ok<ServiceResponse<List<ProductFeature>>>> GetFeaturesByCategory(IFeatureServices featureServices, ILogger<Program> _logger, Guid id)
+    private async static Task<Ok<ServiceResponse<GetCategoryFeaturesByCategory>>> GetFeaturesByCategory(IFeatureServices featureServices, ILogger<Program> _logger, Guid id)
     {
         _logger.Log(LogLevel.Information, "Get Feature by category");
 

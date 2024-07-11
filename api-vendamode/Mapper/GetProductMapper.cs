@@ -16,6 +16,14 @@ public static class GetProductMapper
             Title = product.Title,
             Code = product.Code,
             Slug = product.Slug,
+            MainImageSrc = byteFileUtility.GetEncryptedFileActionUrl
+            ([new EntityImageDto
+                            {
+                                Id = product.MainImage!.Id,
+                                ImageUrl = product.MainImage.ImageUrl!,
+                                Placeholder = product.MainImage.Placeholder!
+                            }],
+            nameof(Product)).First(),
             ImagesSrc = byteFileUtility.GetEncryptedFileActionUrl
             (product.Images.Select(img => new EntityImageDto
             {
@@ -27,8 +35,10 @@ public static class GetProductMapper
             Discount = product.Discount,
             BrandId = product.BrandId,
             IsFake = product.IsFake,
+            IsActive = product.IsActive,
             InStock = product.InStock,
             Sold = product.Sold,
+            Description = product.Description,
             Created = product.Created,
             LastUpdated = product.LastUpdated
         };

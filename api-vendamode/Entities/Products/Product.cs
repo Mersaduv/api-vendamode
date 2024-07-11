@@ -1,11 +1,13 @@
 using api_vendace.Models;
 using api_vendace.Models.Dtos.ProductDto.Category;
+using api_vendace.Models.Dtos.ProductDto.Stock;
 
 namespace api_vendace.Entities.Products;
 
 public class Product : BaseClass<Guid>
 {
     public string Title { get; set; } = string.Empty;
+    public EntityMainImage<Guid, Product> MainImage { get; set; } = new EntityMainImage<Guid, Product>();
     public List<EntityImage<Guid, Product>> Images { get; set; } = [];
     public string Code { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
@@ -29,4 +31,5 @@ public class Product : BaseClass<Guid>
     public int InStock { get; set; }
     public virtual ProductScale? ProductScale { get; set; }
     public virtual List<Review>? Review { get; set; }
+    public virtual List<StockItem>? StockItems { get; set; }
 }

@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace api_vendamode.Migrations
 {
     /// <inheritdoc />
-    public partial class Init : Migration
+    public partial class InitFirst : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -111,6 +111,35 @@ namespace api_vendamode.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ProductScales", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ProductSizes",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    SizeType = table.Column<int>(type: "integer", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProductSizes", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ProductSizeValues",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProductSizeValues", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -241,6 +270,71 @@ namespace api_vendamode.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "SizeIds",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    SizeId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    ProductScaleId = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SizeIds", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SizeIds_ProductScales_ProductScaleId",
+                        column: x => x.ProductScaleId,
+                        principalTable: "ProductScales",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SizeModels",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    Idx = table.Column<string>(type: "text", nullable: false),
+                    ScaleValues = table.Column<List<string>>(type: "text[]", nullable: true),
+                    ProductSizeValue = table.Column<string>(type: "text", nullable: false),
+                    ProductSizeValueId = table.Column<string>(type: "text", nullable: false),
+                    ProductScaleId = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SizeModels", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SizeModels_ProductScales_ProductScaleId",
+                        column: x => x.ProductScaleId,
+                        principalTable: "ProductScales",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CategoryProductSizes",
+                columns: table => new
+                {
+                    CategoryId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProductSizeId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CategoryProductSizes", x => new { x.CategoryId, x.ProductSizeId });
+                    table.ForeignKey(
+                        name: "FK_CategoryProductSizes_Categories_CategoryId",
+                        column: x => x.CategoryId,
+                        principalTable: "Categories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_CategoryProductSizes_ProductSizes_ProductSizeId",
+                        column: x => x.ProductSizeId,
+                        principalTable: "ProductSizes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Products",
                 columns: table => new
                 {
@@ -260,6 +354,7 @@ namespace api_vendamode.Migrations
                     Rating = table.Column<double>(type: "double precision", nullable: false),
                     NumReviews = table.Column<int>(type: "integer", nullable: false),
                     CategoryId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProductSizesId = table.Column<Guid>(type: "uuid", nullable: true),
                     ProductScaleId = table.Column<Guid>(type: "uuid", nullable: false),
                     InStock = table.Column<int>(type: "integer", nullable: false),
                     Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -290,45 +385,76 @@ namespace api_vendamode.Migrations
                         principalTable: "ProductScales",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Products_ProductSizes_ProductSizesId",
+                        column: x => x.ProductSizesId,
+                        principalTable: "ProductSizes",
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
-                name: "SizeIds",
+                name: "ProductSizeImages",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    SizeId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
-                    ProductScaleId = table.Column<Guid>(type: "uuid", nullable: true)
+                    EntityId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ImageUrl = table.Column<string>(type: "text", nullable: true),
+                    Placeholder = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SizeIds", x => x.Id);
+                    table.PrimaryKey("PK_ProductSizeImages", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_SizeIds_ProductScales_ProductScaleId",
-                        column: x => x.ProductScaleId,
-                        principalTable: "ProductScales",
+                        name: "FK_ProductSizeImages_ProductSizes_EntityId",
+                        column: x => x.EntityId,
+                        principalTable: "ProductSizes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Sizes",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: false),
+                    ProductSizeId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Sizes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Sizes_ProductSizes_ProductSizeId",
+                        column: x => x.ProductSizeId,
+                        principalTable: "ProductSizes",
                         principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
-                name: "SizeModels",
+                name: "ProductSizeProductSizeValues",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "text", nullable: false),
-                    ScaleValues = table.Column<List<string>>(type: "text[]", nullable: true),
-                    ProductSizeValueName = table.Column<string>(type: "text", nullable: false),
-                    ProductSizeValueId = table.Column<string>(type: "text", nullable: false),
-                    ProductScaleId = table.Column<Guid>(type: "uuid", nullable: true)
+                    ProductSizeId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ProductSizeValueId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SizeModels", x => x.Id);
+                    table.PrimaryKey("PK_ProductSizeProductSizeValues", x => new { x.ProductSizeId, x.ProductSizeValueId });
                     table.ForeignKey(
-                        name: "FK_SizeModels_ProductScales_ProductScaleId",
-                        column: x => x.ProductScaleId,
-                        principalTable: "ProductScales",
-                        principalColumn: "Id");
+                        name: "FK_ProductSizeProductSizeValues_ProductSizeValues_ProductSizeV~",
+                        column: x => x.ProductSizeValueId,
+                        principalTable: "ProductSizeValues",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ProductSizeProductSizeValues_ProductSizes_ProductSizeId",
+                        column: x => x.ProductSizeId,
+                        principalTable: "ProductSizes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -539,30 +665,23 @@ namespace api_vendamode.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ProductSizes",
+                name: "ProductMainImages",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    SizeType = table.Column<int>(type: "integer", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    CategoryId = table.Column<Guid>(type: "uuid", nullable: true),
-                    ProductId = table.Column<Guid>(type: "uuid", nullable: true),
-                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    EntityId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ImageUrl = table.Column<string>(type: "text", nullable: true),
+                    Placeholder = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ProductSizes", x => x.Id);
+                    table.PrimaryKey("PK_ProductMainImages", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_ProductSizes_Categories_CategoryId",
-                        column: x => x.CategoryId,
-                        principalTable: "Categories",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_ProductSizes_Products_ProductId",
-                        column: x => x.ProductId,
+                        name: "FK_ProductMainImages_Products_EntityId",
+                        column: x => x.EntityId,
                         principalTable: "Products",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -591,6 +710,59 @@ namespace api_vendamode.Migrations
                         name: "FK_Reviews_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StockItems",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    StockId = table.Column<int>(type: "integer", nullable: false),
+                    ProductId = table.Column<Guid>(type: "uuid", nullable: false),
+                    FeatureValueId = table.Column<List<Guid>>(type: "uuid[]", nullable: true),
+                    SizeId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Idx = table.Column<string>(type: "text", nullable: false),
+                    Quantity = table.Column<int>(type: "integer", nullable: false),
+                    Price = table.Column<double>(type: "double precision", nullable: false),
+                    Discount = table.Column<double>(type: "double precision", nullable: true),
+                    AdditionalProperties = table.Column<Dictionary<string, object>>(type: "jsonb", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StockItems", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_StockItems_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CategorySizes",
+                columns: table => new
+                {
+                    CategoryId = table.Column<Guid>(type: "uuid", nullable: false),
+                    SizeId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CategorySizes", x => new { x.CategoryId, x.SizeId });
+                    table.ForeignKey(
+                        name: "FK_CategorySizes_Categories_CategoryId",
+                        column: x => x.CategoryId,
+                        principalTable: "Categories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_CategorySizes_Sizes_SizeId",
+                        column: x => x.SizeId,
+                        principalTable: "Sizes",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -743,68 +915,6 @@ namespace api_vendamode.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ProductSizeImages",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    EntityId = table.Column<Guid>(type: "uuid", nullable: false),
-                    ImageUrl = table.Column<string>(type: "text", nullable: true),
-                    Placeholder = table.Column<string>(type: "text", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ProductSizeImages", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ProductSizeImages_ProductSizes_EntityId",
-                        column: x => x.EntityId,
-                        principalTable: "ProductSizes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ProductSizeValues",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
-                    ProductSizeId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ProductSizeValues", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ProductSizeValues_ProductSizes_ProductSizeId",
-                        column: x => x.ProductSizeId,
-                        principalTable: "ProductSizes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Sizes",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
-                    Description = table.Column<string>(type: "text", nullable: false),
-                    ProductSizeId = table.Column<Guid>(type: "uuid", nullable: true),
-                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Sizes", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Sizes_ProductSizes_ProductSizeId",
-                        column: x => x.ProductSizeId,
-                        principalTable: "ProductSizes",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Points",
                 columns: table => new
                 {
@@ -849,6 +959,26 @@ namespace api_vendamode.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "StockImages",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    EntityId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ImageUrl = table.Column<string>(type: "text", nullable: true),
+                    Placeholder = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StockImages", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_StockImages_StockItems_EntityId",
+                        column: x => x.EntityId,
+                        principalTable: "StockItems",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Cart",
                 columns: table => new
                 {
@@ -873,9 +1003,9 @@ namespace api_vendamode.Migrations
                     Size_Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     Size_LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     FeaturesId = table.Column<Guid>(type: "uuid", nullable: true),
-                    Img_Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Img_ImageUrl = table.Column<string>(type: "text", nullable: false),
-                    Img_Placeholder = table.Column<string>(type: "text", nullable: false),
+                    Img_Id = table.Column<Guid>(type: "uuid", nullable: true),
+                    Img_ImageUrl = table.Column<string>(type: "text", nullable: true),
+                    Img_Placeholder = table.Column<string>(type: "text", nullable: true),
                     Quantity = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
@@ -945,6 +1075,16 @@ namespace api_vendamode.Migrations
                 column: "EntityId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_CategoryProductSizes_ProductSizeId",
+                table: "CategoryProductSizes",
+                column: "ProductSizeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CategorySizes_SizeId",
+                table: "CategorySizes",
+                column: "SizeId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_FeatureValues_ProductFeatureId",
                 table: "FeatureValues",
                 column: "ProductFeatureId");
@@ -1005,6 +1145,12 @@ namespace api_vendamode.Migrations
                 column: "EntityId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ProductMainImages_EntityId",
+                table: "ProductMainImages",
+                column: "EntityId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Products_BrandId",
                 table: "Products",
                 column: "BrandId");
@@ -1026,26 +1172,25 @@ namespace api_vendamode.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Products_ProductSizesId",
+                table: "Products",
+                column: "ProductSizesId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ProductSizeImages_EntityId",
                 table: "ProductSizeImages",
                 column: "EntityId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProductSizes_CategoryId",
-                table: "ProductSizes",
-                column: "CategoryId",
-                unique: true);
+                name: "IX_ProductSizeProductSizeValues_ProductSizeValueId",
+                table: "ProductSizeProductSizeValues",
+                column: "ProductSizeValueId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProductSizes_ProductId",
-                table: "ProductSizes",
-                column: "ProductId",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ProductSizeValues_ProductSizeId",
+                name: "IX_ProductSizeValues_Name",
                 table: "ProductSizeValues",
-                column: "ProductSizeId");
+                column: "Name",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_PurchaseInvoice_EntityId",
@@ -1095,6 +1240,16 @@ namespace api_vendamode.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_StockImages_EntityId",
+                table: "StockImages",
+                column: "EntityId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockItems_ProductId",
+                table: "StockItems",
+                column: "ProductId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_UserImages_EntityId",
                 table: "UserImages",
                 column: "EntityId");
@@ -1142,6 +1297,12 @@ namespace api_vendamode.Migrations
                 name: "CategoryLevels_ImagesSrc");
 
             migrationBuilder.DropTable(
+                name: "CategoryProductSizes");
+
+            migrationBuilder.DropTable(
+                name: "CategorySizes");
+
+            migrationBuilder.DropTable(
                 name: "FeatureValues");
 
             migrationBuilder.DropTable(
@@ -1154,10 +1315,13 @@ namespace api_vendamode.Migrations
                 name: "ProductImages");
 
             migrationBuilder.DropTable(
+                name: "ProductMainImages");
+
+            migrationBuilder.DropTable(
                 name: "ProductSizeImages");
 
             migrationBuilder.DropTable(
-                name: "ProductSizeValues");
+                name: "ProductSizeProductSizeValues");
 
             migrationBuilder.DropTable(
                 name: "PurchaseInvoice");
@@ -1172,10 +1336,10 @@ namespace api_vendamode.Migrations
                 name: "SizeModels");
 
             migrationBuilder.DropTable(
-                name: "Sizes");
+                name: "SliderImages");
 
             migrationBuilder.DropTable(
-                name: "SliderImages");
+                name: "StockImages");
 
             migrationBuilder.DropTable(
                 name: "UserImages");
@@ -1193,7 +1357,13 @@ namespace api_vendamode.Migrations
                 name: "Value");
 
             migrationBuilder.DropTable(
+                name: "Sizes");
+
+            migrationBuilder.DropTable(
                 name: "ProductFeatures");
+
+            migrationBuilder.DropTable(
+                name: "ProductSizeValues");
 
             migrationBuilder.DropTable(
                 name: "Orders");
@@ -1202,10 +1372,10 @@ namespace api_vendamode.Migrations
                 name: "Reviews");
 
             migrationBuilder.DropTable(
-                name: "ProductSizes");
+                name: "Sliders");
 
             migrationBuilder.DropTable(
-                name: "Sliders");
+                name: "StockItems");
 
             migrationBuilder.DropTable(
                 name: "Roles");
@@ -1242,6 +1412,9 @@ namespace api_vendamode.Migrations
 
             migrationBuilder.DropTable(
                 name: "ProductScales");
+
+            migrationBuilder.DropTable(
+                name: "ProductSizes");
         }
     }
 }

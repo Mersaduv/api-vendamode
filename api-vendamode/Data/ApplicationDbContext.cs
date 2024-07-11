@@ -10,6 +10,8 @@ using api_vendace.Entities;
 using api_vendace.Models.Dtos.ProductDto.Sizes;
 using api_vendamode.Entities.Products;
 using api_vendamode.Entities;
+using api_vendace.Models.Dtos.ProductDto.Stock;
+using api_vendamode.Utility;
 
 namespace api_vendace.Data;
 public class ApplicationDbContext : DbContext
@@ -17,9 +19,11 @@ public class ApplicationDbContext : DbContext
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
     {
     }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
         modelBuilder.Entity<Review>()
             .HasMany(r => r.PositivePoints)
             .WithOne()
@@ -39,7 +43,7 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Address>().OwnsOne(a => a.City);
 
         modelBuilder.Entity<ProductSizeProductSizeValue>()
-    .HasKey(pspsv => new { pspsv.ProductSizeId, pspsv.ProductSizeValueId });
+        .HasKey(pspsv => new { pspsv.ProductSizeId, pspsv.ProductSizeValueId });
 
         modelBuilder.Entity<ProductSizeProductSizeValue>()
             .HasOne(pspsv => pspsv.ProductSize)
@@ -54,6 +58,39 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<ProductSizeValues>()
             .HasIndex(psv => psv.Name)
             .IsUnique();
+
+        modelBuilder.Entity<CategorySize>()
+        .HasKey(cs => new { cs.CategoryId, cs.SizeId });
+
+        modelBuilder.Entity<CategorySize>()
+            .HasOne(cs => cs.Category)
+            .WithMany(c => c.CategorySizes)
+            .HasForeignKey(cs => cs.CategoryId);
+
+        modelBuilder.Entity<CategorySize>()
+            .HasOne(cs => cs.Size)
+            .WithMany(s => s.CategorySizes)
+            .HasForeignKey(cs => cs.SizeId);
+
+        //...
+        modelBuilder.Entity<CategoryProductSize>()
+        .HasKey(cs => new { cs.CategoryId, cs.ProductSizeId });
+
+        modelBuilder.Entity<CategoryProductSize>()
+            .HasOne(cs => cs.Category)
+            .WithMany(c => c.CategoryProductSizes)
+            .HasForeignKey(cs => cs.CategoryId);
+
+        modelBuilder.Entity<CategoryProductSize>()
+            .HasOne(cs => cs.ProductSize)
+            .WithMany(s => s.CategoryProductSizes)
+            .HasForeignKey(cs => cs.ProductSizeId);
+        var converter = new DictionaryToJsonConverter();
+
+        modelBuilder.Entity<StockItem>()
+            .Property(e => e.AdditionalProperties)
+            .HasConversion(converter!)
+            .HasColumnType("jsonb");
     }
     public DbSet<User> Users { get; set; } = default!;
     public DbSet<Address> Addresses { get; set; } = default!;
@@ -67,9 +104,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<Permission> Permissions { get; set; } = default!;
     public DbSet<UserRole> UserRoles { get; set; } = default!;
     public DbSet<Product> Products { get; set; } = default!;
+    public DbSet<StockItem> StockItems { get; set; } = default!;
     public DbSet<Slider> Sliders { get; set; } = default!;
     public DbSet<EntityImage<Guid, Category>> CategoryImages { get; set; } = default!;
     public DbSet<EntityImage<Guid, Product>> ProductImages { get; set; } = default!;
+    public DbSet<EntityMainImage<Guid, Product>> ProductMainImages { get; set; } = default!;
     public DbSet<EntityImage<Guid, Brand>> BrandImages { get; set; } = default!;
     public DbSet<EntityImage<Guid, ProductSize>> ProductSizeImages { get; set; } = default!;
     public DbSet<EntityImage<Guid, Review>> ReviewImages { get; set; } = default!;
@@ -77,13 +116,16 @@ public class ApplicationDbContext : DbContext
     public DbSet<EntityImage<Guid, UserSpecification>> UserSpecificationImages { get; set; } = default!;
     public DbSet<EntityImage<Guid, Slider>> SliderImages { get; set; } = default!;
     public DbSet<EntityImage<Guid, Order>> PurchaseInvoice { get; set; } = default!;
+    public DbSet<EntityImage<Guid, StockItem>> StockImages { get; set; } = default!;
     public DbSet<Category> Categories { get; set; } = default!;
     public DbSet<Brand> Brands { get; set; } = default!;
     public DbSet<ProductFeature> ProductFeatures { get; set; } = default!;
     public DbSet<FeatureValue> FeatureValues { get; set; } = default!;
     public DbSet<ProductSize> ProductSizes { get; set; } = default!;
-     public DbSet<ProductSizeProductSizeValue> ProductSizeProductSizeValues { get; set; } = default!;
+    public DbSet<ProductSizeProductSizeValue> ProductSizeProductSizeValues { get; set; } = default!;
+    public DbSet<CategoryProductSize> CategoryProductSizes { get; set; } = default!;
     public DbSet<Sizes> Sizes { get; set; } = default!;
+    public DbSet<CategorySize> CategorySizes { get; set; } = default!;
     public DbSet<ProductScale> ProductScales { get; set; } = default!;
     public DbSet<SizeIds> SizeIds { get; set; } = default!;
     public DbSet<SizeModel> SizeModels { get; set; } = default!;

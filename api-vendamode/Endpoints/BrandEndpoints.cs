@@ -26,9 +26,9 @@ public static class BrandEndpoints
         .Accepts<BrandCommandDTO>("multipart/form-data")
         .ProducesValidationProblem();
 
-        brandGroup.MapGet("{id:int}", GetBrand);
+        brandGroup.MapGet("{id:guid}", GetBrand);
 
-        brandGroup.MapDelete("{id:int}", DeleteBrand);
+        brandGroup.MapDelete("{id:guid}", DeleteBrand);
 
         return apiGroup;
     }

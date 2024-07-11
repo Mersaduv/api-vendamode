@@ -15,6 +15,6 @@ public interface IProductServices
     Task<ServiceResponse<GetProductsResult>> GetProducts(RequestQuery parameters);
     Task<ServiceResponse<GetProductsResult>> GetProductsPagination(RequestQuery requestQuery);
     Task<ServiceResponse<ProductDTO>> GetSingleProductBy(Guid id);
-    Task<ServiceResponse<bool>> UpdateProduct(Guid id);
+    Task<ServiceResponse<bool>> UpdateProduct(ProductUpdateDTO productUpdate);
 
 }

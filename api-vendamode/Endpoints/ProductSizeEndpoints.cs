@@ -13,7 +13,9 @@ public static class ProductSizeEndpoints
 {
     public static IEndpointRouteBuilder MapProductSizeApi(this IEndpointRouteBuilder apiGroup)
     {
+        // /api/sizes
         var sizesGroup = apiGroup.MapGroup(Constants.Sizes);
+        // /api/size
         var sizeGroup = apiGroup.MapGroup(Constants.Size);
 
         sizesGroup.MapGet(string.Empty, GetSizes);

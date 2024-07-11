@@ -4,4 +4,5 @@ public class CategoryFeatureUpdateDTO
 {
     public Guid CategoryId { get; set; }
     public List<Guid>? FeatureIds { get; set; }
+    public List<Guid>? SizeList { get; set; }
 }

@@ -8,6 +8,5 @@ public class ProductSizeDTO : BaseClass<Guid>
 {
     public SizeType SizeType { get; set; }
     public List<ProductSizeValuesDTO>? ProductSizeValues { get; set; }
-    public List<SizeDTO>? Sizes { get; set; }
     public EntityImageDto? ImagesSrc { get; set; }
 }

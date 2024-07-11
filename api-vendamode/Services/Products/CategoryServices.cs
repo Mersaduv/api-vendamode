@@ -12,6 +12,7 @@ using api_vendamode.Models.Dtos.ProductDto.Category;
 using api_vendamode.Interfaces.IServices;
 using Microsoft.EntityFrameworkCore;
 using api_vendamode.Models.Query;
+using api_vendamode.Entities.Products;
 
 namespace api_vendace.Services.Products;
 
@@ -66,9 +67,9 @@ public class CategoryServices : ICategoryServices
 
         for (int i = 1; parentCategory != null; i++)
         {
-            if (parentCategory.Level == i)
+            if (parentCategory.Level >= i || parentCategory.Level == 0)
             {
-                categoryCreate.Level = i + 1;
+                categoryCreate.Level = parentCategory.Level + 1;
                 break;
             }
 
@@ -113,7 +114,7 @@ public class CategoryServices : ICategoryServices
                 Placeholder = img.Placeholder ?? string.Empty
             }).ToList(), nameof(Category)).First() : null,
             Name = category.Name,
-            SizeCount = category.ProductSizes?.ProductSizeProductSizeValues?.Count ?? 0,
+            SizeCount = 0,
             Level = category.Level,
             BrandCount = 0,
             SubCategoryCount = await GetSubcategoriesCount(category.Id),
@@ -225,7 +226,7 @@ public class CategoryServices : ICategoryServices
                 Count = category.Products != null ? category.Products.Count : 0,
                 SubCategoryCount = allCategories.Count(c => c.ParentCategoryId == category.Id),
                 FeatureCount = category.ProductFeatures != null ? category.ProductFeatures.Count : 0,
-                SizeCount = category.ProductSizes?.ProductSizeProductSizeValues?.Count ?? 0,
+                SizeCount = 0,
 
                 BrandCount = 0,
                 Created = category.Created,
@@ -373,10 +374,11 @@ public class CategoryServices : ICategoryServices
     {
         var category = await _context.Categories
                             .Include(c => c.ProductFeatures)
+                            .Include(c => c.CategorySizes)
+                            .ThenInclude(c => c.Size)
                             .FirstOrDefaultAsync(c => c.Id == categoryFeatureDTO.CategoryId);
 
         var featureListDto = new List<ProductFeature>();
-
         if (category == null)
         {
             return new ServiceResponse<bool>
@@ -386,11 +388,12 @@ public class CategoryServices : ICategoryServices
             };
         }
 
+
         if (categoryFeatureDTO.FeatureIds != null)
         {
             foreach (var featureId in categoryFeatureDTO.FeatureIds)
             {
-                // Find the feature in the category's features
+
                 var feature = await _context.ProductFeatures.FirstOrDefaultAsync(f => f.Id == featureId);
 
                 if (feature == null)
@@ -403,6 +406,8 @@ public class CategoryServices : ICategoryServices
                 }
 
                 featureListDto.Add(feature);
+
+
             }
         }
 
@@ -412,6 +417,32 @@ public class CategoryServices : ICategoryServices
         _context.Categories.Update(category);
 
         await _unitOfWork.SaveChangesAsync();
+
+
+        if (categoryFeatureDTO.SizeList != null)
+        {
+            foreach (var sizeId in categoryFeatureDTO.SizeList)
+            {
+                var existingCategorySize = category.CategorySizes is not null ? category.CategorySizes
+                    .FirstOrDefault(cs => cs.SizeId == sizeId) : null;
+
+                if (existingCategorySize == null)
+                {
+                    var categorySize = new CategorySize
+                    {
+                        SizeId = sizeId,
+                        CategoryId = categoryFeatureDTO.CategoryId
+                    };
+                    await _context.CategorySizes.AddAsync(categorySize);
+                }
+                else
+                {
+                    existingCategorySize.SizeId = sizeId;
+                    _context.CategorySizes.Update(existingCategorySize);
+                }
+            }
+            await _context.SaveChangesAsync();
+        }
 
         return new ServiceResponse<bool>
         {
@@ -423,6 +454,7 @@ public class CategoryServices : ICategoryServices
     {
         var category = await _context.Categories
             .Include(c => c.Images)
+            .Include(C => C.ParentCategory)
             .Include(c => c.ChildCategories)
             .FirstOrDefaultAsync(c => c.Id == id);
 
@@ -450,10 +482,41 @@ public class CategoryServices : ICategoryServices
                 Placeholder = img.Placeholder ?? string.Empty
             }).ToList(), nameof(Category)).First() : null,
             Categories = subCategoryList,
+            ParentCategories = category.GetParentCategories(_context).Select(cate => new CategoryDTO
+            {
+                Id = cate.Id,
+                Name = cate.Name,
+                Slug = cate.Name,
+                Level = cate.Level,
+                IsActive = cate.IsActive,
+                IsDeleted = cate.IsDeleted,
+                ParentCategoryId = cate.ParentCategoryId,
+                Count = cate.Products != null ? cate.Products.Count : 0,
+                FeatureCount = cate.ProductFeatures != null ? cate.ProductFeatures.Count : 0,
+                SizeCount = 0,
+                BrandCount = 0,
+                Created = cate.Created,
+                LastUpdated = cate.LastUpdated
+            }).ToList(),
             Created = category.Created,
             LastUpdated = category.LastUpdated
         };
+        var mainCategory = categoryDTO.ParentCategories.Where(c => c.Level == 0).Select(c => new Category
+        {
+            Id = c.Id,
+            Name = c.Name,
+            Level = c.Level,
+            Slug = c.Slug,
+        }).ToList();
+        var categories = await GetCategoriesAsync();
 
+        var sortedCategories = categories.OrderBy(c => c.Level).ToList();
+
+        // Get root categories (categories with level 0)
+        var rootCategories = sortedCategories.Where(c => c.Level == 0 && mainCategory.Any(x => x.Id == c.Id)).ToList();
+
+        var categoriesTree = BuildCategoryTree(rootCategories, sortedCategories);
+        categoryDTO.ParentCategoriesTree = categoriesTree[0].ChildCategories ?? new List<CategoryDTO>();
         return new ServiceResponse<CategoryDTO>
         {
             Data = categoryDTO,
@@ -535,7 +598,8 @@ public class CategoryServices : ICategoryServices
     {
         return await _context.Categories
                     .Include(c => c.ProductFeatures)
-                    .Include(c => c.ProductSizes)
+                    .Include(c => c.CategoryProductSizes)
+                    .ThenInclude(ps => ps.ProductSize)
                     .ThenInclude(ps => ps.ProductSizeProductSizeValues)
                     .ThenInclude(pspsv => pspsv.ProductSizeValue)
                     .Include(c => c.ChildCategories)
@@ -659,7 +723,7 @@ public class CategoryServices : ICategoryServices
             }).ToList(), nameof(Category)).FirstOrDefault() : null,
             Count = category.Products?.Count ?? 0,
             FeatureCount = category.ProductFeatures?.Count ?? 0,
-            SizeCount = category.ProductSizes?.ProductSizeProductSizeValues?.Count ?? 0,
+            SizeCount = 0,
             BrandCount = 0,
             Created = category.Created,
             LastUpdated = category.LastUpdated

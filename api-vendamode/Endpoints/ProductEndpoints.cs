@@ -35,6 +35,10 @@ public static class ProductEndpoints
         .Accepts<ProductCreateDTO>("multipart/form-data")
         .ProducesValidationProblem();
 
+        
+        adminProductGroup.MapPost("update", UpdateProduct)
+        .Accepts<ProductUpdateDTO>("multipart/form-data");
+
         return apiGroup;
     }
 
@@ -120,5 +124,14 @@ public static class ProductEndpoints
         context.Response.Headers.Append("Content-Disposition", "inline; filename=preview.jpg");
 
         return TypedResults.File(encryptedData, "image/jpeg");
+    }
+
+        private async static Task<Ok<ServiceResponse<bool>>> UpdateProduct(IProductServices productService, ProductUpdateDTO productUpdate, ILogger<Program> _logger)
+    {
+        _logger.Log(LogLevel.Information, "Update Product");
+
+        var result = await productService.UpdateProduct(productUpdate);
+
+        return TypedResults.Ok(result);
     }
 }

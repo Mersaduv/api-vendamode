@@ -24,12 +24,17 @@ public class ProductRepository : IProductRepository
     public async Task<PaginatedList<Product>> GetPaginationAsync(int pageNumber, int pageSize)
     {
         var query = _context.Products
-            .Include(x => x.Brand)
-            .Include(x => x.Images)
-            .Include(x => x.ProductFeatures)
-            .Include(x => x.ProductScale)
-            .Include(x => x.Review)
-            .Include(c => c.Category)
+                                .Include(x => x.Brand)
+                            .Include(x => x.Images)
+                            .Include(x => x.MainImage)
+                            .Include(x => x.ProductFeatures)
+                            .Include(x => x.ProductScale)
+                            .ThenInclude(x=>x.Columns)
+                            .Include(x => x.ProductScale)
+                            .ThenInclude(x=>x.Rows)
+                            .Include(x => x.Review)
+                            .Include(c => c.Category)
+                            .Include(c => c.StockItems)
             .AsNoTracking();
 
         var totalCount = await query.CountAsync();
@@ -49,12 +54,17 @@ public class ProductRepository : IProductRepository
     public IQueryable<Product> GetQuery()
     {
         var query = _context.Products
-                            .Include(x => x.Brand)
+                           .Include(x => x.Brand)
                             .Include(x => x.Images)
+                            .Include(x => x.MainImage)
                             .Include(x => x.ProductFeatures)
                             .Include(x => x.ProductScale)
+                            .ThenInclude(x=>x.Columns)
+                            .Include(x => x.ProductScale)
+                            .ThenInclude(x=>x.Rows)
                             .Include(x => x.Review)
                             .Include(c => c.Category)
+                            .Include(c => c.StockItems)
                             .AsQueryable();
         return query;
     }
@@ -62,12 +72,17 @@ public class ProductRepository : IProductRepository
     public async Task<IEnumerable<Product>> GetAllAsync()
     {
         var productAll = _context.Products
-        .Include(x => x.Brand)
-        .Include(x => x.Images)
-        .Include(x => x.ProductFeatures)
-        .Include(x => x.ProductScale)
-        .Include(x => x.Review)
-        .Include(c => c.Category)
+                           .Include(x => x.Brand)
+                            .Include(x => x.Images)
+                            .Include(x => x.MainImage)
+                            .Include(x => x.ProductFeatures)
+                            .Include(x => x.ProductScale)
+                            .ThenInclude(x=>x.Columns)
+                            .Include(x => x.ProductScale)
+                            .ThenInclude(x=>x.Rows)
+                            .Include(x => x.Review)
+                            .Include(c => c.Category)
+                            .Include(c => c.StockItems)
         .AsNoTracking()
         .ToListAsync();
 
@@ -82,32 +97,43 @@ public class ProductRepository : IProductRepository
     public async Task<Product?> GetAsyncBy(Guid id)
     {
         return await _context.Products
-        .Include(x => x.Brand)
-        .Include(x => x.Images)
-        .Include(x => x.ProductFeatures)
-        .Include(x => x.ProductScale)
-        .Include(x => x.Review)
-        .Include(c => c.Category)
-        .AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
+                            .Include(x => x.Brand)
+                            .Include(x => x.Images)
+                            .Include(x => x.MainImage)
+                            .Include(x => x.ProductFeatures)
+                            .Include(x => x.ProductScale)
+                            .ThenInclude(x=>x.Columns)
+                            .Include(x => x.ProductScale)
+                            .ThenInclude(x=>x.Rows)
+                            .Include(x => x.Review)
+                            .Include(c => c.Category)
+                            .Include(c => c.StockItems)
+                            .ThenInclude(x => x.Images).FirstOrDefaultAsync(u => u.Id == id);
     }
 
     public async Task<Product?> GetAsyncBy(string slug)
     {
         return await _context.Products
-        .Include(x => x.Brand)
-        .Include(x => x.Images)
-        .Include(x => x.ProductFeatures)
-        .Include(x => x.ProductScale)
-        .Include(x => x.Review)
-        .Include(c => c.Category)
+                            .Include(x => x.Brand)
+                            .Include(x => x.Images)
+                            .Include(x => x.MainImage)
+                            .Include(x => x.ProductFeatures)
+                            .Include(x => x.ProductScale)
+                            .ThenInclude(x=>x.Columns)
+                            .Include(x => x.ProductScale)
+                            .ThenInclude(x=>x.Rows)
+                            .Include(x => x.Review)
+                            .Include(c => c.Category)
+                            .Include(c => c.StockItems)
+                            .ThenInclude(x => x.Images)
         .FirstOrDefaultAsync(u => u.Slug == slug);
     }
 
-public long GetLastProductCodeNumber()
-{
-         var lastProduct = _context.Products
-            .OrderByDescending(p => p.Code)
-            .FirstOrDefault();
+    public long GetLastProductCodeNumber()
+    {
+        var lastProduct = _context.Products
+           .OrderByDescending(p => p.Code)
+           .FirstOrDefault();
 
         if (lastProduct == null)
         {
@@ -125,5 +151,5 @@ public long GetLastProductCodeNumber()
         {
             throw new FormatException($"Invalid order number format: {prodNum}");
         }
-}
+    }
 }

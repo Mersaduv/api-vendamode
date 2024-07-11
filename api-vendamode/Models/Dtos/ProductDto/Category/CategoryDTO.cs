@@ -1,4 +1,5 @@
 using api_vendace.Models.Dtos;
+using api_vendamode.Models.Dtos.ProductDto.Category;
 
 namespace api_vendace.Models.Dtos.ProductDto.Category;
 
@@ -19,4 +20,6 @@ public class CategoryDTO : BaseClass<Guid>
     public CategoryDTO? ParentCategory { get; set; }
     public List<CategoryDTO>? ChildCategories { get; set; }
     public IEnumerable<CategoryDTO>? Categories { get; set; }
+    public List<CategoryDTO> ParentCategories { get; set; }
+    public List<CategoryDTO> ParentCategoriesTree { get; set; }
 }

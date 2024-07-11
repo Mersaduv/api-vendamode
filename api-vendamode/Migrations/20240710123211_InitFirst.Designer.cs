@@ -13,8 +13,8 @@ using api_vendace.Data;
 namespace api_vendamode.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20240625161612_Init")]
-    partial class Init
+    [Migration("20240710123211_InitFirst")]
+    partial class InitFirst
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -180,6 +180,28 @@ namespace api_vendamode.Migrations
                     b.ToTable("UserSpecificationImages");
                 });
 
+            modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendace.Models.Dtos.ProductDto.Stock.StockItem>", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Placeholder")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityId");
+
+                    b.ToTable("StockImages");
+                });
+
             modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Products.Order>", b =>
                 {
                     b.Property<Guid>("Id")
@@ -224,6 +246,29 @@ namespace api_vendamode.Migrations
                         .IsUnique();
 
                     b.ToTable("SliderImages");
+                });
+
+            modelBuilder.Entity("api_vendace.Entities.EntityMainImage<System.Guid, api_vendace.Entities.Products.Product>", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Placeholder")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityId")
+                        .IsUnique();
+
+                    b.ToTable("ProductMainImages");
                 });
 
             modelBuilder.Entity("api_vendace.Entities.Products.Brand", b =>
@@ -420,6 +465,9 @@ namespace api_vendamode.Migrations
                     b.Property<Guid>("ProductScaleId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ProductSizesId")
+                        .HasColumnType("uuid");
+
                     b.Property<double>("Rating")
                         .HasColumnType("double precision");
 
@@ -444,6 +492,8 @@ namespace api_vendamode.Migrations
 
                     b.HasIndex("ProductScaleId")
                         .IsUnique();
+
+                    b.HasIndex("ProductSizesId");
 
                     b.ToTable("Products");
                 });
@@ -511,9 +561,6 @@ namespace api_vendamode.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("CategoryId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime>("Created")
                         .HasColumnType("timestamp with time zone");
 
@@ -523,19 +570,10 @@ namespace api_vendamode.Migrations
                     b.Property<DateTime?>("LastUpdated")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid?>("ProductId")
-                        .HasColumnType("uuid");
-
                     b.Property<int>("SizeType")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CategoryId")
-                        .IsUnique();
-
-                    b.HasIndex("ProductId")
-                        .IsUnique();
 
                     b.ToTable("ProductSizes");
                 });
@@ -556,12 +594,10 @@ namespace api_vendamode.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<Guid>("ProductSizeId")
-                        .HasColumnType("uuid");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductSizeId");
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.ToTable("ProductSizeValues");
                 });
@@ -992,14 +1028,18 @@ namespace api_vendamode.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("text");
 
-                    b.Property<Guid?>("ProductScaleId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ProductSizeValueId")
+                    b.Property<string>("Idx")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("ProductSizeValueName")
+                    b.Property<Guid?>("ProductScaleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProductSizeValue")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProductSizeValueId")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -1011,6 +1051,53 @@ namespace api_vendamode.Migrations
                     b.HasIndex("ProductScaleId");
 
                     b.ToTable("SizeModels");
+                });
+
+            modelBuilder.Entity("api_vendace.Models.Dtos.ProductDto.Stock.StockItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Dictionary<string, object>>("AdditionalProperties")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<double?>("Discount")
+                        .HasColumnType("double precision");
+
+                    b.Property<List<Guid>>("FeatureValueId")
+                        .HasColumnType("uuid[]");
+
+                    b.Property<string>("Idx")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<double>("Price")
+                        .HasColumnType("double precision");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("SizeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("StockId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("StockItems");
                 });
 
             modelBuilder.Entity("api_vendamode.Entities.Canceled", b =>
@@ -1091,6 +1178,42 @@ namespace api_vendamode.Migrations
                     b.ToTable("Cart");
                 });
 
+            modelBuilder.Entity("api_vendamode.Entities.Products.CategoryProductSize", b =>
+                {
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductSizeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("CategoryId", "ProductSizeId");
+
+                    b.HasIndex("ProductSizeId");
+
+                    b.ToTable("CategoryProductSizes");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Products.CategorySize", b =>
+                {
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SizeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("CategoryId", "SizeId");
+
+                    b.HasIndex("SizeId");
+
+                    b.ToTable("CategorySizes");
+                });
+
             modelBuilder.Entity("api_vendamode.Entities.Products.Order", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1161,6 +1284,21 @@ namespace api_vendamode.Migrations
                     b.HasIndex("UserID");
 
                     b.ToTable("Orders");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Products.ProductSizeProductSizeValue", b =>
+                {
+                    b.Property<Guid>("ProductSizeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductSizeValueId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("ProductSizeId", "ProductSizeValueId");
+
+                    b.HasIndex("ProductSizeValueId");
+
+                    b.ToTable("ProductSizeProductSizeValues");
                 });
 
             modelBuilder.Entity("api_vendamode.Entities.Products.Slider", b =>
@@ -1300,6 +1438,17 @@ namespace api_vendamode.Migrations
                     b.Navigation("Entity");
                 });
 
+            modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendace.Models.Dtos.ProductDto.Stock.StockItem>", b =>
+                {
+                    b.HasOne("api_vendace.Models.Dtos.ProductDto.Stock.StockItem", "Entity")
+                        .WithMany("Images")
+                        .HasForeignKey("EntityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Entity");
+                });
+
             modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Products.Order>", b =>
                 {
                     b.HasOne("api_vendamode.Entities.Products.Order", "Entity")
@@ -1316,6 +1465,17 @@ namespace api_vendamode.Migrations
                     b.HasOne("api_vendamode.Entities.Products.Slider", "Entity")
                         .WithOne("Image")
                         .HasForeignKey("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Products.Slider>", "EntityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Entity");
+                });
+
+            modelBuilder.Entity("api_vendace.Entities.EntityMainImage<System.Guid, api_vendace.Entities.Products.Product>", b =>
+                {
+                    b.HasOne("api_vendace.Entities.Products.Product", "Entity")
+                        .WithOne("MainImage")
+                        .HasForeignKey("api_vendace.Entities.EntityMainImage<System.Guid, api_vendace.Entities.Products.Product>", "EntityId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1375,6 +1535,10 @@ namespace api_vendamode.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("api_vendace.Entities.Products.ProductSize", "ProductSizes")
+                        .WithMany()
+                        .HasForeignKey("ProductSizesId");
+
                     b.Navigation("Brand");
 
                     b.Navigation("Category");
@@ -1382,6 +1546,8 @@ namespace api_vendamode.Migrations
                     b.Navigation("CategoryLevels");
 
                     b.Navigation("ProductScale");
+
+                    b.Navigation("ProductSizes");
                 });
 
             modelBuilder.Entity("api_vendace.Entities.Products.ProductFeature", b =>
@@ -1397,32 +1563,6 @@ namespace api_vendamode.Migrations
                     b.Navigation("Category");
 
                     b.Navigation("Product");
-                });
-
-            modelBuilder.Entity("api_vendace.Entities.Products.ProductSize", b =>
-                {
-                    b.HasOne("api_vendace.Entities.Products.Category", "Category")
-                        .WithOne("ProductSizes")
-                        .HasForeignKey("api_vendace.Entities.Products.ProductSize", "CategoryId");
-
-                    b.HasOne("api_vendace.Entities.Products.Product", "Product")
-                        .WithOne("ProductSizes")
-                        .HasForeignKey("api_vendace.Entities.Products.ProductSize", "ProductId");
-
-                    b.Navigation("Category");
-
-                    b.Navigation("Product");
-                });
-
-            modelBuilder.Entity("api_vendace.Entities.Products.ProductSizeValues", b =>
-                {
-                    b.HasOne("api_vendace.Entities.Products.ProductSize", "ProductSize")
-                        .WithMany("ProductSizeValues")
-                        .HasForeignKey("ProductSizeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ProductSize");
                 });
 
             modelBuilder.Entity("api_vendace.Entities.Products.Review", b =>
@@ -1446,11 +1586,9 @@ namespace api_vendamode.Migrations
 
             modelBuilder.Entity("api_vendace.Entities.Products.Sizes", b =>
                 {
-                    b.HasOne("api_vendace.Entities.Products.ProductSize", "ProductSize")
+                    b.HasOne("api_vendace.Entities.Products.ProductSize", null)
                         .WithMany("Sizes")
                         .HasForeignKey("ProductSizeId");
-
-                    b.Navigation("ProductSize");
                 });
 
             modelBuilder.Entity("api_vendace.Entities.Users.Address", b =>
@@ -1646,6 +1784,15 @@ namespace api_vendamode.Migrations
                         .HasForeignKey("ProductScaleId");
                 });
 
+            modelBuilder.Entity("api_vendace.Models.Dtos.ProductDto.Stock.StockItem", b =>
+                {
+                    b.HasOne("api_vendace.Entities.Products.Product", null)
+                        .WithMany("StockItems")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("api_vendamode.Entities.Products.Cart", b =>
                 {
                     b.HasOne("api_vendace.Models.Dtos.ObjectValue", "Features")
@@ -1746,8 +1893,45 @@ namespace api_vendamode.Migrations
 
                     b.Navigation("Features");
 
-                    b.Navigation("Img")
+                    b.Navigation("Img");
+
+                    b.Navigation("Size");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Products.CategoryProductSize", b =>
+                {
+                    b.HasOne("api_vendace.Entities.Products.Category", "Category")
+                        .WithMany("CategoryProductSizes")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("api_vendace.Entities.Products.ProductSize", "ProductSize")
+                        .WithMany("CategoryProductSizes")
+                        .HasForeignKey("ProductSizeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+
+                    b.Navigation("ProductSize");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Products.CategorySize", b =>
+                {
+                    b.HasOne("api_vendace.Entities.Products.Category", "Category")
+                        .WithMany("CategorySizes")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("api_vendace.Entities.Products.Sizes", "Size")
+                        .WithMany("CategorySizes")
+                        .HasForeignKey("SizeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Category");
 
                     b.Navigation("Size");
                 });
@@ -1783,6 +1967,25 @@ namespace api_vendamode.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("api_vendamode.Entities.Products.ProductSizeProductSizeValue", b =>
+                {
+                    b.HasOne("api_vendace.Entities.Products.ProductSize", "ProductSize")
+                        .WithMany("ProductSizeProductSizeValues")
+                        .HasForeignKey("ProductSizeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("api_vendace.Entities.Products.ProductSizeValues", "ProductSizeValue")
+                        .WithMany("ProductSizeProductSizeValues")
+                        .HasForeignKey("ProductSizeValueId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProductSize");
+
+                    b.Navigation("ProductSizeValue");
+                });
+
             modelBuilder.Entity("api_vendace.Entities.Products.Brand", b =>
                 {
                     b.Navigation("Images");
@@ -1792,13 +1995,15 @@ namespace api_vendamode.Migrations
 
             modelBuilder.Entity("api_vendace.Entities.Products.Category", b =>
                 {
+                    b.Navigation("CategoryProductSizes");
+
+                    b.Navigation("CategorySizes");
+
                     b.Navigation("ChildCategories");
 
                     b.Navigation("Images");
 
                     b.Navigation("ProductFeatures");
-
-                    b.Navigation("ProductSizes");
 
                     b.Navigation("Products");
                 });
@@ -1807,11 +2012,14 @@ namespace api_vendamode.Migrations
                 {
                     b.Navigation("Images");
 
+                    b.Navigation("MainImage")
+                        .IsRequired();
+
                     b.Navigation("ProductFeatures");
 
-                    b.Navigation("ProductSizes");
-
                     b.Navigation("Review");
+
+                    b.Navigation("StockItems");
                 });
 
             modelBuilder.Entity("api_vendace.Entities.Products.ProductFeature", b =>
@@ -1830,11 +2038,18 @@ namespace api_vendamode.Migrations
 
             modelBuilder.Entity("api_vendace.Entities.Products.ProductSize", b =>
                 {
+                    b.Navigation("CategoryProductSizes");
+
                     b.Navigation("Images");
 
-                    b.Navigation("ProductSizeValues");
+                    b.Navigation("ProductSizeProductSizeValues");
 
                     b.Navigation("Sizes");
+                });
+
+            modelBuilder.Entity("api_vendace.Entities.Products.ProductSizeValues", b =>
+                {
+                    b.Navigation("ProductSizeProductSizeValues");
                 });
 
             modelBuilder.Entity("api_vendace.Entities.Products.Review", b =>
@@ -1844,6 +2059,11 @@ namespace api_vendamode.Migrations
                     b.Navigation("NegativePoints");
 
                     b.Navigation("PositivePoints");
+                });
+
+            modelBuilder.Entity("api_vendace.Entities.Products.Sizes", b =>
+                {
+                    b.Navigation("CategorySizes");
                 });
 
             modelBuilder.Entity("api_vendace.Entities.Users.Security.Permission", b =>
@@ -1871,6 +2091,11 @@ namespace api_vendamode.Migrations
             modelBuilder.Entity("api_vendace.Entities.Users.UserSpecification", b =>
                 {
                     b.Navigation("IdCardImages");
+                });
+
+            modelBuilder.Entity("api_vendace.Models.Dtos.ProductDto.Stock.StockItem", b =>
+                {
+                    b.Navigation("Images");
                 });
 
             modelBuilder.Entity("api_vendamode.Entities.Products.Order", b =>

@@ -7,6 +7,6 @@ public class ProductSizeInfo
 {
     public SizeType SizeType { get; set; }
     public List<SizeDTO>? Columns { get; set; }
-    public List<SizeInfoModel>? Rows { get; set; }
+    public List<SizeModel>? Rows { get; set; }
     public EntityImageDto? ImagesSrc { get; set; }
 }

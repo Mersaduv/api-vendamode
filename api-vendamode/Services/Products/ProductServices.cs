@@ -16,6 +16,10 @@ using api_vendamode.Models.Dtos.ProductDto.Sizes;
 using api_vendamode.Interfaces.IServices;
 using Microsoft.EntityFrameworkCore;
 using api_vendace.Models.Dtos;
+using api_vendamode.Models.Dtos.ProductDto.Category;
+using api_vendace.Entities;
+using api_vendamode.Models.Dtos.ProductDto.Stock;
+using api_vendace.Models.Dtos.ProductDto.Brand;
 
 public class ProductServices : IProductServices
 {
@@ -55,7 +59,7 @@ public class ProductServices : IProductServices
         var productScale = new ProductScale
         {
             Id = scaleId,
-            Columns = productCreateDTO.ProductScale?.Columns?.Select(s => new SizeIds
+            Columns = productCreateDTO.ProductScale?.ColumnSizes?.Select(s => new SizeIds
             {
                 Id = Guid.NewGuid(),
                 SizeId = Guid.Parse(s.Id),
@@ -64,8 +68,9 @@ public class ProductServices : IProductServices
             Rows = productCreateDTO.ProductScale?.Rows?.Select(r => new SizeModel
             {
                 Id = Guid.NewGuid().ToString(),
+                Idx = r.Id,
                 ProductSizeValueId = r.ProductSizeValueId,
-                ProductSizeValueName = r.ProductSizeValueName,
+                ProductSizeValue = r.ProductSizeValue,
                 ScaleValues = r.ScaleValues
             }).ToList(),
             ProductId = productId,
@@ -80,40 +85,46 @@ public class ProductServices : IProductServices
         product.FeatureValueIds = featureValueIds;
         product.ProductScale = productScale;
         product.ProductScaleId = scaleId;
+
         if (productCreateDTO.StockItems is not null)
         {
             var stockItemsDto = productCreateDTO.StockItems.Select(stockItemDTO =>
             {
-                Guid featureId;
-                if (!Guid.TryParse(stockItemDTO.FeatureId, out featureId))
+                var featureIds = new List<Guid>();
+                if (stockItemDTO.FeatureValueId is not null)
                 {
-                    // Handle the error, e.g., by logging a message or throwing an exception.
-                    throw new FormatException($"Invalid FeatureId '{stockItemDTO.FeatureId}'");
+                    foreach (var featureIdStr in stockItemDTO.FeatureValueId)
+                    {
+                        featureIds.Add(featureIdStr);
+                    }
                 }
-
-                Guid sizeId;
-                if (!Guid.TryParse(stockItemDTO.SizeId, out sizeId))
+                Guid sizeId2 = Guid.Empty;
+                if (stockItemDTO.SizeId is not null)
                 {
-                    // Handle the error, e.g., by logging a message or throwing an exception.
-                    throw new FormatException($"Invalid SizeId '{stockItemDTO.SizeId}'");
+                    sizeId2 = stockItemDTO.SizeId ?? Guid.Empty;
                 }
 
                 return new StockItem
                 {
-                    Id = Guid.NewGuid(),
+                    Id = stockItemDTO.Id,
+                    StockId = stockItemDTO.StockId,
+                    Images = stockItemDTO.ImageStock != null ? _byteFileUtility.SaveFileInFolder<EntityImage<Guid, StockItem>>([stockItemDTO.ImageStock], nameof(StockItem), false) : [],
+                    Idx = stockItemDTO.Idx ?? string.Empty,
                     ProductId = product.Id,
-                    FeatureId = featureId,
-                    SizeId = sizeId,
+                    FeatureValueId = featureIds,
+                    SizeId = sizeId2 == Guid.Empty ? null : sizeId2,
                     Quantity = stockItemDTO.Quantity,
+                    Discount = stockItemDTO.Discount,
+                    Price = stockItemDTO.Price,
                     CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    UpdatedAt = DateTime.UtcNow,
+                    AdditionalProperties = stockItemDTO.AdditionalProperties
                 };
             }).ToList();
 
             product.InStock = stockItemsDto.Sum(stockItem => stockItem.Quantity);
+            product.StockItems = stockItemsDto;
         }
-
-
 
         await _productRepository.CreateAsync(product);
         await _unitOfWork.SaveChangesAsync();
@@ -121,6 +132,7 @@ public class ProductServices : IProductServices
         return new ServiceResponse<bool>
         {
             Data = true,
+            Message = "محصول به ثبت رسید"
         };
     }
 
@@ -570,16 +582,39 @@ public class ProductServices : IProductServices
         }
     }
 
-    public Task<ServiceResponse<bool>> UpdateProduct(Guid id)
-    {
-        throw new NotImplementedException();
-    }
-
     private async Task<ProductDTO> BuildProductResponse(Product product)
     {
         var result = product.ToProductResponse(_byteFileUtility);
+        if (product.Brand != null)
+        {
+            result.BrandName = product.Brand!.Name;
+            result.BrandData = new BrandDTO
+            {
+                Id = product.Id,
+                Name = product.Brand!.Name,
+            };
 
-        result.BrandName = product.Brand?.Name ?? string.Empty;
+        }
+        var productScaleData = new ProductScaleDTO
+        {
+            ColumnSizes = product.ProductScale.Columns.Select(c => new SizeIdsDTO
+            {
+                Id = c.Id.ToString(),
+                Name = c.Name
+            }).ToList(),
+            Rows = product.ProductScale.Rows.Select(row => new SizeModel
+            {
+                Id = row.Id,
+                ProductSizeValue = row.ProductSizeValue,
+                Idx = row.Idx,
+                ProductSizeValueId = row.ProductSizeValueId,
+                ScaleValues = row.ScaleValues
+
+            }).ToList(),
+            ProductId = product.ProductScale.ProductId
+        };
+        result.ProductScale = productScaleData;
+
         var categoryLevelIds = GetCategoryLevelIds(product.Category!);
         var categories = await _context.Categories
             .Where(c => categoryLevelIds.Contains(c.Id))
@@ -593,16 +628,54 @@ public class ProductServices : IProductServices
             Url = c.Name.ToLower()
         }).ToList();
         result.CategoryList = categoryLevelIds;
+        var categoryParents = new CategoryWithAllParents
+        {
+            Category = new CategoryDTO
+            {
+                Id = product.Category!.Id,
+                Name = product.Category.Name,
+                Slug = product.Category.Name,
+                Level = product.Category.Level,
+                IsActive = product.Category.IsActive,
+                IsDeleted = product.Category.IsDeleted,
+                ParentCategoryId = product.Category.ParentCategoryId,
+                Count = product.Category.Products != null ? product.Category.Products.Count : 0,
+                FeatureCount = product.Category.ProductFeatures != null ? product.Category.ProductFeatures.Count : 0,
+                SizeCount = 0,
+                BrandCount = 0,
+                Created = product.Category.Created,
+                LastUpdated = product.Category.LastUpdated
+            },
+            ParentCategories = product.Category.GetParentCategories(_context).Select(category => new CategoryDTO
+            {
+                Id = category.Id,
+                Name = category.Name,
+                Slug = category.Name,
+                Level = category.Level,
+                IsActive = category.IsActive,
+                IsDeleted = category.IsDeleted,
+                ParentCategoryId = category.ParentCategoryId,
+                Count = category.Products != null ? category.Products.Count : 0,
+                FeatureCount = category.ProductFeatures != null ? category.ProductFeatures.Count : 0,
+                SizeCount = 0,
+                BrandCount = 0,
+                Created = category.Created,
+                LastUpdated = category.LastUpdated
+            }).ToList()
+        };
+        result.ParentCategories = categoryParents;
 
-        var productSize = await _context.ProductSizes
+
+        var CategoryProductSizes = await _context.CategoryProductSizes
         .Where(x => x.CategoryId == product.CategoryId)
-        .Include(s => s.Images)
-        .Include(s => s.Sizes)
-        .Include(s => s.ProductSizeProductSizeValues)
+        .Include(x => x.ProductSize)
+        .ThenInclude(s => s.Images)
+        .Include(x => x.ProductSize)
+        .ThenInclude(s => s.ProductSizeProductSizeValues)
         .ThenInclude(pspsv => pspsv.ProductSizeValue)
         .FirstOrDefaultAsync();
 
-        if (productSize == null)
+        if (CategoryProductSizes == null)
         {
             return null; // یا هرگونه هندلینگ خطای مناسب دیگری
         }
@@ -622,6 +695,7 @@ public class ProductServices : IProductServices
         {
             foreach (var row in productScale.Rows)
             {
+
                 if (row.ScaleValues?.Any() == true)
                 {
                     scaleValues.AddRange(row.ScaleValues);
@@ -629,25 +703,21 @@ public class ProductServices : IProductServices
             }
         }
 
-        if (productSize.ProductSizeProductSizeValues?.Any() == true)
+        if (CategoryProductSizes.ProductSize.ProductSizeProductSizeValues?.Any() == true)
         {
 
             var productSizeInfo = new ProductSizeInfo
             {
-                SizeType = productSize.SizeType,
+                SizeType = CategoryProductSizes.ProductSize.SizeType,
                 Columns = sizeList?.Select(s => new SizeDTO
                 {
                     Id = s.Id,
                     Name = s.Name
                 }).ToList(),
 
-                Rows = productSize.ProductSizeProductSizeValues.Select(pspsv => new SizeInfoModel
-                {
-                    ProductSizeValue = pspsv.ProductSizeValue.Name,
-                    ScaleValues = scaleValues // فرض می‌کنیم که scaleValues از قبل تعیین شده است
-                }).ToList(),
+                Rows = productScaleData.Rows,
 
-                ImagesSrc = productSize.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(productSize.Images.Select(img => new EntityImageDto
+                ImagesSrc = CategoryProductSizes.ProductSize.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(CategoryProductSizes.ProductSize.Images.Select(img => new EntityImageDto
                 {
                     Id = img.Id,
                     ImageUrl = img.ImageUrl ?? string.Empty,
@@ -682,6 +752,27 @@ public class ProductServices : IProductServices
         }
 
         result.ProductFeatureInfo = new ProductFeatureInfo(featureData);
+
+        result.StockItems = product.StockItems is not null ? product.StockItems.Select(ps => new GetStockItemDTO
+        {
+            Id = ps.Id,
+            StockId = ps.StockId,
+            ProductId = ps.ProductId,
+            Idx = ps.Idx,
+            ImagesSrc = _byteFileUtility.GetEncryptedFileActionUrl
+            (ps.Images.Select(img => new EntityImageDto
+            {
+                Id = img.Id,
+                ImageUrl = img.ImageUrl!,
+                Placeholder = img.Placeholder!
+            }).ToList(), nameof(StockItem)),
+            Discount = ps.Discount,
+            Price = ps.Price,
+            FeatureValueId = ps.FeatureValueId,
+            Quantity = ps.Quantity,
+            SizeId = ps.SizeId,
+            AdditionalProperties = ps.AdditionalProperties
+        }).ToList() : [];
 
 
         double sumOfRatings = 0;
@@ -724,4 +815,129 @@ public class ProductServices : IProductServices
 
         return categoryLevelIds;
     }
+
+    public async Task<ServiceResponse<bool>> UpdateProduct(ProductUpdateDTO productUpdateDTO)
+    {
+        var product = await _context.Products.FindAsync(productUpdateDTO.Id);
+
+        if (product == null)
+        {
+            return new ServiceResponse<bool>
+            {
+                Success = false,
+                Message = "محصول مورد نظر یافت نشد"
+            };
+        }
+
+        if (await _productRepository.GetAsyncBy(productUpdateDTO.Title) != null && productUpdateDTO.Title != product.Title)
+        {
+            return new ServiceResponse<bool>
+            {
+                Success = false,
+                Message = "این محصول قبلا به ثبت رسیده"
+            };
+        }
+
+        // Update basic product properties
+        product.Title = productUpdateDTO.Title;
+        product.IsActive = productUpdateDTO.IsActive;
+        product.CategoryId = productUpdateDTO.CategoryId;
+        product.Description = productUpdateDTO.Description;
+        product.IsFake = productUpdateDTO.IsFake;
+        product.BrandId = productUpdateDTO.BrandId;
+        product.LastUpdated = DateTime.UtcNow;
+
+        // Update FeatureValueIds
+        product.FeatureValueIds = productUpdateDTO.FeatureValueIds ?? new List<Guid>();
+
+        // Update ProductScale
+        if (productUpdateDTO.ProductScale != null)
+        {
+            var scaleId = product.ProductScaleId;
+            product.ProductScale.Columns = productUpdateDTO.ProductScale.ColumnSizes?.Select(s => new SizeIds
+            {
+                Id = Guid.NewGuid(),
+                SizeId = Guid.Parse(s.Id),
+                Name = s.Name
+            }).ToList();
+            product.ProductScale.Rows = productUpdateDTO.ProductScale.Rows?.Select(r => new SizeModel
+            {
+                Id = Guid.NewGuid().ToString(),
+                ProductSizeValueId = r.ProductSizeValueId,
+                ProductSizeValue = r.ProductSizeValue,
+                ScaleValues = r.ScaleValues
+            }).ToList();
+            product.ProductScale.LastUpdated = DateTime.UtcNow;
+        }
+
+        // Update MainThumbnail
+        if (productUpdateDTO.MainThumbnail != null)
+        {
+            if (product.MainImage != null)
+            {
+                _byteFileUtility.DeleteFiles([product.MainImage], nameof(Product));
+            }
+            product.MainImage = _byteFileUtility.SaveFileInFolder<EntityMainImage<Guid, Product>>([productUpdateDTO.MainThumbnail], nameof(Product), true).First();
+        }
+
+        // Update Thumbnail images
+        if (productUpdateDTO.Thumbnail != null)
+        {
+            if (product.Images != null)
+            {
+                _byteFileUtility.DeleteFiles(product.Images, nameof(Product));
+            }
+            product.Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Product>>(productUpdateDTO.Thumbnail, nameof(Product), false);
+        }
+
+        // Update StockItems
+        if (productUpdateDTO.StockItems != null)
+        {
+            var stockItemsDto = productUpdateDTO.StockItems.Select(stockItemDTO =>
+            {
+                var featureIds = new List<Guid>();
+                if (stockItemDTO.FeatureValueId != null)
+                {
+                    foreach (var featureIdStr in stockItemDTO.FeatureValueId)
+                    {
+
+                        featureIds.Add(featureIdStr);
+
+                    }
+                }
+                Guid sizeId2 = Guid.Empty;
+                if (stockItemDTO.SizeId != null)
+                {
+                    sizeId2 = stockItemDTO.SizeId ?? Guid.Empty;
+                }
+
+                return new StockItem
+                {
+                    Id = stockItemDTO.Id,
+                    Idx = stockItemDTO.Idx ?? string.Empty,
+                    ProductId = product.Id,
+                    FeatureValueId = featureIds,
+                    SizeId = sizeId2 == Guid.Empty ? null : sizeId2,
+                    Quantity = stockItemDTO.Quantity,
+                    Discount = stockItemDTO.Discount,
+                    Price = stockItemDTO.Price,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+            }).ToList();
+
+            product.InStock = stockItemsDto.Sum(stockItem => stockItem.Quantity);
+            product.StockItems = stockItemsDto;
+        }
+
+        _context.Products.Update(product);
+        await _unitOfWork.SaveChangesAsync();
+
+        return new ServiceResponse<bool>
+        {
+            Data = true,
+            Message = "محصول با موفقیت بروزرسانی شد"
+        };
+    }
+
 }

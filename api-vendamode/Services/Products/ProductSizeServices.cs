@@ -136,17 +136,31 @@ public class ProductSizeServices : IProductSizeServices
             Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, ProductSize>>(productSizeCreate.Thumbnail!, nameof(ProductSize), false),
             SizeType = productSizeCreate.SizeType,
             ProductSizeProductSizeValues = sizeValueList,
-            CategoryId = productSizeCreate.CategoryId,
+            IsDeleted = false,
             Created = DateTime.UtcNow,
             LastUpdated = DateTime.UtcNow,
         };
 
         await _context.ProductSizes.AddAsync(productSize);
+
         await _context.ProductSizeProductSizeValues.AddRangeAsync(sizeValueList);
 
         try
         {
             await _unitOfWork.SaveChangesAsync();
+
+
+            // Add the relationship between the ProductSize and Categories
+            if (productSizeCreate.CategoryIds is not null)
+            {
+                var categoryProductSizes = productSizeCreate.CategoryIds.Select(categoryId => new CategoryProductSize
+                {
+                    CategoryId = categoryId,
+                    ProductSizeId = productSizeId
+                }).ToList();
+                await _context.CategoryProductSizes.AddRangeAsync(categoryProductSizes);
+                await _unitOfWork.SaveChangesAsync();
+            }
         }
         catch (DbUpdateException ex)
         {
@@ -238,7 +252,7 @@ public class ProductSizeServices : IProductSizeServices
 
         productSize.Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, ProductSize>>(productSizeUpdate.Thumbnail!, nameof(ProductSize), false);
         productSize.ProductSizeProductSizeValues = sizeValueList;
-        productSize.CategoryId = productSizeUpdate.CategoryId;
+        // productSize.CategoryId = productSizeUpdate.CategoryId;
         productSize.Created = productSizeUpdate.Created;
         productSize.LastUpdated = DateTime.UtcNow;
 
@@ -251,14 +265,16 @@ public class ProductSizeServices : IProductSizeServices
         };
     }
 
-    public async Task<ServiceResponse<ProductSizeDTO>> GetProductSizeByCategory(Guid id)
+    public async Task<ServiceResponse<ProductSizeDTO>> GetProductSizeByCategory(Guid categoryId)
     {
         var productSize = await _context.ProductSizes
-            .Include(s => s.Images)
-            .Include(s => s.Sizes)
-            .Include(s => s.ProductSizeProductSizeValues)
+            .Include(ps => ps.Images)
+            .Include(ps => ps.Sizes)
+            .Include(ps => ps.ProductSizeProductSizeValues)
             .ThenInclude(pspsv => pspsv.ProductSizeValue)
-            .FirstOrDefaultAsync(c => c.CategoryId == id);
+            .Include(ps => ps.CategoryProductSizes)
+            .ThenInclude(cps => cps.Category)
+            .FirstOrDefaultAsync(ps => ps.CategoryProductSizes.Any(cps => cps.CategoryId == categoryId));
 
         if (productSize == null)
         {
@@ -273,14 +289,7 @@ public class ProductSizeServices : IProductSizeServices
         var productSizeDto = new ProductSizeDTO
         {
             Id = productSize.Id,
-            Sizes = productSize.Sizes?.Select(size => new SizeDTO
-            {
-                Id = size.Id,
-                Name = size.Name,
-                Description = size.Description,
-                Created = size.Created,
-                LastUpdated = size.LastUpdated
-            }).ToList(),
+
             ImagesSrc = productSize.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(productSize.Images.Select(img => new EntityImageDto
             {
                 Id = img.Id,
@@ -304,7 +313,6 @@ public class ProductSizeServices : IProductSizeServices
         };
     }
 
-
     public async Task<ServiceResponse<bool>> AddSize(SizeCreateDTO sizeCreate)
     {
         var sizes = new Sizes
@@ -312,13 +320,11 @@ public class ProductSizeServices : IProductSizeServices
             Id = Guid.NewGuid(),
             Name = sizeCreate.Name,
             Description = sizeCreate.Description,
-            ProductSizeId = sizeCreate.ProductSizeId,
             Created = DateTime.UtcNow,
             LastUpdated = DateTime.UtcNow,
         };
         await _context.Sizes.AddAsync(sizes);
         await _unitOfWork.SaveChangesAsync();
-
         return new ServiceResponse<bool>
         {
             Data = true
@@ -372,8 +378,8 @@ public class ProductSizeServices : IProductSizeServices
 
     public async Task<ServiceResponse<Sizes>> GetSizeBy(Guid id)
     {
-        var size = await _context.Sizes.Include(s => s.ProductSize)
-                                 .FirstOrDefaultAsync(s => s.Id == id);
+        var size = await _context.Sizes
+                                  .FirstOrDefaultAsync(s => s.Id == id);
 
         if (size == null)
         {
@@ -423,7 +429,7 @@ public class ProductSizeServices : IProductSizeServices
 
     public async Task<ServiceResponse<IReadOnlyList<SizeDTO>>> GetAllSizes()
     {
-        var sizeList = await _context.Sizes.Include(s => s.ProductSize)
+        var sizeList = await _context.Sizes
                                         .AsNoTracking()
                                         .ToListAsync();
         // find product == size count 
@@ -448,7 +454,9 @@ public class ProductSizeServices : IProductSizeServices
     public async Task<ServiceResponse<IReadOnlyList<ProductSize>>> GetAllProductSizes()
     {
         var productSizeList = await _context.ProductSizes
-                                        .Include(s => s.Sizes)
+                                        .Include(s => s.Images)
+                                        .Include(s => s.ProductSizeProductSizeValues)
+                                        .ThenInclude(pspsv => pspsv.ProductSizeValue)
                                         .AsNoTracking()
                                         .ToListAsync();
 

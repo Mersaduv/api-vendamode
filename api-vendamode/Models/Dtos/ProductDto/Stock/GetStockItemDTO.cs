@@ -1,15 +1,16 @@
+using api_vendace.Entities;
+using api_vendace.Models;
+using api_vendace.Models.Dtos;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
-using api_vendace.Entities;
+namespace api_vendamode.Models.Dtos.ProductDto.Stock;
 
-namespace api_vendace.Models.Dtos.ProductDto.Stock;
-
-public class StockItem
+public class GetStockItemDTO : BaseClass<Guid>
 {
-    public Guid Id { get; set; }
     public int StockId { get; set; }
     public Guid ProductId { get; set; }
-    public List<EntityImage<Guid, StockItem>> Images { get; set; } = [];
+    public List<EntityImageDto> ImagesSrc { get; set; } = [];
     public List<Guid>? FeatureValueId { get; set; }
     public Guid? SizeId { get; set; }
     public string Idx { get; set; } = string.Empty;
@@ -19,6 +20,4 @@ public class StockItem
     [JsonExtensionData]
     [Column(TypeName = "jsonb")]
     public Dictionary<string, object>? AdditionalProperties { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
 }
