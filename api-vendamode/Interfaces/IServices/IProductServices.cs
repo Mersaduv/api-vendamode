@@ -16,5 +16,6 @@ public interface IProductServices
     Task<ServiceResponse<GetProductsResult>> GetProductsPagination(RequestQuery requestQuery);
     Task<ServiceResponse<ProductDTO>> GetSingleProductBy(Guid id);
     Task<ServiceResponse<bool>> UpdateProduct(ProductUpdateDTO productUpdate);
-
+    Task<ServiceResponse<bool>> DeleteAsync(Guid id);
+    Task<ServiceResponse<bool>> BulkUpdateProductStatus(List<Guid> productIds, bool isActive);
 }

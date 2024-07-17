@@ -29,63 +29,6 @@ public class ProductSizeServices : IProductSizeServices
         _httpContext = httpContext;
     }
 
-    // public async Task<ServiceResponse<bool>> AddProductSize(ProductSizeCreateDTO productSizeCreate)
-    // {
-    //     var sizeValueListDatabase = await _context.ProductSizeValues
-    //                                     .Include(s => s.ProductSize)
-    //                                     .AsNoTracking()
-    //                                     .ToListAsync();
-    //     var productSizeId = Guid.NewGuid();
-    //     var sizeValueList = new List<ProductSizeValues>();
-    //     if (productSizeCreate.ProductSizeValues is not null)
-    //     {
-    //         foreach (var sizeValue in productSizeCreate.ProductSizeValues)
-    //         {
-    //             // Check if sizeValue.Name already exists in the database
-    //             var existingSizeValue = sizeValueListDatabase.FirstOrDefault(s => s.Name == sizeValue);
-
-    //             if (existingSizeValue != null)
-    //             {
-    //                 // If it exists, map the existing object with the correct ID
-    //                 existingSizeValue.ProductSizeId = productSizeId;
-    //                 sizeValueList.Add(existingSizeValue);
-    //             }
-    //             else
-    //             {
-    //                 // If it doesn't exist, create a new ProductSizeValues object
-    //                 var nameValue = new ProductSizeValues
-    //                 {
-    //                     Id = Guid.NewGuid(),
-    //                     Name = sizeValue,
-    //                     ProductSizeId = productSizeId,
-    //                     Created = DateTime.UtcNow,
-    //                     LastUpdated = DateTime.UtcNow
-    //                 };
-    //                 sizeValueList.Add(nameValue);
-    //             }
-    //         }
-    //     }
-
-    //     var productSize = new ProductSize
-    //     {
-    //         Id = productSizeId,
-    //         Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, ProductSize>>(productSizeCreate.Thumbnail!, nameof(ProductSize), false),
-    //         SizeType = productSizeCreate.SizeType,
-    //         ProductSizeValues = sizeValueList,
-    //         CategoryId = productSizeCreate.CategoryId,
-
-    //         Created = DateTime.UtcNow,
-    //         LastUpdated = DateTime.UtcNow,
-    //     };
-
-    //     await _context.ProductSizes.AddAsync(productSize);
-    //     await _unitOfWork.SaveChangesAsync();
-
-    //     return new ServiceResponse<bool>
-    //     {
-    //         Data = true
-    //     };
-    // }
 
     public async Task<ServiceResponse<bool>> AddProductSize(ProductSizeCreateDTO productSizeCreate)
     {
@@ -377,6 +320,26 @@ public class ProductSizeServices : IProductSizeServices
     }
 
     public async Task<ServiceResponse<Sizes>> GetSizeBy(Guid id)
+    {
+        var size = await _context.Sizes
+                                  .FirstOrDefaultAsync(s => s.Id == id);
+
+        if (size == null)
+        {
+            return new ServiceResponse<Sizes>
+            {
+                Data = null,
+                Message = "سایز مورد نظر یافت نشد"
+            };
+        }
+
+        return new ServiceResponse<Sizes>
+        {
+            Data = size,
+        };
+    }
+
+        public async Task<ServiceResponse<Sizes>> GetSizeByCategory(Guid id)
     {
         var size = await _context.Sizes
                                   .FirstOrDefaultAsync(s => s.Id == id);

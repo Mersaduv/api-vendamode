@@ -23,6 +23,8 @@ public class RequestQuery
 
     [FromQuery(Name = "category")]
     public string? Category { get; set; }
+    [FromQuery(Name = "categoryId")]
+    public string? CategoryId { get; set; }
 
     [FromQuery(Name = "featureIds")]
     public Guid[]? FeatureIds { get; set; }
@@ -34,7 +36,7 @@ public class RequestQuery
     public string? Search { get; set; }
 
     [FromQuery(Name = "inStock")]
-    public bool? InStock { get; set; }
+    public string? InStock { get; set; }
 
     [FromQuery(Name = "discount")]
     public bool? Discount { get; set; }

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using api_vendace.Data;
@@ -12,9 +13,11 @@ using api_vendace.Data;
 namespace api_vendamode.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240713092440_InitSizeModelId")]
+    partial class InitSizeModelId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1007,7 +1010,7 @@ namespace api_vendamode.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<Guid>("ProductScaleId")
+                    b.Property<Guid?>("ProductScaleId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("SizeId")
@@ -1032,7 +1035,7 @@ namespace api_vendamode.Migrations
                     b.Property<string>("ModelSizeId")
                         .HasColumnType("text");
 
-                    b.Property<Guid>("ProductScaleId")
+                    b.Property<Guid?>("ProductScaleId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("ProductSizeValue")
@@ -1198,19 +1201,16 @@ namespace api_vendamode.Migrations
 
             modelBuilder.Entity("api_vendamode.Entities.Products.CategorySize", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("SizeId")
                         .HasColumnType("uuid");
 
-                    b.HasKey("Id");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
 
-                    b.HasIndex("CategoryId");
+                    b.HasKey("CategoryId", "SizeId");
 
                     b.HasIndex("SizeId");
 
@@ -1777,18 +1777,14 @@ namespace api_vendamode.Migrations
                 {
                     b.HasOne("api_vendace.Entities.Products.ProductScale", null)
                         .WithMany("Columns")
-                        .HasForeignKey("ProductScaleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("ProductScaleId");
                 });
 
             modelBuilder.Entity("api_vendace.Models.Dtos.ProductDto.Sizes.SizeModel", b =>
                 {
                     b.HasOne("api_vendace.Entities.Products.ProductScale", null)
                         .WithMany("Rows")
-                        .HasForeignKey("ProductScaleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("ProductScaleId");
                 });
 
             modelBuilder.Entity("api_vendace.Models.Dtos.ProductDto.Stock.StockItem", b =>

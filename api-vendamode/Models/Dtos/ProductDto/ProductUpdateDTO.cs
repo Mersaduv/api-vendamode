@@ -50,17 +50,37 @@ public class ProductUpdateDTO
                 }
                 else
                 {
-                    // handle the invalid format case, for example log it or throw an exception
                     throw new FormatException($"Invalid GUID format: {part}");
                 }
             }
         }
 
-        var stockItemData = form["StockItems"].ToList();
-        var stockItems = ParseHelperV2.ParseData<StockItemDTO>(stockItemData);
-
         var productScaleData = form["ProductScale"];
         var productScale = string.IsNullOrEmpty(productScaleData) ? null : JsonConvert.DeserializeObject<ProductScaleDTO>(productScaleData!);
+
+        var stockItemsData = form["StockItems"];
+        List<StockItemDTO> stockItems = new List<StockItemDTO>();
+        if (!string.IsNullOrEmpty(stockItemsData))
+        {
+            var stockItemsTempList = JsonConvert.DeserializeObject<List<StockItemTempDTO>>(stockItemsData);
+            foreach (var tempItem in stockItemsTempList!)
+            {
+                var thumbnailStock = form.Files.GetFile($"ImageStock_{tempItem.StockId}");
+                var stockItem = new StockItemDTO
+                {
+                    StockId = tempItem.StockId,
+                    Idx = tempItem.Idx,
+                    ImageStock = thumbnailStock,
+                    FeatureValueId = tempItem.FeatureValueId,
+                    SizeId = tempItem.SizeId,
+                    Quantity = tempItem.Quantity,
+                    Price = tempItem.Price,
+                    Discount = tempItem.Discount,
+                    AdditionalProperties = tempItem.AdditionalProperties
+                };
+                stockItems.Add(stockItem);
+            }
+        }
 
         return new ProductUpdateDTO
         {

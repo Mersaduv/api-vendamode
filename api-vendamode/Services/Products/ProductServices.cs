@@ -38,19 +38,26 @@ public class ProductServices : IProductServices
         _context = context;
         _categoryServices = categoryServices;
     }
+    public async Task<ServiceResponse<bool>> BulkUpdateProductStatus(List<Guid> productIds, bool isActive)
+    {
+        var products = await _context.Products.Where(p => productIds.Contains(p.Id)).ToListAsync();
+        foreach (var product in products)
+        {
+            product.IsActive = isActive;
+        }
+
+        _context.Products.UpdateRange(products);
+        var result = await _unitOfWork.SaveChangesAsync();
+        return new ServiceResponse<bool>
+        {
+            Data = result > 0
+        };
+    }
     //admin
     public async Task<ServiceResponse<bool>> CreateProduct(ProductCreateDTO productCreateDTO)
     {
-        if (_productRepository.GetAsyncBy(productCreateDTO.Title).GetAwaiter().GetResult() != null)
-        {
-            return new ServiceResponse<bool>
-            {
-                Success = false,
-                Message = "قبلا این محصول به ثبت رسیده"
-            };
-        }
-        var product = productCreateDTO.ToProducts(_byteFileUtility);
         var productId = Guid.NewGuid();
+        var product = productCreateDTO.ToProducts(_byteFileUtility, productId);
 
         // load feature
         // Null-checks 
@@ -242,17 +249,23 @@ public class ProductServices : IProductServices
             var query = _productRepository.GetQuery();
 
             // Category filter
+
+            if (requestQuery.CategoryId is not null)
+            {
+                Guid categoryId;
+                if (Guid.TryParse(requestQuery.CategoryId, out categoryId))
+                {
+                    var allCategoryIds = _categoryServices.GetAllCategoryIds(categoryId);
+
+                    query = query.Where(p => allCategoryIds.Contains(p.CategoryId));
+                }
+            }
+
             if (!string.IsNullOrEmpty(requestQuery.Category))
             {
-                var categoryResponse = await _categoryServices.GetBySlugAsync(requestQuery.Category);
-                if (categoryResponse.Success && categoryResponse.Data != null)
-                {
-                    var category = categoryResponse.Data;
-                    var categoryIds = new List<Guid> { category.Id };
-                    categoryIds.AddRange(GetAllSubCategoryIds(category));
+                var allCategoryIds = _categoryServices.GetAllCategoryIdsBy(requestQuery.Category);
 
-                    query = query.Where(p => categoryIds.Contains(p.CategoryId));
-                }
+                query = query.Where(p => allCategoryIds.Contains(p.CategoryId));
             }
 
             // Search filter
@@ -270,12 +283,6 @@ public class ProductServices : IProductServices
             if (requestQuery.MaxPrice.HasValue)
             {
                 query = query.Where(p => p.Price <= requestQuery.MaxPrice.Value);
-            }
-
-            // InStock filter
-            if (requestQuery.InStock.HasValue && requestQuery.InStock.Value)
-            {
-                query = query.Where(p => p.InStock >= 1);
             }
 
             // Discount filter
@@ -308,6 +315,36 @@ public class ProductServices : IProductServices
                 }
             }
 
+            // if (requestQuery.CategoryId is not null)
+            // {
+
+            //     var productDtoListByParentCategory = productDtoList.Where(c => c.ParentCategories.ParentCategories.Any(c => c.Id == Guid.Parse(requestQuery.CategoryId)))
+            //                  .a();
+            //     if (productDtoListByParentCategory.Count == 0)
+            //     {
+            //         productDtoList = productDtoList
+            //         .Where(c => c.ParentCategories.Category.Id == Guid.Parse(requestQuery.CategoryId))
+            //         .ToList();
+            //     }
+            //     else
+            //     {
+            //         productDtoList = productDtoList.Where(c => c.ParentCategories.ParentCategories.Any(c => c.Id == Guid.Parse(requestQuery.CategoryId)))
+            //    .ToList();
+            //     }
+            // }
+
+            if (requestQuery.InStock is not null)
+            {
+                if (requestQuery.InStock == "1")
+                {
+                    query = query.Where(x => x.InStock > 0);
+                }
+                else
+                {
+                    query = query.Where(x => x.InStock == 0);
+                }
+            }
+
             // Pagination and data retrieval
             var totalCount = await query.CountAsync();
             var paginatedProducts = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
@@ -323,6 +360,34 @@ public class ProductServices : IProductServices
             var mainMaxPrice = await query.Where(p => p.InStock >= 1).MaxAsync(p => (double?)p.Price) ?? 0;
             var mainMinPrice = await query.Where(p => p.InStock >= 1).MinAsync(p => (double?)p.Price) ?? 0;
 
+            if (requestQuery.CategoryId is not null)
+            {
+                var productDtoListByParentCategory = productDtoList.Where(c => c.ParentCategories.ParentCategories.Any(c => c.Id == Guid.Parse(requestQuery.CategoryId)))
+                             .ToList();
+                if (productDtoListByParentCategory.Count == 0)
+                {
+                    productDtoList = productDtoList
+                    .Where(c => c.ParentCategories.Category.Id == Guid.Parse(requestQuery.CategoryId))
+                    .ToList();
+                }
+                else
+                {
+                    productDtoList = productDtoList.Where(c => c.ParentCategories.ParentCategories.Any(c => c.Id == Guid.Parse(requestQuery.CategoryId)))
+               .ToList();
+                }
+            }
+
+            // if (requestQuery.InStock is not null)
+            // {
+            //     if (requestQuery.InStock == "1")
+            //     {
+            //         productDtoList = productDtoList.Where(x => x.InStock > 0).ToList();
+            //     }
+            //     else
+            //     {
+            //         productDtoList = productDtoList.Where(x => x.InStock == 0).ToList();
+            //     }
+            // }
             // Prepare pagination information
             var pagination = new Pagination<ProductDTO>
             {
@@ -332,7 +397,7 @@ public class ProductServices : IProductServices
                 HasNextPage = pageNumber < (totalCount / pageSize),
                 HasPreviousPage = pageNumber > 1,
                 LastPage = (int)Math.Ceiling((double)totalCount / pageSize),
-                Data = productDtoList,
+                Data = productDtoList = productDtoList.OrderByDescending(product => product.LastUpdated).ToList(),
                 TotalCount = totalCount
             };
 
@@ -564,7 +629,9 @@ public class ProductServices : IProductServices
                 Pagination = pagination
             };
 
-            var similarProducts = results.Pagination.Data.Where(c => c.CategoryId == id).ToList();
+            var similarProducts = results.Pagination.Data
+            .Where(c => c.ParentCategories.ParentCategories.Any(c => c.Id == id))
+            .ToList();
 
             return new ServiceResponse<List<ProductDTO>>
             {
@@ -675,11 +742,6 @@ public class ProductServices : IProductServices
         .ThenInclude(pspsv => pspsv.ProductSizeValue)
         .FirstOrDefaultAsync();
 
-        if (CategoryProductSizes == null)
-        {
-            return null; // یا هرگونه هندلینگ خطای مناسب دیگری
-        }
-
         var productScale = await _context.ProductScales.Include(x => x.Columns).Include(x => x.Rows).FirstOrDefaultAsync(p => p.ProductId == product.Id);
         List<Sizes>? sizeList = null;
         if (productScale?.Columns?.Any() == true)
@@ -703,7 +765,7 @@ public class ProductServices : IProductServices
             }
         }
 
-        if (CategoryProductSizes.ProductSize.ProductSizeProductSizeValues?.Any() == true)
+        if (CategoryProductSizes is not null && CategoryProductSizes.ProductSize.ProductSizeProductSizeValues?.Any() == true)
         {
 
             var productSizeInfo = new ProductSizeInfo
@@ -818,7 +880,20 @@ public class ProductServices : IProductServices
 
     public async Task<ServiceResponse<bool>> UpdateProduct(ProductUpdateDTO productUpdateDTO)
     {
-        var product = await _context.Products.FindAsync(productUpdateDTO.Id);
+        var product = await _context.Products
+                            .Include(x => x.Brand)
+                            .Include(x => x.Images)
+                            .Include(x => x.MainImage)
+                            .Include(x => x.ProductFeatures)
+                            .Include(x => x.ProductScale)
+                            .ThenInclude(x => x.Columns)
+                            .Include(x => x.ProductScale)
+                            .ThenInclude(x => x.Rows)
+                            .Include(x => x.Review)
+                            .Include(c => c.Category)
+                            .Include(c => c.StockItems)
+                            .ThenInclude(x => x.Images)
+                            .FirstOrDefaultAsync(u => u.Id == productUpdateDTO.Id);
 
         if (product == null)
         {
@@ -828,69 +903,88 @@ public class ProductServices : IProductServices
                 Message = "محصول مورد نظر یافت نشد"
             };
         }
+        // Remove the existing product
+        _context.Products.Remove(product);
+        await _context.SaveChangesAsync();
 
-        if (await _productRepository.GetAsyncBy(productUpdateDTO.Title) != null && productUpdateDTO.Title != product.Title)
+        var productId = Guid.NewGuid();
+        var newProduct = new Product
         {
-            return new ServiceResponse<bool>
+            Id = productId,
+            Title = productUpdateDTO.Title,
+            Code = product.Code,
+            Slug = product.Slug,
+            IsActive = productUpdateDTO.IsActive,
+            CategoryId = productUpdateDTO.CategoryId,
+            Description = productUpdateDTO.Description,
+            IsFake = productUpdateDTO.IsFake,
+            BrandId = productUpdateDTO.BrandId,
+            Created = product.Created,
+            LastUpdated = DateTime.UtcNow
+        };
+
+        List<Guid> featureValueIds = productUpdateDTO.FeatureValueIds ?? new List<Guid>();
+
+        if (product.ProductScale is not null)
+        {
+            var scaleId = product.ProductScale.Id;
+            var newScaleId = product.ProductScale.Id;
+            // Find the related SizeIds and SizeModel entries
+            var sizeIdsToRemove = _context.SizeIds.Where(s => s.ProductScaleId == scaleId).ToList();
+            var sizeModelsToRemove = _context.SizeModels.Where(m => m.ProductScaleId == scaleId).ToList();
+            // Remove the related SizeIds and SizeModel entries
+            _context.SizeIds.RemoveRange(sizeIdsToRemove);
+            _context.SizeModels.RemoveRange(sizeModelsToRemove);
+            _context.ProductScales.Remove(product.ProductScale);
+            await _context.SaveChangesAsync();
+
+            var productScale = new ProductScale
             {
-                Success = false,
-                Message = "این محصول قبلا به ثبت رسیده"
+                Id = newScaleId,
+                Columns = productUpdateDTO.ProductScale?.ColumnSizes?.Select(s => new SizeIds
+                {
+                    Id = Guid.NewGuid(),
+                    SizeId = Guid.Parse(s.Id),
+                    Name = s.Name,
+                    ProductScaleId = newScaleId
+                }).ToList(),
+                Rows = productUpdateDTO.ProductScale?.Rows?.Select(r => new SizeModel
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Idx = r.Id,
+                    ProductSizeValueId = r.ProductSizeValueId,
+                    ProductSizeValue = r.ProductSizeValue,
+                    ScaleValues = r.ScaleValues,
+                    ProductScaleId = newScaleId
+                }).ToList(),
+                ProductId = productId,
+                Created = product.ProductScale.Created,
+                LastUpdated = DateTime.UtcNow
             };
+            newProduct.ProductScale = productScale;
         }
+        newProduct.FeatureValueIds = featureValueIds;
 
-        // Update basic product properties
-        product.Title = productUpdateDTO.Title;
-        product.IsActive = productUpdateDTO.IsActive;
-        product.CategoryId = productUpdateDTO.CategoryId;
-        product.Description = productUpdateDTO.Description;
-        product.IsFake = productUpdateDTO.IsFake;
-        product.BrandId = productUpdateDTO.BrandId;
-        product.LastUpdated = DateTime.UtcNow;
-
-        // Update FeatureValueIds
-        product.FeatureValueIds = productUpdateDTO.FeatureValueIds ?? new List<Guid>();
-
-        // Update ProductScale
-        if (productUpdateDTO.ProductScale != null)
-        {
-            var scaleId = product.ProductScaleId;
-            product.ProductScale.Columns = productUpdateDTO.ProductScale.ColumnSizes?.Select(s => new SizeIds
-            {
-                Id = Guid.NewGuid(),
-                SizeId = Guid.Parse(s.Id),
-                Name = s.Name
-            }).ToList();
-            product.ProductScale.Rows = productUpdateDTO.ProductScale.Rows?.Select(r => new SizeModel
-            {
-                Id = Guid.NewGuid().ToString(),
-                ProductSizeValueId = r.ProductSizeValueId,
-                ProductSizeValue = r.ProductSizeValue,
-                ScaleValues = r.ScaleValues
-            }).ToList();
-            product.ProductScale.LastUpdated = DateTime.UtcNow;
-        }
-
-        // Update MainThumbnail
         if (productUpdateDTO.MainThumbnail != null)
         {
             if (product.MainImage != null)
             {
-                _byteFileUtility.DeleteFiles([product.MainImage], nameof(Product));
+                _byteFileUtility.DeleteFiles(new[] { product.MainImage }, nameof(Product));
             }
-            product.MainImage = _byteFileUtility.SaveFileInFolder<EntityMainImage<Guid, Product>>([productUpdateDTO.MainThumbnail], nameof(Product), true).First();
+            var newMainImage = _byteFileUtility.SaveFileInFolder<EntityMainImage<Guid, Product>>([productUpdateDTO.MainThumbnail], nameof(Product), false).First();
+            newProduct.MainImage = newMainImage;
         }
 
-        // Update Thumbnail images
         if (productUpdateDTO.Thumbnail != null)
         {
             if (product.Images != null)
             {
                 _byteFileUtility.DeleteFiles(product.Images, nameof(Product));
             }
-            product.Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Product>>(productUpdateDTO.Thumbnail, nameof(Product), false);
+            var newImages = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Product>>(productUpdateDTO.Thumbnail, nameof(Product), false);
+            newProduct.Images = newImages;
         }
 
-        // Update StockItems
         if (productUpdateDTO.StockItems != null)
         {
             var stockItemsDto = productUpdateDTO.StockItems.Select(stockItemDTO =>
@@ -898,39 +992,43 @@ public class ProductServices : IProductServices
                 var featureIds = new List<Guid>();
                 if (stockItemDTO.FeatureValueId != null)
                 {
-                    foreach (var featureIdStr in stockItemDTO.FeatureValueId)
-                    {
-
-                        featureIds.Add(featureIdStr);
-
-                    }
+                    featureIds.AddRange(stockItemDTO.FeatureValueId);
                 }
-                Guid sizeId2 = Guid.Empty;
-                if (stockItemDTO.SizeId != null)
+
+                Guid sizeId2 = stockItemDTO.SizeId ?? Guid.Empty;
+
+                if (stockItemDTO.ImageStock != null)
                 {
-                    sizeId2 = stockItemDTO.SizeId ?? Guid.Empty;
+                    var existingStockItem = product.StockItems?.FirstOrDefault(si => si.Id == stockItemDTO.Id);
+                    if (existingStockItem != null && existingStockItem.Images != null)
+                    {
+                        _byteFileUtility.DeleteFiles(existingStockItem.Images, nameof(StockItem));
+                    }
                 }
 
                 return new StockItem
                 {
                     Id = stockItemDTO.Id,
+                    StockId = stockItemDTO.StockId,
+                    Images = stockItemDTO.ImageStock != null ? _byteFileUtility.SaveFileInFolder<EntityImage<Guid, StockItem>>([stockItemDTO.ImageStock], nameof(StockItem), false) : new List<EntityImage<Guid, StockItem>>(),
                     Idx = stockItemDTO.Idx ?? string.Empty,
-                    ProductId = product.Id,
+                    ProductId = productId,
                     FeatureValueId = featureIds,
                     SizeId = sizeId2 == Guid.Empty ? null : sizeId2,
                     Quantity = stockItemDTO.Quantity,
                     Discount = stockItemDTO.Discount,
                     Price = stockItemDTO.Price,
                     CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    UpdatedAt = DateTime.UtcNow,
+                    AdditionalProperties = stockItemDTO.AdditionalProperties
                 };
             }).ToList();
 
-            product.InStock = stockItemsDto.Sum(stockItem => stockItem.Quantity);
-            product.StockItems = stockItemsDto;
+            newProduct.InStock = stockItemsDto.Sum(stockItem => stockItem.Quantity);
+            newProduct.StockItems = stockItemsDto;
         }
 
-        _context.Products.Update(product);
+        await _context.Products.AddAsync(newProduct);
         await _unitOfWork.SaveChangesAsync();
 
         return new ServiceResponse<bool>
@@ -940,4 +1038,29 @@ public class ProductServices : IProductServices
         };
     }
 
+    public async Task<ServiceResponse<bool>> DeleteAsync(Guid id)
+    {
+        var product = await _context.Products
+    .FirstOrDefaultAsync(p => p.Id == id);
+
+
+        if (product == null)
+        {
+            return new ServiceResponse<bool>
+            {
+                Success = false,
+                Message = "محصولی پیدا نشد."
+            };
+        }
+
+        _context.Products.Remove(product);
+
+        await _unitOfWork.SaveChangesAsync();
+
+        return new ServiceResponse<bool>
+        {
+            Success = false,
+            Message = $"محصول {product.Slug} با موفقیت حذف شد"
+        };
+    }
 }

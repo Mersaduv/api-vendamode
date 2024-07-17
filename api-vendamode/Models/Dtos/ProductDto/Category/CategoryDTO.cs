@@ -14,6 +14,7 @@ public class CategoryDTO : BaseClass<Guid>
     public int SubCategoryCount { get; set; }
     public int FeatureCount { get; set; }
     public int SizeCount { get; set; }
+    public CategorySizeDTO CategorySizes { get; set; } = new CategorySizeDTO();
     public int BrandCount { get; set; }
     public bool IsActive { get; set; }
     public bool IsDeleted { get; set; }
@@ -22,4 +23,11 @@ public class CategoryDTO : BaseClass<Guid>
     public IEnumerable<CategoryDTO>? Categories { get; set; }
     public List<CategoryDTO> ParentCategories { get; set; }
     public List<CategoryDTO> ParentCategoriesTree { get; set; }
+}
+
+
+public class CategorySizeDTO
+{
+    public List<Guid>? Ids { get; set; }
+    public List<Guid>? SizeIds { get; set; }
 }

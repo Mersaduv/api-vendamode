@@ -7,11 +7,11 @@ namespace api_vendace.Mapper;
 
 public static class CreateProductMapper
 {
-    public static Product ToProducts(this ProductCreateDTO product_C_DTO, ByteFileUtility byteFileUtility)
+    public static Product ToProducts(this ProductCreateDTO product_C_DTO, ByteFileUtility byteFileUtility, Guid productId)
     {
         return new Product
         {
-            Id = Guid.NewGuid(),
+            Id = productId,
             Title = product_C_DTO.Title,
             Slug = product_C_DTO.Title.ToLower(),
             IsActive = product_C_DTO.IsActive,

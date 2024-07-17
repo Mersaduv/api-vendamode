@@ -5,7 +5,6 @@ namespace api_vendace.Models.Dtos.ProductDto.Category;
 public class CategoryCreateDTO
 {
     public string Name { get; set; } = string.Empty;
-    public string Slug { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public List<IFormFile>? Thumbnail { get; set; }
     public Guid? MainCategoryId { get; set; }
@@ -19,7 +18,6 @@ public class CategoryCreateDTO
         var thumbnailFiles = form.Files.GetFiles("Thumbnail");
         var thumbnail = thumbnailFiles.Any() ? thumbnailFiles.ToList() : null;
         var name = form["Name"];
-        var slug = form["Slug"];
         var isActive = bool.Parse(form["IsActive"]!);
         var mainCategoryId = string.IsNullOrEmpty(form["MainCategoryId"]) ? null : (Guid?)Guid.Parse(form["MainCategoryId"]!);
         var parentCategoryId = string.IsNullOrEmpty(form["ParentCategoryId"]) ? null : (Guid?)Guid.Parse(form["ParentCategoryId"]!);
@@ -28,7 +26,6 @@ public class CategoryCreateDTO
         {
             Thumbnail = thumbnail,
             Name = name!,
-            Slug = slug!,
             IsActive = isActive,
             MainCategoryId = mainCategoryId,
             ParentCategoryId = parentCategoryId,

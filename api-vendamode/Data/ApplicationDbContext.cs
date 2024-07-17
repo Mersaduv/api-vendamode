@@ -60,7 +60,7 @@ public class ApplicationDbContext : DbContext
             .IsUnique();
 
         modelBuilder.Entity<CategorySize>()
-        .HasKey(cs => new { cs.CategoryId, cs.SizeId });
+        .HasKey(cs => cs.Id);
 
         modelBuilder.Entity<CategorySize>()
             .HasOne(cs => cs.Category)

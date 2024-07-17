@@ -6,6 +6,7 @@ using api_vendace.Models.Dtos.ProductDto.Feature;
 using api_vendamode.Models.Dtos.ProductDto.Category;
 using api_vendamode.Models.Query;
 using static api_vendace.Services.Products.CategoryServices;
+using api_vendace.Models.Query;
 
 namespace api_vendamode.Interfaces.IServices;
 
@@ -26,7 +27,9 @@ public interface ICategoryServices
     IEnumerable<Guid> GetAllChildCategories(Guid parentCategoryId);
     Task<ServiceResponse<List<CategoryDTO>>> GetParentSubCategoryAsync(Guid id);
     Task<ServiceResponse<SubCategoryResult>> GetSubCategoryAsync(RequestBy requestSub);
-    Task<ServiceResponse<CategoryResult>> GetAllCategories();
+    Task<ServiceResponse<Pagination<CategoryDTO>>> GetAllCategories(RequestQuery requestQuery);
+    Task<ServiceResponse<CategoryResult>> GetCategories();
     Task<ServiceResponse<CategoryDTO>> GetBySlugAsync(string category);
-
+    List<Guid> GetAllCategoryIds(Guid categoryId);
+    List<Guid> GetAllCategoryIdsBy(string categorySlug);
 }

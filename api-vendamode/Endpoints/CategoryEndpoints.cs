@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using api_vendamode.Models.Query;
 using static api_vendace.Services.Products.CategoryServices;
+using api_vendace.Models.Query;
 
 namespace api_vendace.Endpoints;
 
@@ -20,6 +21,7 @@ public static class CategoryEndpoints
 
         apiGroup.MapGet(Constants.Categories, GetCategories);
         apiGroup.MapGet($"{Constants.Categories}/parents", GetCategories);
+        apiGroup.MapGet($"all-{Constants.Categories}", GetAllCategories);
         apiGroup.MapGet(Constants.CategoriesTree, CategoriesTree).RequireAuthorization();
 
         categoryGroup.MapGet("{id:guid}", GetCategory);
@@ -27,11 +29,13 @@ public static class CategoryEndpoints
         categoryGroup.MapGet("subCategories", GetSubCategory);
 
         categoryGroup.MapPost(string.Empty, CreateCategory)
-        .Accepts<CategoryCreateDTO>("multipart/form-data");
+        .Accepts<CategoryCreateDTO>("multipart/form-data")
+        .ProducesValidationProblem();
 
         categoryGroup.MapPost("update", UpdateCategory)
-        .Accepts<CategoryUpdateDTO>("multipart/form-data");
-
+        .Accepts<CategoryUpdateDTO>("multipart/form-data")
+        .ProducesValidationProblem();
+        
         categoryGroup.MapPost($"feature-update", CategoryFeatureUpdate)
         .Accepts<CategoryFeatureUpdateDTO>("application/json");
 
@@ -61,7 +65,7 @@ public static class CategoryEndpoints
         return TypedResults.Ok(result);
     }
 
-    private async static Task<Ok<ServiceResponse<SubCategoryResult>>> GetSubCategory(ICategoryServices categoryServices, ILogger<Program> _logger,  [AsParameters] RequestBy requestSub)
+    private async static Task<Ok<ServiceResponse<SubCategoryResult>>> GetSubCategory(ICategoryServices categoryServices, ILogger<Program> _logger, [AsParameters] RequestBy requestSub)
     {
         _logger.Log(LogLevel.Information, "Getting SubCategories");
 
@@ -72,9 +76,9 @@ public static class CategoryEndpoints
         return TypedResults.Ok(result);
     }
 
-    private async static Task<Ok<ServiceResponse<bool>>> CategoryFeatureUpdate(ICategoryServices categoryServices, ILogger<Program> _logger,CategoryFeatureUpdateDTO categoryFeatureUpdate)
+    private async static Task<Ok<ServiceResponse<bool>>> CategoryFeatureUpdate(ICategoryServices categoryServices, ILogger<Program> _logger, CategoryFeatureUpdateDTO categoryFeatureUpdate)
     {
-        _logger.Log(LogLevel.Information, "Getting parent SubCategories");
+        _logger.Log(LogLevel.Information, "Category Feature Update");
 
         // await AccessControl.CheckProductPermissionFlag(context , "product-get-all");
 
@@ -95,11 +99,22 @@ public static class CategoryEndpoints
 
     private async static Task<Ok<ServiceResponse<CategoryResult>>> GetCategories(ICategoryServices categoryServices, ILogger<Program> _logger)
     {
-        _logger.Log(LogLevel.Information, "Categories Tree");
+        _logger.Log(LogLevel.Information, "Get Categories");
 
         // await AccessControl.CheckProductPermissionFlag(context , "product-get-all");
 
-        var result = await categoryServices.GetAllCategories();
+        var result = await categoryServices.GetCategories();
+
+        return TypedResults.Ok(result);
+    }
+
+    private async static Task<Ok<ServiceResponse<Pagination<CategoryDTO>>>> GetAllCategories(ICategoryServices categoryServices, [AsParameters] RequestQuery parameters, ILogger<Program> _logger)
+    {
+        _logger.Log(LogLevel.Information, "Get All Categories");
+
+        // await AccessControl.CheckProductPermissionFlag(context , "product-get-all");
+
+        var result = await categoryServices.GetAllCategories(parameters);
 
         return TypedResults.Ok(result);
     }

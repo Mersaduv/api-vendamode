@@ -7,6 +7,7 @@ using api_vendace.Models;
 using api_vendace.Models.Dtos.ProductDto;
 using api_vendace.Models.Query;
 using api_vendace.Utility;
+using api_vendamode.Models.Dtos.ProductDto;
 using api_vendamode.Models.Query;
 using Microsoft.AspNetCore.Http.HttpResults;
 
@@ -35,11 +36,33 @@ public static class ProductEndpoints
         .Accepts<ProductCreateDTO>("multipart/form-data")
         .ProducesValidationProblem();
 
-        
+
         adminProductGroup.MapPost("update", UpdateProduct)
         .Accepts<ProductUpdateDTO>("multipart/form-data");
 
+        adminProductGroup.MapPost("bulk-update", BulkUpdateProduct)
+        .Accepts<BulkUpdateProductDTO>("application/json");
+
+        adminProductGroup.MapDelete("{id:guid}", DeleteProduct);
+
         return apiGroup;
+    }
+
+    private static async Task<Ok<ServiceResponse<bool>>> BulkUpdateProduct(BulkUpdateProductDTO dto, IProductServices productService)
+    {
+        var result = await productService.BulkUpdateProductStatus(dto.ProductIds, dto.IsActive);
+        return TypedResults.Ok(result);
+    }
+
+    private async static Task<Ok<ServiceResponse<bool>>> DeleteProduct(IProductServices productServices, Guid id, ILogger<Program> _logger, HttpContext context)
+    {
+        _logger.Log(LogLevel.Information, "Delete Product");
+
+        // await AccessControl.CheckProductPermissionFlag(context , "product-get-all");
+
+        var result = await productServices.DeleteAsync(id);
+
+        return TypedResults.Ok(result);
     }
 
     private async static Task<Ok<ServiceResponse<GetProductsResult>>> GetProductQuery([AsParameters] RequestQuery parameters, IProductServices productService, ILogger<Program> _logger)
@@ -126,7 +149,7 @@ public static class ProductEndpoints
         return TypedResults.File(encryptedData, "image/jpeg");
     }
 
-        private async static Task<Ok<ServiceResponse<bool>>> UpdateProduct(IProductServices productService, ProductUpdateDTO productUpdate, ILogger<Program> _logger)
+    private async static Task<Ok<ServiceResponse<bool>>> UpdateProduct(IProductServices productService, ProductUpdateDTO productUpdate, ILogger<Program> _logger)
     {
         _logger.Log(LogLevel.Information, "Update Product");
 

@@ -194,7 +194,7 @@ public class OrderService : IOrderServices
         var skipCount = (pageNumber - 1) * pageSize;
         var orders = await _context.Orders
             .Where(r => r.UserID == userId)
-            .OrderByDescending(r => r.Created)
+            .OrderByDescending(r => r.LastUpdated)
             .Skip(skipCount)
             .Take(pageSize)
             .Include(c => c.Cart)
