@@ -25,12 +25,16 @@ public class RequestQuery
     public string? Category { get; set; }
     [FromQuery(Name = "categoryId")]
     public string? CategoryId { get; set; }
+    [FromQuery(Name = "sizes")]
+    public Guid[]? SizeIds { get; set; }
 
     [FromQuery(Name = "featureIds")]
     public Guid[]? FeatureIds { get; set; }
 
     [FromQuery(Name = "featureValueIds")]
     public Guid[]? FeatureValueIds { get; set; }
+    [FromQuery(Name = "brands")]
+    public string[]? Brands { get; set; }
 
     [FromQuery(Name = "search")]
     public string? Search { get; set; }

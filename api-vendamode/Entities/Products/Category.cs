@@ -15,9 +15,9 @@ public class Category : BaseClass<Guid>
     public Guid? MainCategoryId { get; set; }
     public Guid? ParentCategoryId { get; set; }
     public virtual Category? ParentCategory { get; set; }
-     public virtual List<Category>? ChildCategories { get; set; }
+    public virtual List<Category>? ChildCategories { get; set; }
     public virtual List<Product>? Products { get; set; }
-    public virtual List<ProductFeature>? ProductFeatures { get; set; }
+    public virtual List<CategoryProductFeature> CategoryProductFeatures { get; set; }
     public virtual List<CategoryProductSize>? CategoryProductSizes { get; set; }
     public virtual List<CategorySize>? CategorySizes { get; set; }
     public List<Category> GetParentCategories(ApplicationDbContext context)

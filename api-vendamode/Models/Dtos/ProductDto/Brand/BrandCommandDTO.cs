@@ -17,20 +17,14 @@ public class BrandCommandDTO
 
         var thumbnailFiles = form.Files.GetFiles("Thumbnail");
         var thumbnail = thumbnailFiles.Any() ? thumbnailFiles.ToList() : null;
-        var id = form["Id"];
+       var id = string.IsNullOrEmpty(form["Id"]) ? null : (Guid?)Guid.Parse(form["Id"]!);
         var name = form["Name"];
         var description = form["Description"];
         var isActive = bool.Parse(form["IsActive"]!);
         var inSlider = bool.Parse(form["InSlider"]!);
-        Guid? parsedId = null;
-        if (Guid.TryParse(id, out var guidId))
-        {
-            parsedId = guidId;
-        }
-
         return new BrandCommandDTO
         {
-            Id = parsedId,
+            Id = id,
             Thumbnail = thumbnail,
             Name = name!,
             Description = description!,

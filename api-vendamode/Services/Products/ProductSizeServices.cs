@@ -8,6 +8,7 @@ using api_vendace.Models;
 using api_vendace.Models.Dtos;
 using api_vendace.Models.Dtos.ProductDto;
 using api_vendace.Models.Dtos.ProductDto.Sizes;
+using api_vendace.Models.Query;
 using api_vendace.Utility;
 using api_vendamode.Entities.Products;
 using api_vendamode.Models.Dtos.ProductDto.Sizes;
@@ -127,45 +128,43 @@ public class ProductSizeServices : IProductSizeServices
 
         return new ServiceResponse<bool>
         {
-            Data = true
+            Data = true,
+            Message = "اندازه دسته بندی با موفقیت ایجاد شد"
         };
     }
 
 
     public async Task<ServiceResponse<bool>> UpdateProductSize(ProductSizeUpdateDTO productSizeUpdate)
     {
-        var sizeValueListDatabase = await _context.ProductSizeValues
-            .AsNoTracking()
-            .ToListAsync();
-
         var productSize = await _context.ProductSizes
-            .Include(s => s.Images)
-            .Include(s => s.ProductSizeProductSizeValues)
+                     .Include(ps => ps.Images)
+            .Include(ps => ps.Sizes)
+            .Include(ps => ps.ProductSizeProductSizeValues)
             .ThenInclude(pspsv => pspsv.ProductSizeValue)
-            .Include(s => s.Sizes)
+            .Include(ps => ps.CategoryProductSizes)
+            .ThenInclude(cps => cps.Category)
             .FirstOrDefaultAsync(ps => ps.Id == productSizeUpdate.Id);
 
         if (productSize == null)
         {
             return new ServiceResponse<bool>
             {
-                Success = false,
-                Message = "سایز مد نظر یافت نشد"
+                Data = false,
+                Message = "Product size not found."
             };
         }
 
         var sizeValueList = new List<ProductSizeProductSizeValue>();
-        if (productSizeUpdate.ProductSizeValues is not null)
+
+        if (productSizeUpdate.ProductSizeValues != null)
         {
             foreach (var sizeValue in productSizeUpdate.ProductSizeValues)
             {
-                // Check if sizeValue.Name already exists in the database
-                var existingSizeValue = sizeValueListDatabase.FirstOrDefault(s => s.Name == sizeValue.Name);
+                var existingSizeValue = await _context.ProductSizeValues
+                    .FirstOrDefaultAsync(s => s.Name == sizeValue);
 
                 if (existingSizeValue != null)
                 {
-                    // If it exists, map the existing object with the correct ID
-                    existingSizeValue.LastUpdated = DateTime.UtcNow;
                     sizeValueList.Add(new ProductSizeProductSizeValue
                     {
                         ProductSizeId = productSize.Id,
@@ -174,11 +173,10 @@ public class ProductSizeServices : IProductSizeServices
                 }
                 else
                 {
-                    // If it doesn't exist, create a new ProductSizeValues object
                     var nameValue = new ProductSizeValues
                     {
                         Id = Guid.NewGuid(),
-                        Name = sizeValue.Name,
+                        Name = sizeValue,
                         Created = DateTime.UtcNow,
                         LastUpdated = DateTime.UtcNow
                     };
@@ -193,22 +191,69 @@ public class ProductSizeServices : IProductSizeServices
             }
         }
 
-        productSize.Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, ProductSize>>(productSizeUpdate.Thumbnail!, nameof(ProductSize), false);
+        productSize.SizeType = productSizeUpdate.SizeType;
         productSize.ProductSizeProductSizeValues = sizeValueList;
-        // productSize.CategoryId = productSizeUpdate.CategoryId;
-        productSize.Created = productSizeUpdate.Created;
         productSize.LastUpdated = DateTime.UtcNow;
 
-        _context.ProductSizes.Update(productSize);
-        await _unitOfWork.SaveChangesAsync();
+        if (productSizeUpdate.Thumbnail != null)
+        {
+            if (productSize.Images is not null)
+            {
+                _byteFileUtility.DeleteFiles(productSize.Images, nameof(ProductSize));
+            }
+            productSize.Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, ProductSize>>(productSizeUpdate.Thumbnail, nameof(ProductSize), false);
+        }
+        var existingProductSizeValues = _context.ProductSizeProductSizeValues
+          .Where(psv => psv.ProductSizeId == productSize.Id);
+
+        _context.ProductSizeProductSizeValues.RemoveRange(existingProductSizeValues);
+        await _context.ProductSizeProductSizeValues.AddRangeAsync(sizeValueList);
+
+        try
+        {
+            await _unitOfWork.SaveChangesAsync();
+
+            if (productSizeUpdate.CategoryIds != null)
+            {
+                var existingCategories = await _context.CategoryProductSizes.Where(cps => cps.ProductSizeId == productSize.Id).ToListAsync();
+                _context.CategoryProductSizes.RemoveRange(existingCategories);
+
+                var categoryProductSizes = productSizeUpdate.CategoryIds.Select(categoryId => new CategoryProductSize
+                {
+                    CategoryId = categoryId,
+                    ProductSizeId = productSize.Id
+                }).ToList();
+
+                await _context.CategoryProductSizes.AddRangeAsync(categoryProductSizes);
+                await _unitOfWork.SaveChangesAsync();
+            }
+        }
+        catch (DbUpdateException ex)
+        {
+            var postgresException = ex.GetBaseException() as PostgresException;
+            if (postgresException != null && postgresException.SqlState == "23505")
+            {
+                return new ServiceResponse<bool>
+                {
+                    Data = false,
+                    Message = "Duplicate key value violates unique constraint."
+                };
+            }
+            else
+            {
+                throw;
+            }
+        }
 
         return new ServiceResponse<bool>
         {
-            Data = true
+            Data = true,
+            Message = "اندازه دسته بندی بروز رسانی شد."
         };
     }
 
-    public async Task<ServiceResponse<ProductSizeDTO>> GetProductSizeByCategory(Guid categoryId)
+
+    public async Task<ServiceResponse<ProductSizeDTO>> GetProductSizeByCategory(Guid id)
     {
         var productSize = await _context.ProductSizes
             .Include(ps => ps.Images)
@@ -217,7 +262,55 @@ public class ProductSizeServices : IProductSizeServices
             .ThenInclude(pspsv => pspsv.ProductSizeValue)
             .Include(ps => ps.CategoryProductSizes)
             .ThenInclude(cps => cps.Category)
-            .FirstOrDefaultAsync(ps => ps.CategoryProductSizes.Any(cps => cps.CategoryId == categoryId));
+            .FirstOrDefaultAsync(ps => ps.CategoryProductSizes.Any(cps => cps.CategoryId == id));
+
+        if (productSize == null)
+        {
+            return new ServiceResponse<ProductSizeDTO>
+            {
+                Data = null,
+                Success = false,
+                Message = "سایزبندی های دسته بندی یافت نشد"
+            };
+        }
+
+        var productSizeDto = new ProductSizeDTO
+        {
+            Id = productSize.Id,
+
+            ImagesSrc = productSize.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(productSize.Images.Select(img => new EntityImageDto
+            {
+                Id = img.Id,
+                ImageUrl = img.ImageUrl ?? string.Empty,
+                Placeholder = img.Placeholder ?? string.Empty
+            }).ToList(), nameof(ProductSize)).First() : null,
+            SizeType = productSize.SizeType,
+            ProductSizeValues = productSize.ProductSizeProductSizeValues?.Select(sv => new ProductSizeValuesDTO
+            {
+                Id = sv.ProductSizeValue.Id,
+                Name = sv.ProductSizeValue.Name,
+                ProductSizeId = sv.ProductSizeId
+            }).ToList(),
+            Created = productSize.Created,
+            LastUpdated = productSize.LastUpdated
+        };
+
+        return new ServiceResponse<ProductSizeDTO>
+        {
+            Data = productSizeDto
+        };
+    }
+
+    public async Task<ServiceResponse<ProductSizeDTO>> GetCategoryByProductSize(Guid Id)
+    {
+        var productSize = await _context.ProductSizes
+            .Include(ps => ps.Images)
+            .Include(ps => ps.Sizes)
+            .Include(ps => ps.ProductSizeProductSizeValues)
+            .ThenInclude(pspsv => pspsv.ProductSizeValue)
+            .Include(ps => ps.CategoryProductSizes)
+            .ThenInclude(cps => cps.Category)
+            .FirstOrDefaultAsync(ps => ps.CategoryProductSizes.Any(cps => cps.ProductSizeId == Id));
 
         if (productSize == null)
         {
@@ -339,7 +432,7 @@ public class ProductSizeServices : IProductSizeServices
         };
     }
 
-        public async Task<ServiceResponse<Sizes>> GetSizeByCategory(Guid id)
+    public async Task<ServiceResponse<Sizes>> GetSizeByCategory(Guid id)
     {
         var size = await _context.Sizes
                                   .FirstOrDefaultAsync(s => s.Id == id);
@@ -390,27 +483,56 @@ public class ProductSizeServices : IProductSizeServices
         };
     }
 
-    public async Task<ServiceResponse<IReadOnlyList<SizeDTO>>> GetAllSizes()
+    public async Task<ServiceResponse<Pagination<SizeDTO>>> GetAllSizes(RequestQuery requestQuery)
     {
-        var sizeList = await _context.Sizes
-                                        .AsNoTracking()
-                                        .ToListAsync();
+        var pageNumber = requestQuery.PageNumber ?? 1;
+        var pageSize = requestQuery.PageSize ?? 15;
+
+        var sizeQuery = _context.Sizes
+                                    .OrderByDescending(f => f.LastUpdated)
+                                    .AsNoTracking()
+                                    .AsQueryable();
+
+        // Search filter
+        if (!string.IsNullOrEmpty(requestQuery.Search))
+        {
+            string searchLower = requestQuery.Search.ToLower();
+            sizeQuery = sizeQuery.Where(f => f.Name.ToLower().Contains(searchLower));
+        }
+
+        var totalCount = await sizeQuery.CountAsync();
+
         // find product == size count 
-        var sizesDto = sizeList.Select(size => new SizeDTO
-        {
-            Id = size.Id,
-            Count = 0,
-            Description = size.Description,
-            Name = size.Name,
-            Created = size.Created,
-            LastUpdated = size.LastUpdated
-        }).ToList();
+        var sizesDto = sizeQuery.Skip((pageNumber - 1) * pageSize)
+                                .Take(pageSize)
+                                .Select(size => new SizeDTO
+                                {
+                                    Id = size.Id,
+                                    Count = _context.Products.Include(x => x.ProductScale)
+                                                                .ThenInclude(x => x.Columns).Count(p => p.ProductScale != null && p.ProductScale.Columns != null && p.ProductScale.Columns.Any(x => x.SizeId == size.Id)),
+                                    Description = size.Description,
+                                    Name = size.Name,
+                                    Created = size.Created,
+                                    LastUpdated = size.LastUpdated
+                                }).ToList();
 
-
-        return new ServiceResponse<IReadOnlyList<SizeDTO>>
+        var pagination = new Pagination<SizeDTO>
         {
-            Count = sizeList.Count,
+            CurrentPage = pageNumber,
+            NextPage = pageNumber < (totalCount / pageSize) ? pageNumber + 1 : pageNumber,
+            PreviousPage = pageNumber > 1 ? pageNumber - 1 : 1,
+            HasNextPage = pageNumber < (totalCount / pageSize),
+            HasPreviousPage = pageNumber > 1,
+            LastPage = (int)Math.Ceiling((double)totalCount / pageSize),
             Data = sizesDto,
+            TotalCount = totalCount
+        };
+
+
+        return new ServiceResponse<Pagination<SizeDTO>>
+        {
+            Count = totalCount,
+            Data = pagination,
         };
     }
 

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using api_vendace.Data;
@@ -12,9 +13,11 @@ using api_vendace.Data;
 namespace api_vendamode.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240724131757_InitCategoryFeatures2")]
+    partial class InitCategoryFeatures2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,21 +25,6 @@ namespace api_vendamode.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("ProductProductFeature", b =>
-                {
-                    b.Property<Guid>("ProductFeaturesId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ProductsId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("ProductFeaturesId", "ProductsId");
-
-                    b.HasIndex("ProductsId");
-
-                    b.ToTable("ProductProductFeature");
-                });
 
             modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendace.Entities.Products.Brand>", b =>
                 {
@@ -539,6 +527,8 @@ namespace api_vendamode.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
 
                     b.ToTable("ProductFeatures");
                 });
@@ -1390,21 +1380,6 @@ namespace api_vendamode.Migrations
                     b.ToTable("Returneds");
                 });
 
-            modelBuilder.Entity("ProductProductFeature", b =>
-                {
-                    b.HasOne("api_vendace.Entities.Products.ProductFeature", null)
-                        .WithMany()
-                        .HasForeignKey("ProductFeaturesId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("api_vendace.Entities.Products.Product", null)
-                        .WithMany()
-                        .HasForeignKey("ProductsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendace.Entities.Products.Brand>", b =>
                 {
                     b.HasOne("api_vendace.Entities.Products.Brand", "Entity")
@@ -1592,6 +1567,15 @@ namespace api_vendamode.Migrations
                     b.Navigation("ProductScale");
 
                     b.Navigation("ProductSizes");
+                });
+
+            modelBuilder.Entity("api_vendace.Entities.Products.ProductFeature", b =>
+                {
+                    b.HasOne("api_vendace.Entities.Products.Product", "Product")
+                        .WithMany("ProductFeatures")
+                        .HasForeignKey("ProductId");
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("api_vendace.Entities.Products.Review", b =>
@@ -2066,6 +2050,8 @@ namespace api_vendamode.Migrations
 
                     b.Navigation("MainImage")
                         .IsRequired();
+
+                    b.Navigation("ProductFeatures");
 
                     b.Navigation("Review");
 

@@ -42,6 +42,7 @@ public class AddressServices : IAddressServices
         return new ServiceResponse<bool>
         {
             Data = true,
+            Message = "آدرس با موفقیت ایجاد شد"
         };
     }
 
@@ -61,7 +62,8 @@ public class AddressServices : IAddressServices
 
         return new ServiceResponse<bool>
         {
-            Data = true
+            Data = true ,
+            Message = "آدرس مد نظر با موفقیت حذف شد"
         };
     }
 

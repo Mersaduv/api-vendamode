@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using api_vendace.Enums;
 using api_vendace.Models;
+using api_vendamode.Entities.Products;
 namespace api_vendace.Entities.Products;
 public class ProductFeature : BaseClass<Guid>
 {
@@ -10,8 +11,8 @@ public class ProductFeature : BaseClass<Guid>
     public bool IsDeleted { get; set; }
     public Guid? ProductId { get; set; }
     [JsonIgnore]
-    public virtual Product? Product { get; set; }
+    public virtual ICollection<Product> Products { get; set; } = new List<Product>();
     public Guid? CategoryId { get; set; }
     [JsonIgnore]
-    public virtual Category? Category { get; set; }
+    public virtual List<CategoryProductFeature>? CategoryProductFeatures { get; set; }
 }

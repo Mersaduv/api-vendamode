@@ -8,4 +8,6 @@ public class RequestBy
     public Guid? Id { get; set; }
     [FromQuery(Name = "slug")]
     public string? Slug { get; set; }
+    [FromQuery(Name = "searchTerm")]
+    public string? SearchTerm { get; set; }
 }

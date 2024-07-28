@@ -3,6 +3,8 @@ using api_vendace.Entities.Products;
 using api_vendace.Interfaces.IServices;
 using api_vendace.Models;
 using api_vendace.Models.Dtos.ProductDto.Feature;
+using api_vendace.Models.Query;
+using api_vendamode.Models.Dtos;
 using api_vendamode.Models.Dtos.ProductDto;
 using Microsoft.AspNetCore.Http.HttpResults;
 
@@ -116,20 +118,20 @@ public static class ProductFeatureEndpoints
         return TypedResults.Ok(result);
     }
 
-    private async static Task<Ok<ServiceResponse<List<ProductFeature>>>> GetFeatures(IFeatureServices featureServices, ILogger<Program> _logger)
+    private async static Task<Ok<ServiceResponse<Pagination<ProductFeatureDto>>>> GetFeatures(IFeatureServices featureServices, [AsParameters] RequestQuery parameters, ILogger<Program> _logger)
     {
         _logger.Log(LogLevel.Information, "Getting all Features");
 
-        var result = await featureServices.GetAllFeatures();
+        var result = await featureServices.GetAllFeatures(parameters);
 
         return TypedResults.Ok(result);
     }
 
-    private async static Task<Ok<ServiceResponse<IReadOnlyList<FeatureValue>>>> GetFeatureValues(IFeatureServices featureServices, ILogger<Program> _logger)
+    private async static Task<Ok<ServiceResponse<Pagination<FeatureValue>>>> GetFeatureValues(IFeatureServices featureServices, [AsParameters] RequestQuery parameters, ILogger<Program> _logger)
     {
         _logger.Log(LogLevel.Information, "Getting all FeatureValues");
 
-        var result = await featureServices.GetAllFeatureValues();
+        var result = await featureServices.GetAllFeatureValues(parameters);
 
         return TypedResults.Ok(result);
     }

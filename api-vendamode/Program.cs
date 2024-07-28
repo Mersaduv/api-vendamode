@@ -56,14 +56,14 @@ builder.Services.Configure<JsonOptions>(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
+// if (app.Environment.IsDevelopment())
+// {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Api Venda Mode");
     });
-}
+// }
 app.UseCors(builder => builder
     .AllowAnyOrigin()
     .AllowAnyMethod()

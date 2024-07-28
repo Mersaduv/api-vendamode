@@ -85,6 +85,20 @@ public class ApplicationDbContext : DbContext
             .HasOne(cs => cs.ProductSize)
             .WithMany(s => s.CategoryProductSizes)
             .HasForeignKey(cs => cs.ProductSizeId);
+
+        modelBuilder.Entity<CategoryProductFeature>()
+            .HasKey(cpf => new { cpf.CategoryId, cpf.ProductFeatureId });
+
+        modelBuilder.Entity<CategoryProductFeature>()
+            .HasOne(cpf => cpf.Category)
+            .WithMany(c => c.CategoryProductFeatures)
+            .HasForeignKey(cpf => cpf.CategoryId);
+
+        modelBuilder.Entity<CategoryProductFeature>()
+            .HasOne(cpf => cpf.ProductFeature)
+            .WithMany(pf => pf.CategoryProductFeatures)
+            .HasForeignKey(cpf => cpf.ProductFeatureId);
+            
         var converter = new DictionaryToJsonConverter();
 
         modelBuilder.Entity<StockItem>()
@@ -120,6 +134,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Category> Categories { get; set; } = default!;
     public DbSet<Brand> Brands { get; set; } = default!;
     public DbSet<ProductFeature> ProductFeatures { get; set; } = default!;
+    public DbSet<CategoryProductFeature> CategoryProductFeatures { get; set; } = default!;
     public DbSet<FeatureValue> FeatureValues { get; set; } = default!;
     public DbSet<ProductSize> ProductSizes { get; set; } = default!;
     public DbSet<ProductSizeProductSizeValue> ProductSizeProductSizeValues { get; set; } = default!;

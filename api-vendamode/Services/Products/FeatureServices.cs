@@ -6,7 +6,9 @@ using api_vendace.Models;
 using api_vendace.Models.Dtos;
 using api_vendace.Models.Dtos.ProductDto.Feature;
 using api_vendace.Models.Dtos.ProductDto.Sizes;
+using api_vendace.Models.Query;
 using api_vendace.Utility;
+using api_vendamode.Models.Dtos;
 using api_vendamode.Models.Dtos.ProductDto;
 using api_vendamode.Models.Dtos.ProductDto.Sizes;
 using Microsoft.EntityFrameworkCore;
@@ -161,41 +163,139 @@ public class FeatureServices : IFeatureServices
         };
     }
 
-    public async Task<ServiceResponse<List<ProductFeature>>> GetAllFeatures()
+    public async Task<ServiceResponse<Pagination<ProductFeatureDto>>> GetAllFeatures(RequestQuery requestQuery)
     {
-        var features = await _context.ProductFeatures
-                                        .Include(f => f.Values)
-                                        .Include(f => f.Product)
-                                        .Include(c => c.Category)
-                                        .AsNoTracking()
+        var pageNumber = requestQuery.PageNumber ?? 1;
+        var pageSize = requestQuery.PageSize ?? 15;
+
+        var featuresQuery = _context.ProductFeatures
+                                    .Include(f => f.Values)
+                                    .Include(f => f.Products)
+                                    .Include(c => c.CategoryProductFeatures)
+                                    .ThenInclude(c => c.Category)
+                                    .AsNoTracking()
+                                    .AsQueryable();
+
+        featuresQuery = featuresQuery.OrderByDescending(f => f.Values.Any(v => !string.IsNullOrEmpty(v.HexCode)))
+                                     .ThenByDescending(f => f.LastUpdated);
+
+
+        // Search filter
+        if (!string.IsNullOrEmpty(requestQuery.Search))
+        {
+            string searchLower = requestQuery.Search.ToLower();
+            featuresQuery = featuresQuery.Where(f => f.Name.ToLower().Contains(searchLower));
+        }
+
+        var totalCount = await featuresQuery.CountAsync();
+
+        var paginatedFeatures = await featuresQuery
+                                        .Skip((pageNumber - 1) * pageSize)
+                                        .Take(pageSize)
+                                        .Select(f => new ProductFeatureDto
+                                        {
+                                            Id = f.Id,
+                                            Name = f.Name,
+                                            Values = f.Values,
+                                            // Count = f.Values.Sum(v => _context.Products.Count(p => p.FeatureValueIds.Contains(v.Id))),
+                                            Count = f.Products.Count,
+                                            ValueCount = f.Values != null ? f.Values.Count : f.Values!.Count,
+                                            IsDeleted = f.IsDeleted,
+                                            Created = f.Created,
+                                            LastUpdated = f.LastUpdated
+                                        })
                                         .ToListAsync();
 
-
-        return new ServiceResponse<List<ProductFeature>>
+        var pagination = new Pagination<ProductFeatureDto>
         {
-            Count = features.Count,
-            Data = features,
+            CurrentPage = pageNumber,
+            NextPage = pageNumber < (totalCount / pageSize) ? pageNumber + 1 : pageNumber,
+            PreviousPage = pageNumber > 1 ? pageNumber - 1 : 1,
+            HasNextPage = pageNumber < (totalCount / pageSize),
+            HasPreviousPage = pageNumber > 1,
+            LastPage = (int)Math.Ceiling((double)totalCount / pageSize),
+            Data = paginatedFeatures,
+            TotalCount = totalCount
+        };
+
+        return new ServiceResponse<Pagination<ProductFeatureDto>>
+        {
+            Count = totalCount,
+            Data = pagination
         };
     }
 
-    public async Task<ServiceResponse<IReadOnlyList<FeatureValue>>> GetAllFeatureValues()
+
+    public async Task<ServiceResponse<Pagination<FeatureValue>>> GetAllFeatureValues(RequestQuery requestQuery)
     {
-        var featureValues = await _context.FeatureValues
-                                        .AsNoTracking()
-                                        .ToListAsync();
+        var pageNumber = requestQuery.PageNumber ?? 1;
+        var pageSize = requestQuery.PageSize ?? 15;
 
+        var featureValuesQuery = _context.FeatureValues
+                                            .Include(f => f.ProductFeature)
+                                            .OrderByDescending(f => f.LastUpdated)
+                                            .AsNoTracking()
+                                            .AsQueryable();
 
-        return new ServiceResponse<IReadOnlyList<FeatureValue>>
+        // Feature filters based on featureIds
+        if (requestQuery.FeatureIds?.Any() ?? false)
         {
-            Count = featureValues.Count,
-            Data = featureValues,
+            foreach (var featureId in requestQuery.FeatureIds)
+            {
+                featureValuesQuery = featureValuesQuery.Where(p => p.ProductFeature.Id == featureId);
+            }
+        }
+
+        // Search filter
+        if (!string.IsNullOrEmpty(requestQuery.Search))
+        {
+            string searchLower = requestQuery.Search.ToLower();
+            featureValuesQuery = featureValuesQuery.Where(f => f.Name.ToLower().Contains(searchLower));
+        }
+
+
+        var totalCount = await featureValuesQuery.CountAsync();
+
+        var paginatedFeatureValues = await featureValuesQuery
+                                .Skip((pageNumber - 1) * pageSize)
+                                .Take(pageSize)
+                                .Select(fv => new FeatureValue
+                                {
+                                    Id = fv.Id,
+                                    Name = fv.Name,
+                                    Description = fv.Description,
+                                    HexCode = fv.HexCode,
+                                    Count = _context.Products.Count(p => p.FeatureValueIds != null && p.FeatureValueIds.Contains(fv.Id)),
+                                    IsDeleted = fv.IsDeleted,
+                                    Created = fv.Created,
+                                    LastUpdated = fv.LastUpdated,
+                                    ProductFeatureId = fv.ProductFeatureId
+                                })
+                                .ToListAsync();
+
+        var pagination = new Pagination<FeatureValue>
+        {
+            CurrentPage = pageNumber,
+            NextPage = pageNumber < (totalCount / pageSize) ? pageNumber + 1 : pageNumber,
+            PreviousPage = pageNumber > 1 ? pageNumber - 1 : 1,
+            HasNextPage = pageNumber < (totalCount / pageSize),
+            HasPreviousPage = pageNumber > 1,
+            LastPage = (int)Math.Ceiling((double)totalCount / pageSize),
+            Data = paginatedFeatureValues,
+            TotalCount = totalCount
+        };
+
+        return new ServiceResponse<Pagination<FeatureValue>>
+        {
+            Count = totalCount,
+            Data = pagination
         };
     }
 
     public async Task<ServiceResponse<ProductFeature>> GetFeatureBy(Guid id)
     {
         var feature = await _context.ProductFeatures.Include(f => f.Values)
-                                 .Include(f => f.Product)
+                                 .Include(f => f.Products)
                                  .FirstOrDefaultAsync(f => f.Id == id);
 
         if (feature == null)
@@ -235,11 +335,17 @@ public class FeatureServices : IFeatureServices
 
     public async Task<ServiceResponse<GetCategoryFeaturesByCategory>> GetFeaturesByCategory(Guid categoryId)
     {
+        var featuresQuery = _context.ProductFeatures
+                            .Include(f => f.Values)
+                            .Include(f => f.Products)
+                            .Include(c => c.CategoryProductFeatures)
+                            .ThenInclude(c => c.Category)
+                            .Where(f =>  f.CategoryProductFeatures.Any(x => x.CategoryId == categoryId))
+                            .AsNoTracking()
+                            .AsQueryable();
+        
         // Fetch features related to the category
-        var features = await _context.ProductFeatures
-            .Where(f => f.CategoryId == categoryId)
-            .Include(f => f.Values)
-            .Include(f => f.Product)
+        var features = await featuresQuery
             .ToListAsync();
 
         // Fetch product sizes related to the category

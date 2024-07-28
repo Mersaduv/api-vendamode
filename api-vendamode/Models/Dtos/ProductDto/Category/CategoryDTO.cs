@@ -13,7 +13,10 @@ public class CategoryDTO : BaseClass<Guid>
     public int Count { get; set; }
     public int SubCategoryCount { get; set; }
     public int FeatureCount { get; set; }
+    public List<Guid>? FeatureIds { get; set; }
     public int SizeCount { get; set; }
+    public int ProductSizeCount { get; set; }
+    public List<Guid>? ProductSizeId { get; set; }
     public CategorySizeDTO CategorySizes { get; set; } = new CategorySizeDTO();
     public int BrandCount { get; set; }
     public bool IsActive { get; set; }

@@ -62,6 +62,12 @@ public class ProductServices : IProductServices
         // load feature
         // Null-checks 
         List<Guid> featureValueIds = productCreateDTO.FeatureValueIds ?? new List<Guid>();
+        // Retrieve ProductFeatures from database based on FeatureValueIds
+        var productFeatures = await _context.ProductFeatures
+            .Include(pf => pf.Values)
+            .Where(pf => pf.Values.Any(fv => featureValueIds.Contains(fv.Id)))
+            .ToListAsync();
+
         var scaleId = Guid.NewGuid();
         var productScale = new ProductScale
         {
@@ -90,8 +96,10 @@ public class ProductServices : IProductServices
         product.Slug = productSlug;
         product.Code = productCode;
         product.FeatureValueIds = featureValueIds;
+        product.ProductFeatures = productFeatures;
         product.ProductScale = productScale;
         product.ProductScaleId = scaleId;
+
 
         if (productCreateDTO.StockItems is not null)
         {
@@ -248,8 +256,31 @@ public class ProductServices : IProductServices
             // Initial query
             var query = _productRepository.GetQuery();
 
-            // Category filter
+            // Brand filter
+            if (requestQuery.Brands != null && requestQuery.Brands.Length > 0)
+            {
+                // Split each brand string by comma and convert to GUIDs safely
+                var brandGuids = new List<Guid>();
+                foreach (var brand in requestQuery.Brands)
+                {
+                    var brandIds = brand.Split(',');
+                    foreach (var brandId in brandIds)
+                    {
+                        if (Guid.TryParse(brandId, out var parsedGuid))
+                        {
+                            brandGuids.Add(parsedGuid);
+                        }
+                    }
+                }
 
+                // Apply the brand filter if there are valid GUIDs
+                if (brandGuids.Count > 0)
+                {
+                    query = query.Where(product => product.BrandId.HasValue && brandGuids.Contains(product.BrandId.Value));
+                }
+            }
+
+            // Category filter
             if (requestQuery.CategoryId is not null)
             {
                 Guid categoryId;
@@ -271,71 +302,107 @@ public class ProductServices : IProductServices
             // Search filter
             if (!string.IsNullOrEmpty(requestQuery.Search))
             {
-                query = query.Where(p => p.Title.Contains(requestQuery.Search));
+                string searchLower = requestQuery.Search.ToLower();
+                query = query.Where(p => p.Slug.ToLower().Contains(searchLower));
             }
+
 
             // Price filter
-            if (requestQuery.MinPrice.HasValue)
+            if (requestQuery.MinPrice.HasValue || requestQuery.MaxPrice.HasValue)
             {
-                query = query.Where(p => p.Price >= requestQuery.MinPrice.Value);
-            }
-
-            if (requestQuery.MaxPrice.HasValue)
-            {
-                query = query.Where(p => p.Price <= requestQuery.MaxPrice.Value);
+                query = query.Where(p => p.StockItems.Any(si =>
+                    (!requestQuery.MinPrice.HasValue || si.Price >= requestQuery.MinPrice.Value) &&
+                    (!requestQuery.MaxPrice.HasValue || si.Price <= requestQuery.MaxPrice.Value)));
             }
 
             // Discount filter
+
+            // Discount and stock filter using StockItem
             if (requestQuery.Discount.HasValue && requestQuery.Discount.Value)
             {
-                query = query.Where(p => p.Discount >= 1 && p.InStock >= 1);
+                query = query.Where(p => p.StockItems.Any(si => si.Discount >= 1) && p.InStock >= 1);
             }
 
-            // Feature filters
-            if ((requestQuery.FeatureIds?.Any() ?? false) && (requestQuery.FeatureValueIds?.Any() ?? false))
+
+            // Feature filters based on featureIds
+            if (requestQuery.FeatureIds?.Any() ?? false)
             {
-                var featureFilters = requestQuery.FeatureIds.Concat(requestQuery.FeatureValueIds).ToList();
-                foreach (var featureFilter in featureFilters)
+                foreach (var featureId in requestQuery.FeatureIds)
                 {
-                    query = query.Where(p => p.ProductFeatures != null && p.ProductFeatures
-                        .Any(f => f.Id == featureFilter && f.Values != null && f.Values.Any(v => v.Id == featureFilter)));
+                    query = query.Where(p => p.ProductFeatures.Any(f => f.Id == featureId));
                 }
             }
 
-            // Sort
+            // Feature filters based on featureValueIds
+            if (requestQuery.FeatureValueIds?.Any() ?? false)
+            {
+                foreach (var featureValueId in requestQuery.FeatureValueIds)
+                {
+                    query = query.Where(p => p.FeatureValueIds != null && p.FeatureValueIds.Any(x => x == featureValueId));
+                }
+            }
+
+
+            // Size filters based on featureIds
+            if (requestQuery.SizeIds?.Any() ?? false)
+            {
+                foreach (var sizeId in requestQuery.SizeIds)
+                {
+                    query = query.Where(p => p.ProductScale != null && p.ProductScale.Columns != null && p.ProductScale.Columns.Any(f => f.SizeId == sizeId));
+                }
+            }
+
+            // SortBy
             if (!string.IsNullOrEmpty(requestQuery.SortBy))
             {
                 if (requestQuery.Sort?.ToLower() == "desc")
                 {
                     query = query.OrderByDescending(p => EF.Property<object>(p, requestQuery.SortBy));
                 }
+                else if (requestQuery.SortBy == "LastUpdated")
+                {
+                    query = query.OrderByDescending(p => EF.Property<object>(p, requestQuery.SortBy));
+
+                }
                 else
                 {
                     query = query.OrderBy(p => EF.Property<object>(p, requestQuery.SortBy));
                 }
             }
+            // Sort
+            if (!string.IsNullOrEmpty(requestQuery.Sort))
+            {
+                switch (requestQuery.Sort)
+                {
+                    case "1": // Sort by latest
+                        query = query.OrderByDescending(p => p.Created);
+                        break;
 
-            // if (requestQuery.CategoryId is not null)
-            // {
+                    case "2": // Sort by best-selling
+                        query = query.OrderByDescending(p => p.Sold);
+                        break;
 
-            //     var productDtoListByParentCategory = productDtoList.Where(c => c.ParentCategories.ParentCategories.Any(c => c.Id == Guid.Parse(requestQuery.CategoryId)))
-            //                  .a();
-            //     if (productDtoListByParentCategory.Count == 0)
-            //     {
-            //         productDtoList = productDtoList
-            //         .Where(c => c.ParentCategories.Category.Id == Guid.Parse(requestQuery.CategoryId))
-            //         .ToList();
-            //     }
-            //     else
-            //     {
-            //         productDtoList = productDtoList.Where(c => c.ParentCategories.ParentCategories.Any(c => c.Id == Guid.Parse(requestQuery.CategoryId)))
-            //    .ToList();
-            //     }
-            // }
+                    case "3": // Sort by cheapest
+                        query = query.OrderBy(p => p.StockItems.Min(si => si.Price));
+                        break;
+
+                    case "4": // Sort by most expensive
+                        query = query.OrderByDescending(p => p.StockItems.Max(si => si.Price));
+                        break;
+
+                    default:
+                        query = query.OrderByDescending(p => p.Created);
+                        break;
+                }
+            }
 
             if (requestQuery.InStock is not null)
             {
                 if (requestQuery.InStock == "1")
+                {
+                    query = query.Where(x => x.InStock > 0);
+                }
+                else if (requestQuery.InStock == "true")
                 {
                     query = query.Where(x => x.InStock > 0);
                 }
@@ -344,7 +411,9 @@ public class ProductServices : IProductServices
                     query = query.Where(x => x.InStock == 0);
                 }
             }
-
+            query = query
+                .OrderBy(p => p.StockItems.Any(si => si.Quantity > 0 && si.Price > 0) ? 0 : 1)
+                .ThenBy(p => p.StockItems.Any(si => si.Quantity > 0) ? 0 : 1);
             // Pagination and data retrieval
             var totalCount = await query.CountAsync();
             var paginatedProducts = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
@@ -357,8 +426,13 @@ public class ProductServices : IProductServices
             }
 
             // Calculate min and max price for the filtered products in stock
-            var mainMaxPrice = await query.Where(p => p.InStock >= 1).MaxAsync(p => (double?)p.Price) ?? 0;
-            var mainMinPrice = await query.Where(p => p.InStock >= 1).MinAsync(p => (double?)p.Price) ?? 0;
+            var stockItemsQuery = query
+                .Where(p => p.InStock >= 1)
+                .SelectMany(p => p.StockItems);
+
+            var mainMaxPrice = await stockItemsQuery.MaxAsync(si => (double?)si.Price) ?? 0;
+            var mainMinPrice = await stockItemsQuery.MinAsync(si => (double?)si.Price) ?? 0;
+
 
             if (requestQuery.CategoryId is not null)
             {
@@ -377,17 +451,6 @@ public class ProductServices : IProductServices
                 }
             }
 
-            // if (requestQuery.InStock is not null)
-            // {
-            //     if (requestQuery.InStock == "1")
-            //     {
-            //         productDtoList = productDtoList.Where(x => x.InStock > 0).ToList();
-            //     }
-            //     else
-            //     {
-            //         productDtoList = productDtoList.Where(x => x.InStock == 0).ToList();
-            //     }
-            // }
             // Prepare pagination information
             var pagination = new Pagination<ProductDTO>
             {
@@ -397,7 +460,7 @@ public class ProductServices : IProductServices
                 HasNextPage = pageNumber < (totalCount / pageSize),
                 HasPreviousPage = pageNumber > 1,
                 LastPage = (int)Math.Ceiling((double)totalCount / pageSize),
-                Data = productDtoList = productDtoList.OrderByDescending(product => product.LastUpdated).ToList(),
+                Data = productDtoList,
                 TotalCount = totalCount
             };
 
@@ -417,8 +480,9 @@ public class ProductServices : IProductServices
                 Success = true
             };
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            System.Console.WriteLine(ex);
             // Return the error response
             return new ServiceResponse<GetProductsResult>
             {
@@ -621,6 +685,7 @@ public class ProductServices : IProductServices
                 TotalCount = paginatedProducts.TotalCount
             };
 
+
             var results = new GetProductsResult
             {
                 ProductsLength = paginatedProducts.TotalCount,
@@ -630,7 +695,7 @@ public class ProductServices : IProductServices
             };
 
             var similarProducts = results.Pagination.Data
-            .Where(c => c.ParentCategories.ParentCategories.Any(c => c.Id == id))
+            .Where(c => c.CategoryId == id)
             .ToList();
 
             return new ServiceResponse<List<ProductDTO>>
@@ -707,7 +772,7 @@ public class ProductServices : IProductServices
                 IsDeleted = product.Category.IsDeleted,
                 ParentCategoryId = product.Category.ParentCategoryId,
                 Count = product.Category.Products != null ? product.Category.Products.Count : 0,
-                FeatureCount = product.Category.ProductFeatures != null ? product.Category.ProductFeatures.Count : 0,
+                FeatureCount = product.Category.CategoryProductFeatures != null ? product.Category.CategoryProductFeatures.Count : 0,
                 SizeCount = 0,
                 BrandCount = 0,
                 Created = product.Category.Created,
@@ -723,12 +788,12 @@ public class ProductServices : IProductServices
                 IsDeleted = category.IsDeleted,
                 ParentCategoryId = category.ParentCategoryId,
                 Count = category.Products != null ? category.Products.Count : 0,
-                FeatureCount = category.ProductFeatures != null ? category.ProductFeatures.Count : 0,
+                FeatureCount = category.CategoryProductFeatures != null ? category.CategoryProductFeatures.Count : 0,
                 SizeCount = 0,
                 BrandCount = 0,
                 Created = category.Created,
                 LastUpdated = category.LastUpdated
-            }).ToList()
+            }).Reverse().ToList()
         };
         result.ParentCategories = categoryParents;
 

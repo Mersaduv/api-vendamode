@@ -1,0 +1,14 @@
+{
+    "disks":[
+        {
+            "name": "database",
+            "mountTo": "dataDisk/"
+        },
+        {
+            "name": "images",
+            "mountTo": "base/images"
+        }
+    ],
+    "app": "apivendamode",
+    "port": 80
+}

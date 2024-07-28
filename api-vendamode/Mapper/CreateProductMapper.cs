@@ -16,7 +16,7 @@ public static class CreateProductMapper
             Slug = product_C_DTO.Title.ToLower(),
             IsActive = product_C_DTO.IsActive,
             MainImage = byteFileUtility.SaveFileInFolder<EntityMainImage<Guid, Product>>([product_C_DTO.MainThumbnail], nameof(Product), false).First(),
-            Images = byteFileUtility.SaveFileInFolder<EntityImage<Guid, Product>>(product_C_DTO.Thumbnail!, nameof(Product), false),//!Boolean true is encrypted and Boolean false is not encrypted
+            Images = byteFileUtility.SaveFileInFolder<EntityImage<Guid, Product>>(product_C_DTO.Thumbnail != null ? product_C_DTO.Thumbnail : [], nameof(Product), false),//!Boolean true is encrypted and Boolean false is not encrypted
             CategoryId = product_C_DTO.CategoryId,
             Description = product_C_DTO.Description,
             IsFake = product_C_DTO.IsFake,

@@ -41,20 +41,6 @@ public class CategoryServices : ICategoryServices
 
     public async Task<ServiceResponse<bool>> AddCategory(CategoryCreateDTO categoryCreate)
     {
-        var categoryInDb = await _context.Categories
-                                    .Include(c => c.Images)
-                                    .Include(c => c.ChildCategories)
-                                    .FirstOrDefaultAsync(c => c.Name == categoryCreate.Name);
-        if (categoryInDb != null)
-        {
-            return new ServiceResponse<bool>
-            {
-                Data = false,
-                Success = false,
-                Message = "این دسته بندی قبلا به ثبت رسیده"
-            };
-        }
-
         var parentCategory = categoryCreate.ParentCategoryId.HasValue
                 ? await _context.Categories.FindAsync(categoryCreate.ParentCategoryId.Value)
                 : null;
@@ -203,7 +189,19 @@ public class CategoryServices : ICategoryServices
         };
     }
 
+    private int GetProductCount(Category category, List<Category> allCategories)
+    {
+        int count = category.Products != null ? category.Products.Count : 0;
 
+        var childCategories = allCategories.Where(c => c.ParentCategoryId == category.Id).ToList();
+
+        foreach (var childCategory in childCategories)
+        {
+            count += GetProductCount(childCategory, allCategories);
+        }
+
+        return count;
+    }
     private List<CategoryDTO> BuildCategoryTree(List<Category> categories, List<Category> allCategories)
     {
         var categoriesDto = new List<CategoryDTO>();
@@ -214,7 +212,7 @@ public class CategoryServices : ICategoryServices
             {
                 Id = category.Id,
                 Name = category.Name,
-                Slug = category.Name,
+                Slug = category.Slug,
                 Level = category.Level,
                 IsActive = category.IsActive,
                 IsDeleted = category.IsDeleted,
@@ -225,15 +223,19 @@ public class CategoryServices : ICategoryServices
                     ImageUrl = img.ImageUrl ?? string.Empty,
                     Placeholder = img.Placeholder ?? string.Empty
                 }).ToList(), nameof(Category)).First() : null,
-                Count = category.Products != null ? category.Products.Count : 0,
+                Count = GetProductCount(category, allCategories),
                 SubCategoryCount = allCategories.Count(c => c.ParentCategoryId == category.Id),
-                FeatureCount = category.ProductFeatures != null ? category.ProductFeatures.Count : 0,
+                FeatureCount = category.CategoryProductFeatures != null ? category.CategoryProductFeatures.Count : 0,
+                FeatureIds = category.CategoryProductFeatures?.Select(cpf => cpf.ProductFeature.Id).ToList(),
                 SizeCount = category.CategorySizes is not null ? category.CategorySizes.Count : 0,
+                ProductSizeCount = category.CategoryProductSizes is not null ? category.CategoryProductSizes.Count : 0,
+                ProductSizeId = category.CategoryProductSizes is not null ? category.CategoryProductSizes.Select(x => x.ProductSizeId).ToList() : [],
                 CategorySizes = new CategorySizeDTO
                 {
                     Ids = category.CategorySizes?.Select(cs => cs.Id).ToList(),
                     SizeIds = category.CategorySizes?.Select(cs => cs.SizeId).ToList()
                 },
+                ParentCategory = category.ParentCategory is not null ? new CategoryDTO { Id = category.ParentCategory.Id, Name = category.ParentCategory.Name } : null,
                 BrandCount = 0,
                 Created = category.Created,
                 LastUpdated = category.LastUpdated
@@ -247,6 +249,7 @@ public class CategoryServices : ICategoryServices
 
         return categoriesDto;
     }
+
 
 
     public async Task<ServiceResponse<bool>> Delete(Guid id)
@@ -319,9 +322,9 @@ public class CategoryServices : ICategoryServices
 
         for (int i = 1; parentCategory != null; i++)
         {
-            if (parentCategory.Level == i)
+            if (parentCategory.Level >= i || parentCategory.Level == 0)
             {
-                categoryUpdate.Level = i + 1;
+                categoryUpdate.Level = parentCategory.Level + 1;
                 break;
             }
 
@@ -374,92 +377,145 @@ public class CategoryServices : ICategoryServices
 
     public async Task<ServiceResponse<bool>> UpdateFeatureInCategory(CategoryFeatureUpdateDTO categoryFeatureDTO)
     {
-        var category = await _context.Categories
-                            .Include(c => c.ProductFeatures)
-                            .Include(c => c.CategorySizes)
-                            .ThenInclude(c => c.Size)
-                            .FirstOrDefaultAsync(c => c.Id == categoryFeatureDTO.CategoryId);
+        async Task UpdateCategorySizes(Guid categoryId, CategorySizeDTO? categorySizes)
+        {
+            var category = await _context.Categories
+                                .Include(c => c.CategorySizes)
+                                .ThenInclude(c => c.Size)
+                                .FirstOrDefaultAsync(c => c.Id == categoryId);
 
-        var featureListDto = new List<ProductFeature>();
-        if (category == null)
+            if (category == null)
+            {
+                throw new Exception("دسته بندی مورد نظر یافت نشد");
+            }
+
+            if (categorySizes != null)
+            {
+                var categorySizeList = await _context.CategorySizes.Where(c => categorySizes.Ids != null && categorySizes.Ids.Contains(c.Id)).ToListAsync();
+                if (categorySizeList is not null)
+                {
+                    _context.CategorySizes.RemoveRange(categorySizeList);
+                }
+
+                if (categorySizes.SizeIds != null)
+                {
+                    foreach (var sizeId in categorySizes.SizeIds)
+                    {
+                        var categorySize = new CategorySize
+                        {
+                            Id = Guid.NewGuid(),
+                            SizeId = sizeId,
+                            CategoryId = categoryId
+                        };
+                        await _context.CategorySizes.AddAsync(categorySize);
+                    }
+                }
+            }
+
+            category.LastUpdated = DateTime.UtcNow;
+            _context.Categories.Update(category);
+            await _unitOfWork.SaveChangesAsync();
+
+            var childCategories = await GetChildCategoriesSizeUpdate(categoryId);
+            foreach (var childCategory in childCategories)
+            {
+                await UpdateCategorySizes(childCategory.Id, categorySizes);
+            }
+        }
+
+        try
+        {
+            var category = await _context.Categories
+                    .Include(c => c.CategoryProductFeatures)
+                    .ThenInclude(cpf => cpf.ProductFeature)
+                    .FirstOrDefaultAsync(c => c.Id == categoryFeatureDTO.CategoryId);
+
+            if (category == null)
+            {
+                return new ServiceResponse<bool>
+                {
+                    Success = false,
+                    Message = "دسته بندی مورد نظر یافت نشد"
+                };
+            }
+
+            if (categoryFeatureDTO.FeatureIds != null)
+            {
+                // حذف ویژگی‌های فعلی مرتبط با این دسته‌بندی
+                var currentFeatures = category.CategoryProductFeatures.ToList();
+                _context.CategoryProductFeatures.RemoveRange(currentFeatures);
+
+                // اضافه کردن ویژگی‌های جدید به دسته‌بندی
+                foreach (var featureId in categoryFeatureDTO.FeatureIds)
+                {
+                    var feature = await _context.ProductFeatures.FirstOrDefaultAsync(f => f.Id == featureId);
+                    if (feature == null)
+                    {
+                        return new ServiceResponse<bool>
+                        {
+                            Success = false,
+                            Message = "ویژگی مورد نظر یافت نشد"
+                        };
+                    }
+
+                    var categoryProductFeature = new CategoryProductFeature
+                    {
+                        CategoryId = category.Id,
+                        ProductFeatureId = feature.Id
+                    };
+
+                    await _context.CategoryProductFeatures.AddAsync(categoryProductFeature);
+                }
+            }
+
+            category.LastUpdated = DateTime.UtcNow;
+            _context.Categories.Update(category);
+            await _unitOfWork.SaveChangesAsync();
+
+            if (categoryFeatureDTO.CategorySizes != null)
+            {
+                await UpdateCategorySizes(categoryFeatureDTO.CategoryId, categoryFeatureDTO.CategorySizes);
+            }
+
+            return new ServiceResponse<bool>
+            {
+                Data = true,
+                Message = "دسته بندی بروزرسانی شد"
+            };
+        }
+        catch (Exception ex)
         {
             return new ServiceResponse<bool>
             {
                 Success = false,
-                Message = "دسته بندی مورد نظر یافت نشد"
+                Message = ex.Message
             };
         }
-
-
-        if (categoryFeatureDTO.FeatureIds != null)
-        {
-            foreach (var featureId in categoryFeatureDTO.FeatureIds)
-            {
-
-                var feature = await _context.ProductFeatures.FirstOrDefaultAsync(f => f.Id == featureId);
-
-                if (feature == null)
-                {
-                    return new ServiceResponse<bool>
-                    {
-                        Success = false,
-                        Message = "ویژگی مورد نظر یافت نشد"
-                    };
-                }
-
-                featureListDto.Add(feature);
-
-
-            }
-            category.ProductFeatures = featureListDto;
-            category.LastUpdated = DateTime.UtcNow;
-
-            _context.Categories.Update(category);
-
-            await _unitOfWork.SaveChangesAsync();
-        }
-
-
-
-        if (categoryFeatureDTO.CategorySizes != null)
-        {
-            var categorySizeList = await _context.CategorySizes.Where(c => categoryFeatureDTO.CategorySizes.Ids != null && categoryFeatureDTO.CategorySizes.Ids.Contains(c.Id)).ToListAsync();
-            if (categorySizeList is not null)
-            {
-                _context.CategorySizes.RemoveRange(categorySizeList);
-                await _context.SaveChangesAsync();
-            }
-
-            if (categoryFeatureDTO.CategorySizes.SizeIds is not null)
-            {
-                foreach (var sizeId in categoryFeatureDTO.CategorySizes.SizeIds)
-                {
-                    var categorySize = new CategorySize
-                    {
-                        Id = Guid.NewGuid(),
-                        SizeId = sizeId,
-                        CategoryId = categoryFeatureDTO.CategoryId
-                    };
-                    await _context.CategorySizes.AddAsync(categorySize);
-
-                }
-            }
-            await _context.SaveChangesAsync();
-        }
-
-        return new ServiceResponse<bool>
-        {
-            Data = true,
-            Message = "سایزبندی دسته بندی بروزرسانی شد"
-        };
     }
+
+    public async Task<List<Category>> GetChildCategoriesSizeUpdate(Guid parentId)
+    {
+        return await _context.Categories
+            .Where(c => c.ParentCategoryId == parentId && !c.IsDeleted)
+            .ToListAsync();
+    }
+
+
 
     public async Task<ServiceResponse<CategoryDTO>> GetBy(Guid id)
     {
         var category = await _context.Categories
-            .Include(c => c.Images)
-            .Include(C => C.ParentCategory)
-            .Include(c => c.ChildCategories)
+                    .Include(c => c.CategoryProductFeatures)
+                        .ThenInclude(cpf => cpf.ProductFeature)
+                    .Include(c => c.CategoryProductSizes)
+                        .ThenInclude(ps => ps.ProductSize)
+                        .ThenInclude(ps => ps.ProductSizeProductSizeValues)
+                        .ThenInclude(pspsv => pspsv.ProductSizeValue)
+                    .Include(c => c.CategorySizes)
+                        .ThenInclude(c => c.Size)
+                    .Include(c => c.ChildCategories)
+                    .Include(c => c.Images)
+                    .OrderByDescending(category => category.LastUpdated)
             .FirstOrDefaultAsync(c => c.Id == id);
 
         if (category == null)
@@ -471,6 +527,7 @@ public class CategoryServices : ICategoryServices
                 Message = "دسته بندی مورد نظر یافت نشد"
             };
         }
+
         var subCategoryList = (await GetAllSubCategories()).Data?.Where(c => c.Level > 0);
         var categoryDTO = new CategoryDTO
         {
@@ -478,7 +535,6 @@ public class CategoryServices : ICategoryServices
             Name = category.Name,
             IsActive = category.IsActive,
             Level = category.Level,
-
             ImagesSrc = category.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(category.Images.Select(img => new EntityImageDto
             {
                 Id = img.Id,
@@ -496,15 +552,17 @@ public class CategoryServices : ICategoryServices
                 IsDeleted = cate.IsDeleted,
                 ParentCategoryId = cate.ParentCategoryId,
                 Count = cate.Products != null ? cate.Products.Count : 0,
-                FeatureCount = cate.ProductFeatures != null ? cate.ProductFeatures.Count : 0,
+                FeatureCount = cate.CategoryProductFeatures != null ? cate.CategoryProductFeatures.Count : 0,
                 SizeCount = 0,
                 BrandCount = 0,
                 Created = cate.Created,
                 LastUpdated = cate.LastUpdated
             }).ToList(),
             Created = category.Created,
-            LastUpdated = category.LastUpdated
+            LastUpdated = category.LastUpdated,
+            FeatureIds = category.CategoryProductFeatures?.Select(cpf => cpf.ProductFeature.Id).ToList()
         };
+
         var mainCategory = categoryDTO.ParentCategories.Where(c => c.Level == 0).Select(c => new Category
         {
             Id = c.Id,
@@ -520,13 +578,15 @@ public class CategoryServices : ICategoryServices
         var rootCategories = sortedCategories.Where(c => c.Level == 0 && mainCategory.Any(x => x.Id == c.Id)).ToList();
 
         var categoriesTree = BuildCategoryTree(rootCategories, sortedCategories);
-        categoryDTO.ParentCategoriesTree = categoriesTree[0].ChildCategories ?? new List<CategoryDTO>();
+        categoryDTO.ParentCategoriesTree = categoriesTree.Count != 0 ? categoriesTree[0].ChildCategories ?? new List<CategoryDTO>() : [];
+
         return new ServiceResponse<CategoryDTO>
         {
             Data = categoryDTO,
             Success = true
         };
     }
+
 
     private List<CategoryDTO> GetChildCategories(List<Category> childCategories)
     {
@@ -593,23 +653,133 @@ public class CategoryServices : ICategoryServices
         };
     }
 
-    public Task<ServiceResponse<List<CategoryDTO>>> GetParentSubCategoryAsync(Guid id)
+    public async Task<ServiceResponse<List<CategoryDTO>>> GetParentSubCategoryAsync(Guid id, RequestBy requestSub)
     {
-        throw new NotImplementedException();
-    }
 
-    public async Task<List<Category>> GetCategoriesAsync()
-    {
-        return await _context.Categories
-                    .Include(c => c.ProductFeatures)
+        var categoriesQuery = _context.Categories
+                                  .Include(c => c.CategoryProductFeatures)
+                    .ThenInclude(cpf => cpf.ProductFeature)
                     .Include(c => c.CategoryProductSizes)
                     .ThenInclude(ps => ps.ProductSize)
                     .ThenInclude(ps => ps.ProductSizeProductSizeValues)
                     .ThenInclude(pspsv => pspsv.ProductSizeValue)
+                    .Include(c => c.CategorySizes)
+                    .ThenInclude(c => c.Size)
                     .Include(c => c.ChildCategories)
+                    .Include(c => c.ParentCategory)
                     .Include(c => c.Images)
-                    .AsNoTracking()
-                    .ToListAsync();
+                    .OrderByDescending(category => category.LastUpdated)
+                    .AsQueryable();
+        var allCategories = new List<Category>();
+
+        allCategories = await categoriesQuery.ToListAsync();
+
+        categoriesQuery = categoriesQuery.Where(c => c.Id == id);
+        // Pagination and data retrieval
+        var totalCount = await categoriesQuery.CountAsync();
+        var paginatedCategories = await categoriesQuery.ToListAsync();
+
+        var sortedCategories = allCategories.OrderBy(c => c.Level).ToList();
+
+        // // Get root categories (categories with level 0)
+        var rootCategories = paginatedCategories.Where(c => c.Level == 0).ToList();
+
+        var categoriesTree = BuildCategoryTree(rootCategories, sortedCategories);
+
+
+        // Flatten the tree to get all categories in a single list
+        var flatCategories = FlattenCategoryTree(categoriesTree);
+
+        // Get all main categories (level 0)
+        var mainCategories = flatCategories.Where(c => c.Level == 0).ToList();
+
+        // Create a list to hold the IDs of child categories
+        var childCategoryIds = new HashSet<Guid>();
+
+        // Collect IDs of child categories
+        foreach (var mainCategory in mainCategories)
+        {
+            if (mainCategory.ChildCategories != null && mainCategory.ChildCategories.Count > 0)
+            {
+                childCategoryIds.UnionWith(mainCategory.ChildCategories.Select(c => c.Id));
+            }
+        }
+
+        // Apply search filter
+        if (!string.IsNullOrEmpty(requestSub.SearchTerm))
+        {
+            var childCategoryIdsFlat = new HashSet<Guid>();
+
+            string searchLower = requestSub.SearchTerm.ToLower();
+
+            // Filter the search term
+            flatCategories = flatCategories
+                             .Where(c => c.Level != 0 && c.Slug.ToLower().Contains(searchLower))
+                             .ToList();
+            foreach (var mainCategory in flatCategories)
+            {
+                if (mainCategory.ChildCategories != null && mainCategory.ChildCategories.Count > 0)
+                {
+                    childCategoryIdsFlat.UnionWith(mainCategory.ChildCategories.Select(c => c.Id));
+                }
+            }
+            flatCategories = flatCategories.Where(c => !childCategoryIdsFlat.Contains(c.Id)).ToList();
+
+            return new ServiceResponse<List<CategoryDTO>>
+            {
+                Count = flatCategories.Count,
+                Data = flatCategories
+            };
+        }
+
+        return new ServiceResponse<List<CategoryDTO>>
+        {
+            Count = totalCount,
+            Data = categoriesTree = categoriesTree.OrderByDescending(category => category.LastUpdated).First().ChildCategories,
+        };
+    }
+
+    private List<CategoryDTO> FlattenCategoryTree(List<CategoryDTO> categories, HashSet<Guid> uniqueIds = null)
+    {
+        var flatList = new List<CategoryDTO>();
+
+        if (uniqueIds == null)
+        {
+            uniqueIds = new HashSet<Guid>();
+        }
+
+        foreach (var category in categories)
+        {
+            if (!uniqueIds.Contains(category.Id))
+            {
+                flatList.Add(category);
+                uniqueIds.Add(category.Id);
+            }
+
+            if (category.ChildCategories != null && category.ChildCategories.Count > 0)
+            {
+                flatList.AddRange(FlattenCategoryTree(category.ChildCategories, uniqueIds));
+            }
+        }
+
+        return flatList;
+    }
+
+
+    public async Task<List<Category>> GetCategoriesAsync()
+    {
+        return await _context.Categories
+                            .Include(c => c.CategoryProductFeatures)
+                            .ThenInclude(cpf => cpf.ProductFeature)
+                            .Include(c => c.CategoryProductSizes)
+                            .ThenInclude(ps => ps.ProductSize)
+                            .ThenInclude(ps => ps.ProductSizeProductSizeValues)
+                            .ThenInclude(pspsv => pspsv.ProductSizeValue)
+                            .Include(c => c.ChildCategories)
+                            .Include(c => c.Images)
+                            .Include(c => c.Products)
+                            .AsNoTracking()
+                            .ToListAsync();
     }
 
 
@@ -712,7 +882,9 @@ public class CategoryServices : ICategoryServices
         var pageSize = requestQuery.PageSize ?? 15;
 
         var categoriesQuery = _context.Categories
-                    .Include(c => c.ProductFeatures)
+                    .Include(c => c.Products)
+                    .Include(c => c.CategoryProductFeatures)
+                    .ThenInclude(cpf => cpf.ProductFeature)
                     .Include(c => c.CategoryProductSizes)
                     .ThenInclude(ps => ps.ProductSize)
                     .ThenInclude(ps => ps.ProductSizeProductSizeValues)
@@ -721,13 +893,22 @@ public class CategoryServices : ICategoryServices
                     .ThenInclude(c => c.Size)
                     .Include(c => c.ChildCategories)
                     .Include(c => c.Images)
+                    .OrderByDescending(category => category.LastUpdated)
                     .AsQueryable();
         var allCategories = new List<Category>();
+
+
         allCategories = await categoriesQuery.ToListAsync();
 
         categoriesQuery = categoriesQuery.Where(c => c.Level == 0);
         // Pagination and data retrieval
         var totalCount = await categoriesQuery.CountAsync();
+        // Search filter
+        if (!string.IsNullOrEmpty(requestQuery.Search))
+        {
+            string searchLower = requestQuery.Search.ToLower();
+            categoriesQuery = categoriesQuery.Where(p => p.Slug.ToLower().Contains(searchLower));
+        }
         var paginatedCategories = await categoriesQuery.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
 
         var sortedCategories = allCategories.OrderBy(c => c.Level).ToList();
@@ -745,7 +926,7 @@ public class CategoryServices : ICategoryServices
             HasNextPage = pageNumber < (totalCount / pageSize),
             HasPreviousPage = pageNumber > 1,
             LastPage = (int)Math.Ceiling((double)totalCount / pageSize),
-            Data = categoriesTree,
+            Data = categoriesTree = categoriesTree.OrderByDescending(category => category.LastUpdated).ToList(),
             TotalCount = totalCount
         };
 
@@ -776,7 +957,7 @@ public class CategoryServices : ICategoryServices
                 Placeholder = img.Placeholder ?? string.Empty
             }).ToList(), nameof(Category)).FirstOrDefault() : null,
             Count = category.Products?.Count ?? 0,
-            FeatureCount = category.ProductFeatures?.Count ?? 0,
+            FeatureCount = category.CategoryProductFeatures?.Count ?? 0,
             SizeCount = 0,
             BrandCount = 0,
             Created = category.Created,
@@ -890,8 +1071,6 @@ public class CategoryServices : ICategoryServices
 
         return subCategories;
     }
-
-
     public List<Guid> GetAllCategoryIds(Guid categoryId)
     {
         var categoryIds = new List<Guid> { categoryId };

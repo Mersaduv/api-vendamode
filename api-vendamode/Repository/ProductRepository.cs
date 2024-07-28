@@ -57,6 +57,7 @@ public class ProductRepository : IProductRepository
                             .Include(x => x.Images)
                             .Include(x => x.MainImage)
                             .Include(x => x.ProductFeatures)
+                            .ThenInclude(x=>x.Values)
                             .Include(x => x.ProductScale)
                             .ThenInclude(x => x.Columns)
                             .Include(x => x.ProductScale)

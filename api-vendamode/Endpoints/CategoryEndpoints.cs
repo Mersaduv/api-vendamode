@@ -54,13 +54,13 @@ public static class CategoryEndpoints
         return TypedResults.Ok(result);
     }
 
-    private async static Task<Ok<ServiceResponse<List<CategoryDTO>>>> GetParentSubCategory(ICategoryServices categoryServices, ILogger<Program> _logger, Guid id)
+    private async static Task<Ok<ServiceResponse<List<CategoryDTO>>>> GetParentSubCategory(ICategoryServices categoryServices, ILogger<Program> _logger, Guid id, [AsParameters] RequestBy requestSub)
     {
         _logger.Log(LogLevel.Information, "Getting parent SubCategories");
 
         // await AccessControl.CheckProductPermissionFlag(context , "product-get-all");
 
-        var result = await categoryServices.GetParentSubCategoryAsync(id);
+        var result = await categoryServices.GetParentSubCategoryAsync(id , requestSub);
 
         return TypedResults.Ok(result);
     }

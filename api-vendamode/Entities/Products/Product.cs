@@ -13,6 +13,7 @@ public class Product : BaseClass<Guid>
     public string Slug { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public bool IsFake { get; set; }
+    public bool IsNew { get; set; }
     public double Price { get; set; }
     public string Description { get; set; } = string.Empty;
     public double? Discount { get; set; }
@@ -25,8 +26,7 @@ public class Product : BaseClass<Guid>
     public int NumReviews { get; set; }
     public Guid CategoryId { get; set; }
     public virtual Category? Category { get; set; }
-    public virtual ICollection<ProductFeature>? ProductFeatures { get; set; }
-    public virtual ProductSize? ProductSizes { get; set; }
+    public virtual ICollection<ProductFeature> ProductFeatures { get; set; } = new List<ProductFeature>(); public virtual ProductSize? ProductSizes { get; set; }
     public Guid ProductScaleId { get; set; }
     public int InStock { get; set; }
     public virtual ProductScale? ProductScale { get; set; }

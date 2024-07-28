@@ -126,10 +126,25 @@ public class BrandServices : IBrandServices
     public async Task<ServiceResponse<Pagination<BrandDTO>>> GetBrands(RequestQuery requestQuery)
     {
         var pageSize = requestQuery.PageSize ?? 15;
-        var totalCount = await _context.Brands.CountAsync();
-        var lastPage = (int)Math.Ceiling((double)totalCount / pageSize);
         var pageNumber = requestQuery.PageNumber ?? 1;
-        var brands = await _context.Brands
+
+        var brandsQuery = _context.Brands
+                            .Include(b => b.Images)
+                            .OrderByDescending(b => b.LastUpdated)
+                            .AsNoTracking()
+                            .AsQueryable();
+
+
+        // Search filter
+        if (!string.IsNullOrEmpty(requestQuery.Search))
+        {
+            string searchLower = requestQuery.Search.ToLower();
+            brandsQuery = brandsQuery.Where(f => f.Name.ToLower().Contains(searchLower));
+        }
+
+        var totalCount = await brandsQuery.CountAsync();
+
+        var brands = await brandsQuery
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .Select(brand => new BrandDTO
@@ -151,25 +166,21 @@ public class BrandServices : IBrandServices
             })
             .ToListAsync();
 
-        var hasPreviousPage = pageNumber > 1;
-        var hasNextPage = pageNumber < lastPage;
-        var previousPage = hasPreviousPage ? pageNumber - 1 : 0;
-        var nextPage = hasNextPage ? pageNumber + 1 : 0;
-
         var pagination = new Pagination<BrandDTO>
         {
             CurrentPage = pageNumber,
-            NextPage = nextPage,
-            PreviousPage = previousPage,
-            HasNextPage = hasNextPage,
-            HasPreviousPage = hasPreviousPage,
-            LastPage = lastPage,
+            NextPage = pageNumber < (totalCount / pageSize) ? pageNumber + 1 : pageNumber,
+            PreviousPage = pageNumber > 1 ? pageNumber - 1 : 1,
+            HasNextPage = pageNumber < (totalCount / pageSize),
+            HasPreviousPage = pageNumber > 1,
+            LastPage = (int)Math.Ceiling((double)totalCount / pageSize),
             Data = brands,
             TotalCount = totalCount
         };
 
         return new ServiceResponse<Pagination<BrandDTO>>
         {
+            Count = totalCount,
             Data = pagination
         };
     }
@@ -177,22 +188,13 @@ public class BrandServices : IBrandServices
 
     public async Task<ServiceResponse<bool>> UpdateBrand(BrandCommandDTO brandUpdate)
     {
-        var brand = await _context.Brands.FirstOrDefaultAsync(b => b.Id == brandUpdate.Id);
+        var brand = await _context.Brands.Include(b => b.Images).FirstOrDefaultAsync(b => b.Id == brandUpdate.Id);
         if (brand == null)
         {
             return new ServiceResponse<bool>
             {
                 Success = false,
                 Message = "برندی پیدا نشد"
-            };
-        }
-
-        if (await _context.Brands.AnyAsync(b => b.Name == brandUpdate.Name))
-        {
-            return new ServiceResponse<bool>
-            {
-                Success = false,
-                Message = "نام برند تکراری است"
             };
         }
 
