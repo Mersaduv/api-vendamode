@@ -1,4 +1,5 @@
 using api_vendace.Entities.Products;
+using api_vendace.Enums;
 using api_vendace.Models.Dtos.ProductDto.Brand;
 using api_vendace.Models.Dtos.ProductDto.Category;
 using api_vendace.Models.Dtos.ProductDto.Sizes;
@@ -17,6 +18,7 @@ public class ProductDTO
     public string Code { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public double Price { get; set; }
+    public StatusType Status { get; set; }
     public bool IsFake { get; set; }
     public bool IsActive { get; set; }
     public Guid? BrandId { get; set; }

@@ -41,6 +41,11 @@ public class CategoryServices : ICategoryServices
 
     public async Task<ServiceResponse<bool>> AddCategory(CategoryCreateDTO categoryCreate)
     {
+        var maidCategory = await _context.Categories
+                            .Include(c => c.CategorySizes)
+                            .ThenInclude(c => c.Size)
+                            .FirstOrDefaultAsync(c => c.Id == categoryCreate.MainId);
+
         var parentCategory = categoryCreate.ParentCategoryId.HasValue
                 ? await _context.Categories.FindAsync(categoryCreate.ParentCategoryId.Value)
                 : null;
@@ -79,6 +84,18 @@ public class CategoryServices : ICategoryServices
 
         await _context.Categories.AddAsync(category);
         await _unitOfWork.SaveChangesAsync();
+
+        // Update the sizes for the new category
+        var parentCategorySizes = maidCategory?.CategorySizes?.Select(cs => cs.SizeId).ToList();
+        if (parentCategorySizes != null && parentCategorySizes.Count > 0)
+        {
+            var categorySizeDTO = new CategorySizeDTO
+            {
+                SizeIds = parentCategorySizes
+            };
+
+            await UpdateCategorySizes(category.Id, categorySizeDTO);
+        }
 
         return new ServiceResponse<bool>
         {
@@ -216,6 +233,7 @@ public class CategoryServices : ICategoryServices
                 Level = category.Level,
                 IsActive = category.IsActive,
                 IsDeleted = category.IsDeleted,
+                HasSizeProperty = category.HasSizeProperty,
                 ParentCategoryId = category.ParentCategoryId,
                 ImagesSrc = category.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(category.Images.Select(img => new EntityImageDto
                 {
@@ -374,55 +392,53 @@ public class CategoryServices : ICategoryServices
             Data = true
         };
     }
-
-    public async Task<ServiceResponse<bool>> UpdateFeatureInCategory(CategoryFeatureUpdateDTO categoryFeatureDTO)
+    private async Task UpdateCategorySizes(Guid categoryId, CategorySizeDTO? categorySizes)
     {
-        async Task UpdateCategorySizes(Guid categoryId, CategorySizeDTO? categorySizes)
+        var category = await _context.Categories
+                            .Include(c => c.CategorySizes)
+                            .ThenInclude(c => c.Size)
+                            .FirstOrDefaultAsync(c => c.Id == categoryId);
+
+        if (category == null)
         {
-            var category = await _context.Categories
-                                .Include(c => c.CategorySizes)
-                                .ThenInclude(c => c.Size)
-                                .FirstOrDefaultAsync(c => c.Id == categoryId);
+            throw new Exception("دسته بندی مورد نظر یافت نشد");
+        }
 
-            if (category == null)
+        if (categorySizes != null)
+        {
+            var categorySizeList = await _context.CategorySizes.Where(c => categorySizes.Ids != null && categorySizes.Ids.Contains(c.Id)).ToListAsync();
+            if (categorySizeList is not null)
             {
-                throw new Exception("دسته بندی مورد نظر یافت نشد");
+                _context.CategorySizes.RemoveRange(categorySizeList);
             }
 
-            if (categorySizes != null)
+            if (categorySizes.SizeIds != null)
             {
-                var categorySizeList = await _context.CategorySizes.Where(c => categorySizes.Ids != null && categorySizes.Ids.Contains(c.Id)).ToListAsync();
-                if (categorySizeList is not null)
+                foreach (var sizeId in categorySizes.SizeIds)
                 {
-                    _context.CategorySizes.RemoveRange(categorySizeList);
-                }
-
-                if (categorySizes.SizeIds != null)
-                {
-                    foreach (var sizeId in categorySizes.SizeIds)
+                    var categorySize = new CategorySize
                     {
-                        var categorySize = new CategorySize
-                        {
-                            Id = Guid.NewGuid(),
-                            SizeId = sizeId,
-                            CategoryId = categoryId
-                        };
-                        await _context.CategorySizes.AddAsync(categorySize);
-                    }
+                        Id = Guid.NewGuid(),
+                        SizeId = sizeId,
+                        CategoryId = categoryId
+                    };
+                    await _context.CategorySizes.AddAsync(categorySize);
                 }
-            }
-
-            category.LastUpdated = DateTime.UtcNow;
-            _context.Categories.Update(category);
-            await _unitOfWork.SaveChangesAsync();
-
-            var childCategories = await GetChildCategoriesSizeUpdate(categoryId);
-            foreach (var childCategory in childCategories)
-            {
-                await UpdateCategorySizes(childCategory.Id, categorySizes);
             }
         }
 
+        category.LastUpdated = DateTime.UtcNow;
+        _context.Categories.Update(category);
+        await _unitOfWork.SaveChangesAsync();
+
+        var childCategories = await GetChildCategoriesSizeUpdate(categoryId);
+        foreach (var childCategory in childCategories)
+        {
+            await UpdateCategorySizes(childCategory.Id, categorySizes);
+        }
+    }
+    public async Task<ServiceResponse<bool>> UpdateFeatureInCategory(CategoryFeatureUpdateDTO categoryFeatureDTO)
+    {
         try
         {
             var category = await _context.Categories
@@ -469,6 +485,7 @@ public class CategoryServices : ICategoryServices
             }
 
             category.LastUpdated = DateTime.UtcNow;
+            category.HasSizeProperty = categoryFeatureDTO.HasSizeProperty ?? false;
             _context.Categories.Update(category);
             await _unitOfWork.SaveChangesAsync();
 
@@ -505,6 +522,7 @@ public class CategoryServices : ICategoryServices
     public async Task<ServiceResponse<CategoryDTO>> GetBy(Guid id)
     {
         var category = await _context.Categories
+                    .Include(c => c.ParentCategory)
                     .Include(c => c.CategoryProductFeatures)
                         .ThenInclude(cpf => cpf.ProductFeature)
                     .Include(c => c.CategoryProductSizes)

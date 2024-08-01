@@ -20,6 +20,8 @@ using api_vendamode.Models.Dtos.ProductDto.Category;
 using api_vendace.Entities;
 using api_vendamode.Models.Dtos.ProductDto.Stock;
 using api_vendace.Models.Dtos.ProductDto.Brand;
+using api_vendamode.Entities.Products;
+using api_vendamode.Models.Dtos;
 
 public class ProductServices : IProductServices
 {
@@ -54,7 +56,7 @@ public class ProductServices : IProductServices
         };
     }
     //admin
-    public async Task<ServiceResponse<bool>> CreateProduct(ProductCreateDTO productCreateDTO)
+    public async Task<ServiceResponse<Guid>> CreateProduct(ProductCreateDTO productCreateDTO)
     {
         var productId = Guid.NewGuid();
         var product = productCreateDTO.ToProducts(_byteFileUtility, productId);
@@ -144,9 +146,9 @@ public class ProductServices : IProductServices
         await _productRepository.CreateAsync(product);
         await _unitOfWork.SaveChangesAsync();
 
-        return new ServiceResponse<bool>
+        return new ServiceResponse<Guid>
         {
-            Data = true,
+            Data = product.Id,
             Message = "محصول به ثبت رسید"
         };
     }
@@ -315,7 +317,6 @@ public class ProductServices : IProductServices
                     (!requestQuery.MaxPrice.HasValue || si.Price <= requestQuery.MaxPrice.Value)));
             }
 
-            // Discount filter
 
             // Discount and stock filter using StockItem
             if (requestQuery.Discount.HasValue && requestQuery.Discount.Value)
@@ -411,9 +412,13 @@ public class ProductServices : IProductServices
                     query = query.Where(x => x.InStock == 0);
                 }
             }
-            query = query
+            if (!requestQuery.Admin.HasValue)
+            {
+                query = query
                 .OrderBy(p => p.StockItems.Any(si => si.Quantity > 0 && si.Price > 0) ? 0 : 1)
                 .ThenBy(p => p.StockItems.Any(si => si.Quantity > 0) ? 0 : 1);
+            }
+
             // Pagination and data retrieval
             var totalCount = await query.CountAsync();
             var paginatedProducts = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
@@ -943,7 +948,7 @@ public class ProductServices : IProductServices
         return categoryLevelIds;
     }
 
-    public async Task<ServiceResponse<bool>> UpdateProduct(ProductUpdateDTO productUpdateDTO)
+    public async Task<ServiceResponse<Guid>> UpdateProduct(ProductUpdateDTO productUpdateDTO)
     {
         var product = await _context.Products
                             .Include(x => x.Brand)
@@ -962,7 +967,7 @@ public class ProductServices : IProductServices
 
         if (product == null)
         {
-            return new ServiceResponse<bool>
+            return new ServiceResponse<Guid>
             {
                 Success = false,
                 Message = "محصول مورد نظر یافت نشد"
@@ -981,6 +986,7 @@ public class ProductServices : IProductServices
             Slug = product.Slug,
             IsActive = productUpdateDTO.IsActive,
             CategoryId = productUpdateDTO.CategoryId,
+            Status = productUpdateDTO.Status,
             Description = productUpdateDTO.Description,
             IsFake = productUpdateDTO.IsFake,
             BrandId = productUpdateDTO.BrandId,
@@ -1096,9 +1102,9 @@ public class ProductServices : IProductServices
         await _context.Products.AddAsync(newProduct);
         await _unitOfWork.SaveChangesAsync();
 
-        return new ServiceResponse<bool>
+        return new ServiceResponse<Guid>
         {
-            Data = true,
+            Data = newProduct.Id,
             Message = "محصول با موفقیت بروزرسانی شد"
         };
     }
@@ -1126,6 +1132,37 @@ public class ProductServices : IProductServices
         {
             Success = false,
             Message = $"محصول {product.Slug} با موفقیت حذف شد"
+        };
+    }
+
+    public async Task<ServiceResponse<string>> UploadMedia(Description file)
+    {
+        var id = Guid.NewGuid();
+        var description = new DescriptionEntity
+        {
+            Id = id,
+            Name = nameof(Description),
+            Thumbnail = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, DescriptionEntity>>([file.Thumbnail], nameof(DescriptionEntity), false).First()
+        };
+        await _context.Descriptions.AddAsync(description);
+        await _context.SaveChangesAsync();
+
+        var mediaData = await _context.Descriptions.Include(d => d.Thumbnail).FirstOrDefaultAsync(c => c.Id == id);
+
+        var url = _byteFileUtility.GetEncryptedFileActionUrl
+              ([new EntityImageDto
+                            {
+                                Id = mediaData.Thumbnail.Id,
+                                ImageUrl = mediaData.Thumbnail.ImageUrl,
+                                Placeholder = mediaData.Thumbnail.Placeholder
+                            }],
+              nameof(DescriptionEntity)).First();
+
+
+
+        return new ServiceResponse<string>
+        {
+            Data = url.ImageUrl
         };
     }
 }

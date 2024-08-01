@@ -12,6 +12,7 @@ using api_vendamode.Entities.Products;
 using api_vendamode.Entities;
 using api_vendace.Models.Dtos.ProductDto.Stock;
 using api_vendamode.Utility;
+using api_vendamode.Models.Dtos;
 
 namespace api_vendace.Data;
 public class ApplicationDbContext : DbContext
@@ -98,7 +99,7 @@ public class ApplicationDbContext : DbContext
             .HasOne(cpf => cpf.ProductFeature)
             .WithMany(pf => pf.CategoryProductFeatures)
             .HasForeignKey(cpf => cpf.ProductFeatureId);
-            
+
         var converter = new DictionaryToJsonConverter();
 
         modelBuilder.Entity<StockItem>()
@@ -120,6 +121,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Product> Products { get; set; } = default!;
     public DbSet<StockItem> StockItems { get; set; } = default!;
     public DbSet<Slider> Sliders { get; set; } = default!;
+    public DbSet<DescriptionEntity> Descriptions { get; set; } = default!;
     public DbSet<EntityImage<Guid, Category>> CategoryImages { get; set; } = default!;
     public DbSet<EntityImage<Guid, Product>> ProductImages { get; set; } = default!;
     public DbSet<EntityMainImage<Guid, Product>> ProductMainImages { get; set; } = default!;
@@ -131,6 +133,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<EntityImage<Guid, Slider>> SliderImages { get; set; } = default!;
     public DbSet<EntityImage<Guid, Order>> PurchaseInvoice { get; set; } = default!;
     public DbSet<EntityImage<Guid, StockItem>> StockImages { get; set; } = default!;
+    public DbSet<EntityImage<Guid, DescriptionEntity>> MediaImages { get; set; } = default!;
     public DbSet<Category> Categories { get; set; } = default!;
     public DbSet<Brand> Brands { get; set; } = default!;
     public DbSet<ProductFeature> ProductFeatures { get; set; } = default!;

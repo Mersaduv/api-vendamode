@@ -35,6 +35,7 @@ public static class GetProductMapper
             Discount = product.Discount,
             BrandId = product.BrandId,
             IsFake = product.IsFake,
+            Status = product.Status,
             IsActive = product.IsActive,
             InStock = product.InStock,
             Sold = product.Sold,

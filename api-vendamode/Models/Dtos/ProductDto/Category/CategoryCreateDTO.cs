@@ -8,6 +8,7 @@ public class CategoryCreateDTO
     public bool IsActive { get; set; }
     public List<IFormFile>? Thumbnail { get; set; }
     public Guid? MainCategoryId { get; set; }
+    public Guid? MainId { get; set; }
     public Guid? ParentCategoryId { get; set; }
     public int Level { get; set; }
 
@@ -20,6 +21,7 @@ public class CategoryCreateDTO
         var name = form["Name"];
         var isActive = bool.Parse(form["IsActive"]!);
         var mainCategoryId = string.IsNullOrEmpty(form["MainCategoryId"]) ? null : (Guid?)Guid.Parse(form["MainCategoryId"]!);
+        var mainId = string.IsNullOrEmpty(form["MainId"]) ? null : (Guid?)Guid.Parse(form["MainId"]!);
         var parentCategoryId = string.IsNullOrEmpty(form["ParentCategoryId"]) ? null : (Guid?)Guid.Parse(form["ParentCategoryId"]!);
         var level = string.IsNullOrEmpty(form["Level"]) ? 0 : Convert.ToInt32(form["Level"]);
         return new CategoryCreateDTO
@@ -28,6 +30,7 @@ public class CategoryCreateDTO
             Name = name!,
             IsActive = isActive,
             MainCategoryId = mainCategoryId,
+            MainId = mainId,
             ParentCategoryId = parentCategoryId,
             Level = level
         };

@@ -1,4 +1,5 @@
 using api_vendace.Const;
+using api_vendace.Entities;
 using api_vendace.Entities.Products;
 using api_vendace.Filter;
 using api_vendace.Interfaces.IServices;
@@ -7,9 +8,12 @@ using api_vendace.Models;
 using api_vendace.Models.Dtos.ProductDto;
 using api_vendace.Models.Query;
 using api_vendace.Utility;
+using api_vendamode.Entities.Products;
+using api_vendamode.Models.Dtos;
 using api_vendamode.Models.Dtos.ProductDto;
 using api_vendamode.Models.Query;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 
 namespace api_vendace.Endpoints;
 
@@ -19,7 +23,7 @@ public static class ProductEndpoints
     {
         var productsGroup = apiGroup.MapGroup(Constants.Products);
         var productGroup = apiGroup.MapGroup(Constants.Product);
-
+        apiGroup.MapPost("/upload-media", UploadMedia).Accepts<Description>("multipart/form-data").ProducesValidationProblem();
         productsGroup.MapGet(string.Empty, GetAllProduct);
 
         productsGroup.MapGet(Constants.Main, GetProductQuery);
@@ -47,6 +51,16 @@ public static class ProductEndpoints
 
         return apiGroup;
     }
+    private static async Task<Ok<ServiceResponse<string>>> UploadMedia(
+              Description file, ILogger<Program> _logger, HttpContext context, IProductServices productServices)
+    {
+        _logger.Log(LogLevel.Information, "Upload Media");
+
+        var result = await productServices.UploadMedia(file);
+
+        return TypedResults.Ok(result);
+    }
+
 
     private static async Task<Ok<ServiceResponse<bool>>> BulkUpdateProduct(BulkUpdateProductDTO dto, IProductServices productService)
     {
@@ -85,7 +99,7 @@ public static class ProductEndpoints
 
 
     //Write
-    private static async Task<Ok<ServiceResponse<bool>>> CreateProduct(IProductServices productServices,
+    private static async Task<Ok<ServiceResponse<Guid>>> CreateProduct(IProductServices productServices,
                   ProductCreateDTO product_C_DTO, ILogger<Program> _logger, HttpContext context)
     {
         _logger.Log(LogLevel.Information, "Create Product");
@@ -149,7 +163,7 @@ public static class ProductEndpoints
         return TypedResults.File(encryptedData, "image/jpeg");
     }
 
-    private async static Task<Ok<ServiceResponse<bool>>> UpdateProduct(IProductServices productService, ProductUpdateDTO productUpdate, ILogger<Program> _logger)
+    private async static Task<Ok<ServiceResponse<Guid>>> UpdateProduct(IProductServices productService, ProductUpdateDTO productUpdate, ILogger<Program> _logger)
     {
         _logger.Log(LogLevel.Information, "Update Product");
 

@@ -260,6 +260,29 @@ namespace api_vendamode.Migrations
                     b.ToTable("SliderImages");
                 });
 
+            modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Models.Dtos.DescriptionEntity>", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Placeholder")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityId")
+                        .IsUnique();
+
+                    b.ToTable("MediaImages");
+                });
+
             modelBuilder.Entity("api_vendace.Entities.EntityMainImage<System.Guid, api_vendace.Entities.Products.Product>", b =>
                 {
                     b.Property<Guid>("Id")
@@ -328,6 +351,9 @@ namespace api_vendamode.Migrations
 
                     b.Property<DateTime>("Created")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("HasSizeProperty")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -488,6 +514,9 @@ namespace api_vendamode.Migrations
                         .HasColumnType("text");
 
                     b.Property<int>("Sold")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
                         .HasColumnType("integer");
 
                     b.Property<string>("Title")
@@ -1390,6 +1419,21 @@ namespace api_vendamode.Migrations
                     b.ToTable("Returneds");
                 });
 
+            modelBuilder.Entity("api_vendamode.Models.Dtos.DescriptionEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Descriptions");
+                });
+
             modelBuilder.Entity("ProductProductFeature", b =>
                 {
                     b.HasOne("api_vendace.Entities.Products.ProductFeature", null)
@@ -1509,6 +1553,17 @@ namespace api_vendamode.Migrations
                     b.HasOne("api_vendamode.Entities.Products.Slider", "Entity")
                         .WithOne("Image")
                         .HasForeignKey("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Products.Slider>", "EntityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Entity");
+                });
+
+            modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Models.Dtos.DescriptionEntity>", b =>
+                {
+                    b.HasOne("api_vendamode.Models.Dtos.DescriptionEntity", "Entity")
+                        .WithOne("Thumbnail")
+                        .HasForeignKey("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Models.Dtos.DescriptionEntity>", "EntityId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -2160,6 +2215,12 @@ namespace api_vendamode.Migrations
             modelBuilder.Entity("api_vendamode.Entities.Products.Slider", b =>
                 {
                     b.Navigation("Image");
+                });
+
+            modelBuilder.Entity("api_vendamode.Models.Dtos.DescriptionEntity", b =>
+                {
+                    b.Navigation("Thumbnail")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

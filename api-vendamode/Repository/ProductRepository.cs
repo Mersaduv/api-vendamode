@@ -34,7 +34,9 @@ public class ProductRepository : IProductRepository
                             .ThenInclude(x => x.Rows)
                             .Include(x => x.Review)
                             .Include(c => c.Category)
-                            .Include(c => c.StockItems);
+                            .Include(c => c.StockItems)
+                            .OrderByDescending(product => product.LastUpdated)
+                            .AsQueryable();
 
         var totalCount = await query.CountAsync();
         var products = await query
@@ -53,20 +55,20 @@ public class ProductRepository : IProductRepository
     public IQueryable<Product> GetQuery()
     {
         var query = _context.Products
+                            .OrderByDescending(product => product.LastUpdated)
                            .Include(x => x.Brand)
                             .Include(x => x.Images)
                             .Include(x => x.MainImage)
                             .Include(x => x.ProductFeatures)
-                            .ThenInclude(x=>x.Values)
+                            .ThenInclude(x => x.Values)
                             .Include(x => x.ProductScale)
                             .ThenInclude(x => x.Columns)
                             .Include(x => x.ProductScale)
                             .ThenInclude(x => x.Rows)
                             .Include(x => x.Review)
                             .Include(c => c.Category)
-                            .ThenInclude(c=>c.ParentCategory)
+                            .ThenInclude(c => c.ParentCategory)
                             .Include(c => c.StockItems)
-                            .OrderByDescending(product => product.LastUpdated)
                             .AsQueryable();
         return query;
     }

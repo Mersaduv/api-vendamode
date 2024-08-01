@@ -1,5 +1,6 @@
 using System.Reflection;
 using api_vendace.Entities.Products;
+using api_vendace.Enums;
 using api_vendace.Models.Dtos.ProductDto.Sizes;
 using api_vendace.Models.Dtos.ProductDto.Stock;
 using api_vendace.Utility;
@@ -22,6 +23,8 @@ public class ProductUpdateDTO
     public List<Guid>? FeatureValueIds { get; set; }
     public ProductScaleDTO? ProductScale { get; set; }
     public List<StockItemDTO>? StockItems { get; set; }
+   public StatusType Status { get; set; }
+
 
     public static async ValueTask<ProductUpdateDTO?> BindAsync(HttpContext context,
                                                                  ParameterInfo parameter)
@@ -37,7 +40,8 @@ public class ProductUpdateDTO
         var description = form["Description"];
         var isFake = bool.Parse(form["IsFake"]!);
         var brandId = string.IsNullOrEmpty(form["BrandId"]) ? null : (Guid?)Guid.Parse(form["BrandId"]!);
-
+        var statusForm = form["Status"];
+        var status = Enum.Parse<StatusType>(statusForm!);
         List<Guid> featureValueIds = new List<Guid>();
         foreach (var id in form["FeatureValueIds"])
         {
@@ -73,9 +77,9 @@ public class ProductUpdateDTO
                     ImageStock = thumbnailStock,
                     FeatureValueId = tempItem.FeatureValueId,
                     SizeId = tempItem.SizeId,
-                    Quantity = tempItem.Quantity,
-                    Price = tempItem.Price,
-                    Discount = tempItem.Discount,
+                    Quantity = tempItem.Quantity ?? 0,
+                    Price = tempItem.Price ?? 0,
+                    Discount = tempItem.Discount ?? 0,
                     AdditionalProperties = tempItem.AdditionalProperties
                 };
                 stockItems.Add(stockItem);
@@ -92,6 +96,7 @@ public class ProductUpdateDTO
             CategoryId = categoryId,
             Description = description!,
             IsFake = isFake,
+            Status = status,
             BrandId = brandId,
             FeatureValueIds = featureValueIds,
             StockItems = stockItems,

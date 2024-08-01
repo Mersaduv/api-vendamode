@@ -1,3 +1,4 @@
+using api_vendace.Enums;
 using api_vendace.Models;
 using api_vendace.Models.Dtos.ProductDto.Category;
 using api_vendace.Models.Dtos.ProductDto.Stock;
@@ -13,7 +14,7 @@ public class Product : BaseClass<Guid>
     public string Slug { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public bool IsFake { get; set; }
-    public bool IsNew { get; set; }
+    public StatusType Status { get; set; }
     public double Price { get; set; }
     public string Description { get; set; } = string.Empty;
     public double? Discount { get; set; }
