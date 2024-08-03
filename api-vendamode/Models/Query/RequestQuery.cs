@@ -44,6 +44,8 @@ public class RequestQuery
 
     [FromQuery(Name = "discount")]
     public bool? Discount { get; set; }
-    [FromQuery(Name ="isAdmin")]
+    [FromQuery(Name = "isAdmin")]
     public bool? Admin { get; set; }
+    [FromQuery(Name = "isActive")]
+    public bool? IsActive { get; set; }
 }

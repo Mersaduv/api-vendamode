@@ -560,7 +560,7 @@ public class CategoryServices : ICategoryServices
                 Placeholder = img.Placeholder ?? string.Empty
             }).ToList(), nameof(Category)).First() : null,
             Categories = subCategoryList,
-            ParentCategories = category.GetParentCategories(_context).Select(cate => new CategoryDTO
+            ParentCategories = category.GetParentCategories(_context).Where(c => c.IsActive == true).Select(cate => new CategoryDTO
             {
                 Id = cate.Id,
                 Name = cate.Name,
@@ -588,15 +588,27 @@ public class CategoryServices : ICategoryServices
             Level = c.Level,
             Slug = c.Slug,
         }).ToList();
-        var categories = await GetCategoriesAsync();
+        var categories = _context.Categories.Where(c => c.IsActive == true)
+                            .Include(c => c.CategoryProductFeatures)
+                            .ThenInclude(cpf => cpf.ProductFeature)
+                            .Include(c => c.CategoryProductSizes)
+                            .ThenInclude(ps => ps.ProductSize)
+                            .ThenInclude(ps => ps.ProductSizeProductSizeValues)
+                            .ThenInclude(pspsv => pspsv.ProductSizeValue)
+                            .Include(c => c.ChildCategories)
+                            .Include(c => c.Images)
+                            .Include(c => c.Products)
+                            .AsQueryable();
+        var categoryList = await categories.ToListAsync();
 
-        var sortedCategories = categories.OrderBy(c => c.Level).ToList();
+        var sortedCategories = categoryList.OrderBy(c => c.Level).ToList();
 
         // Get root categories (categories with level 0)
         var rootCategories = sortedCategories.Where(c => c.Level == 0 && mainCategory.Any(x => x.Id == c.Id)).ToList();
 
         var categoriesTree = BuildCategoryTree(rootCategories, sortedCategories);
         categoryDTO.ParentCategoriesTree = categoriesTree.Count != 0 ? categoriesTree[0].ChildCategories ?? new List<CategoryDTO>() : [];
+        categoryDTO.ParentCategoriesTree = categoryDTO.ParentCategoriesTree.Where(c => c.IsActive == true).ToList();
 
         return new ServiceResponse<CategoryDTO>
         {
@@ -917,6 +929,12 @@ public class CategoryServices : ICategoryServices
 
 
         allCategories = await categoriesQuery.ToListAsync();
+
+        if (requestQuery.IsActive is not null)
+        {
+            categoriesQuery = categoriesQuery.Where(c => c.IsActive == true);
+            allCategories = await categoriesQuery.Where(c => c.IsActive == true).ToListAsync();
+        }
 
         categoriesQuery = categoriesQuery.Where(c => c.Level == 0);
         // Pagination and data retrieval
