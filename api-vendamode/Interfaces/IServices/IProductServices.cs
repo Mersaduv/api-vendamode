@@ -20,5 +20,7 @@ public interface IProductServices
     Task<ServiceResponse<ProductDTO>> GetSingleProductBy(Guid id);
     Task<ServiceResponse<Guid>> UpdateProduct(ProductUpdateDTO productUpdate);
     Task<ServiceResponse<bool>> DeleteAsync(Guid id);
-    Task<ServiceResponse<bool>> BulkUpdateProductStatus(List<Guid> productIds, bool isActive);
+    Task<ServiceResponse<bool>> DeleteTrashAsync(Guid id);
+    Task<ServiceResponse<bool>> RestoreProductAsync(Guid id);
+    Task<ServiceResponse<bool>> BulkUpdateProductStatus(List<Guid> productIds, string action);
 }

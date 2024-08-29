@@ -68,6 +68,7 @@ public class ProductCreateDTO
                 var stockItem = new StockItemDTO
                 {
                     StockId = tempItem.StockId,
+                    IsHidden = tempItem.IsHidden,
                     Idx = tempItem.Idx,
                     ImageStock = thumbnailStock,
                     FeatureValueId = tempItem.FeatureValueId,
@@ -75,6 +76,7 @@ public class ProductCreateDTO
                     Quantity = tempItem.Quantity ?? 0,
                     Price = tempItem.Price ?? 0,
                     Discount = tempItem.Discount ?? 0,
+                    OfferTime = tempItem.OfferTime ?? 0,
                     AdditionalProperties = tempItem.AdditionalProperties
                 };
                 stockItems.Add(stockItem);
@@ -102,12 +104,14 @@ public class StockItemTempDTO
 {
     public Guid Id { get; set; }
     public int StockId { get; set; }
+    public bool IsHidden { get; set; }
     public string? Idx { get; set; }
     public List<Guid>? FeatureValueId { get; set; }
     public Guid? SizeId { get; set; }
     public int? Quantity { get; set; }
     public double? Price { get; set; }
     public double? Discount { get; set; }
+    public int? OfferTime { get; set; }
     [JsonExtensionData]
     public Dictionary<string, object>? AdditionalProperties { get; set; }
 }

@@ -18,7 +18,7 @@ public static class Constants
     public const string Login = "login";
     public const string Address = "address";
     public const string Canceleds = "canceled-orders";
-     public const string Returned = "returned-orders";
+    public const string Returned = "returned-orders";
     public const string Addresses = "addresses";
     public const string Logout = "logout";
     public const string Payment = "payment";
@@ -28,6 +28,9 @@ public static class Constants
     public const string Feature = "feature";
     public const string Sizes = "sizes";
     public const string Size = "size";
+    public const string Articles = "articles";
+    public const string Article = "article";
+    public const string Design = "design";
     public const string Main = "main";
     public const string Register = "register";
     public const string GenerateRefreshToken = "generateToken";
@@ -44,12 +47,13 @@ public static class Constants
     public const string Details = "details";
     public const string AllDetails = "all-details";
     public const string Banner = "banner";
+    public const string ArticleBanners = "article-banners";
     public const string Banners = "banners";
     public const string Review = "review";
     public const string Reviews = "reviews";
+    public const string ArticleReviews = "articleReviews";
     public const string Slider = "slider";
     public const string Sliders = "sliders";
-
     public const string Category = "category";
     public const string SubCategories = "sub-categories";
     public const string CategoriesTree = "categories-tree";

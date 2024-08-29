@@ -58,11 +58,11 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 // if (app.Environment.IsDevelopment())
 // {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Api Venda Mode");
-    });
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Api Venda Mode");
+});
 // }
 app.UseCors(builder => builder
     .AllowAnyOrigin()
@@ -85,13 +85,9 @@ apiGroup
     .MapSliderApi()
     .MapReviewApi()
     .MapOrderApi()
-    .MapCanceledApi();
+    .MapCanceledApi()
+    .MapDesignApi()
+    .MapBannerApi();
 
 // app.UseHttpsRedirection();
-using (var scope = app.Services.CreateScope())
-{
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    DbInitializer.Initialize(context);
-}
-
 app.Run();

@@ -16,9 +16,13 @@ public class StockItem
     public int Quantity { get; set; }
     public double Price { get; set; }
     public double? Discount { get; set; }
+    public int? OfferTime { get; set; }
+    public bool IsHidden { get; set; }
     [JsonExtensionData]
     [Column(TypeName = "jsonb")]
     public Dictionary<string, object>? AdditionalProperties { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public DateTime? OfferStartTime { get; set; }
+    public DateTime? OfferEndTime { get; set; }
 }

@@ -9,6 +9,7 @@ namespace api_vendamode.Models.Dtos.ProductDto.Stock;
 public class GetStockItemDTO : BaseClass<Guid>
 {
     public int StockId { get; set; }
+    public bool IsHidden { get; set; }
     public Guid ProductId { get; set; }
     public List<EntityImageDto> ImagesSrc { get; set; } = [];
     public List<Guid>? FeatureValueId { get; set; }
@@ -17,6 +18,8 @@ public class GetStockItemDTO : BaseClass<Guid>
     public int Quantity { get; set; }
     public double Price { get; set; }
     public double? Discount { get; set; }
+    public int? OfferTime { get; set; }
+    public string? DiscountRemainingTime { get; set; }
     [JsonExtensionData]
     [Column(TypeName = "jsonb")]
     public Dictionary<string, object>? AdditionalProperties { get; set; }

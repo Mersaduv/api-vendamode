@@ -42,7 +42,7 @@ public class BrandServices : IBrandServices
             Name = brandCreate.Name,
             Count = 0,
             Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Brand>>(brandCreate.Thumbnail!, nameof(Brand), false),
-            Description = brandCreate.Description,
+            Description = brandCreate.Description ?? "",
             InSlider = brandCreate.InSlider,
             IsActive = brandCreate.IsActive,
             Created = DateTime.UtcNow,
@@ -142,6 +142,24 @@ public class BrandServices : IBrandServices
             brandsQuery = brandsQuery.Where(f => f.Name.ToLower().Contains(searchLower));
         }
 
+        // active brand Slider Filter
+        if (requestQuery.IsSlider is not null)
+        {
+            brandsQuery = brandsQuery.Where(x => x.InSlider);
+        }
+
+        // isActive Filter
+        if (requestQuery.IsActive is not null)
+        {
+            brandsQuery = brandsQuery.Where(x => x.IsActive);
+        }
+
+        // InActive Filter
+        if (requestQuery.InActive is not null)
+        {
+            brandsQuery = brandsQuery.Where(x => !x.IsActive);
+        }
+
         var totalCount = await brandsQuery.CountAsync();
 
         var brands = await brandsQuery
@@ -199,7 +217,7 @@ public class BrandServices : IBrandServices
         }
 
         brand.Name = brandUpdate.Name;
-        brand.Description = brandUpdate.Description;
+        brand.Description = brandUpdate.Description ?? "";
         brand.InSlider = brandUpdate.InSlider;
         brand.IsActive = brandUpdate.IsActive;
         brand.LastUpdated = DateTime.UtcNow;

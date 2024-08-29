@@ -48,6 +48,8 @@ public static class ProductEndpoints
         .Accepts<BulkUpdateProductDTO>("application/json");
 
         adminProductGroup.MapDelete("{id:guid}", DeleteProduct);
+        adminProductGroup.MapPost("trash/{id:guid}", DeleteTrashProduct);
+        adminProductGroup.MapPost("restore/{id:guid}", RestoreProduct);
 
         return apiGroup;
     }
@@ -64,7 +66,7 @@ public static class ProductEndpoints
 
     private static async Task<Ok<ServiceResponse<bool>>> BulkUpdateProduct(BulkUpdateProductDTO dto, IProductServices productService)
     {
-        var result = await productService.BulkUpdateProductStatus(dto.ProductIds, dto.IsActive);
+        var result = await productService.BulkUpdateProductStatus(dto.ProductIds, dto.action);
         return TypedResults.Ok(result);
     }
 
@@ -75,6 +77,28 @@ public static class ProductEndpoints
         // await AccessControl.CheckProductPermissionFlag(context , "product-get-all");
 
         var result = await productServices.DeleteAsync(id);
+
+        return TypedResults.Ok(result);
+    }
+
+    private async static Task<Ok<ServiceResponse<bool>>> DeleteTrashProduct(IProductServices productServices, Guid id, ILogger<Program> _logger, HttpContext context)
+    {
+        _logger.Log(LogLevel.Information, "Delete to Trash Product");
+
+        // await AccessControl.CheckProductPermissionFlag(context , "product-get-all");
+
+        var result = await productServices.DeleteTrashAsync(id);
+
+        return TypedResults.Ok(result);
+    }
+
+        private async static Task<Ok<ServiceResponse<bool>>> RestoreProduct(IProductServices productServices, Guid id, ILogger<Program> _logger, HttpContext context)
+    {
+        _logger.Log(LogLevel.Information, "Restore Product");
+
+        // await AccessControl.CheckProductPermissionFlag(context , "product-get-all");
+
+        var result = await productServices.RestoreProductAsync(id);
 
         return TypedResults.Ok(result);
     }

@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using api_vendace.Entities;
 using api_vendace.Interfaces;
 using api_vendace.Models.Dtos;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
@@ -30,7 +31,7 @@ public class ByteFileUtility
         return Path.Combine(appRootPath, mediaRootPath!, enityName, fileName);
     }
 
-    public List<TImage> SaveFileInFolder<TImage>(List<IFormFile> files, string entityName, bool isEncrypt = false)
+    public List<TImage> SaveFileInFolder<TImage>(List<IFormFile> files, string entityName, bool isEncrypt = false, bool shouldResize = true)
         where TImage : IThumbnail, new()
     {
         List<TImage> newFileNames = new List<TImage>();
@@ -47,7 +48,7 @@ public class ByteFileUtility
             //placeholder
             var placeholderFileName = $"placeholder_{newFileName}";
             var placeholderFilePath = Path.Combine(appRootPath, mediaRootPath!, entityName, placeholderFileName);
-            var placeholderBytes = ConvertToByteArray(file, true);
+            var placeholderBytes = ConvertToByteArray(file, shouldResize);
 
             if (isEncrypt)
             {
@@ -129,7 +130,7 @@ public class ByteFileUtility
         List<EntityImageDto> imagesSrc = new List<EntityImageDto>();
         var hostUrl = httpContextAccessor.HttpContext!.Request.Host.Value;
         var isHttps = httpContextAccessor.HttpContext.Request.IsHttps;
-        var httpMode = isHttps ? "https" : "http";
+        var httpMode = isHttps ? "https" : "https";
         foreach (var thumbnailFile in thumbnailFiles)
         {
             var srcImageUrl = $"{httpMode}://{hostUrl}/api/base/images/{entityName}/{thumbnailFile.ImageUrl}";
@@ -231,5 +232,32 @@ public class ByteFileUtility
             }
         }
     }
+    public class GuidArrayModelBinder : IModelBinder
+    {
+        public Task BindModelAsync(ModelBindingContext bindingContext)
+        {
+            var value = bindingContext.ValueProvider.GetValue(bindingContext.ModelName).ToString();
+            if (string.IsNullOrEmpty(value))
+            {
+                return Task.CompletedTask;
+            }
+
+            try
+            {
+                var guids = value.Split(',')
+                                 .Select(Guid.Parse)
+                                 .ToArray();
+
+                bindingContext.Result = ModelBindingResult.Success(guids);
+            }
+            catch
+            {
+                bindingContext.ModelState.AddModelError(bindingContext.ModelName, "Invalid GUID format");
+            }
+
+            return Task.CompletedTask;
+        }
+    }
 
 }
+

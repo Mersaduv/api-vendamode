@@ -12,8 +12,10 @@ public class Product : BaseClass<Guid>
     public List<EntityImage<Guid, Product>> Images { get; set; } = [];
     public string Code { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
+    public string Author { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public bool IsFake { get; set; }
+    public bool IsDeleted { get; set; }
     public StatusType Status { get; set; }
     public double Price { get; set; }
     public string Description { get; set; } = string.Empty;

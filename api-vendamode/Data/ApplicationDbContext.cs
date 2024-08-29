@@ -13,6 +13,7 @@ using api_vendamode.Entities;
 using api_vendace.Models.Dtos.ProductDto.Stock;
 using api_vendamode.Utility;
 using api_vendamode.Models.Dtos;
+using api_vendamode.Entities.Designs;
 
 namespace api_vendace.Data;
 public class ApplicationDbContext : DbContext
@@ -107,47 +108,65 @@ public class ApplicationDbContext : DbContext
             .HasConversion(converter!)
             .HasColumnType("jsonb");
     }
-    public DbSet<User> Users { get; set; } = default!;
-    public DbSet<Address> Addresses { get; set; } = default!;
-    public DbSet<Order> Orders { get; set; } = default!;
-    public DbSet<Cart> Cart { get; set; } = default!;
-    public DbSet<Canceled> Canceleds { get; set; } = default!;
-    public DbSet<Returned> Returneds { get; set; } = default!;
-    public DbSet<UserRefreshToken> UserRefreshTokens { get; set; } = default!;
-    public DbSet<UserSpecification> UserSpecifications { get; set; } = default!;
-    public DbSet<Role> Roles { get; set; } = default!;
-    public DbSet<Permission> Permissions { get; set; } = default!;
-    public DbSet<UserRole> UserRoles { get; set; } = default!;
-    public DbSet<Product> Products { get; set; } = default!;
-    public DbSet<StockItem> StockItems { get; set; } = default!;
-    public DbSet<Slider> Sliders { get; set; } = default!;
-    public DbSet<DescriptionEntity> Descriptions { get; set; } = default!;
-    public DbSet<EntityImage<Guid, Category>> CategoryImages { get; set; } = default!;
-    public DbSet<EntityImage<Guid, Product>> ProductImages { get; set; } = default!;
-    public DbSet<EntityMainImage<Guid, Product>> ProductMainImages { get; set; } = default!;
-    public DbSet<EntityImage<Guid, Brand>> BrandImages { get; set; } = default!;
-    public DbSet<EntityImage<Guid, ProductSize>> ProductSizeImages { get; set; } = default!;
-    public DbSet<EntityImage<Guid, Review>> ReviewImages { get; set; } = default!;
-    public DbSet<EntityImage<Guid, User>> UserImages { get; set; } = default!;
-    public DbSet<EntityImage<Guid, UserSpecification>> UserSpecificationImages { get; set; } = default!;
-    public DbSet<EntityImage<Guid, Slider>> SliderImages { get; set; } = default!;
-    public DbSet<EntityImage<Guid, Order>> PurchaseInvoice { get; set; } = default!;
-    public DbSet<EntityImage<Guid, StockItem>> StockImages { get; set; } = default!;
-    public DbSet<EntityImage<Guid, DescriptionEntity>> MediaImages { get; set; } = default!;
-    public DbSet<Category> Categories { get; set; } = default!;
-    public DbSet<Brand> Brands { get; set; } = default!;
-    public DbSet<ProductFeature> ProductFeatures { get; set; } = default!;
-    public DbSet<CategoryProductFeature> CategoryProductFeatures { get; set; } = default!;
-    public DbSet<FeatureValue> FeatureValues { get; set; } = default!;
-    public DbSet<ProductSize> ProductSizes { get; set; } = default!;
-    public DbSet<ProductSizeProductSizeValue> ProductSizeProductSizeValues { get; set; } = default!;
-    public DbSet<CategoryProductSize> CategoryProductSizes { get; set; } = default!;
-    public DbSet<Sizes> Sizes { get; set; } = default!;
-    public DbSet<CategorySize> CategorySizes { get; set; } = default!;
-    public DbSet<ProductScale> ProductScales { get; set; } = default!;
-    public DbSet<SizeIds> SizeIds { get; set; } = default!;
-    public DbSet<SizeModel> SizeModels { get; set; } = default!;
-    public DbSet<ProductSizeValues> ProductSizeValues { get; set; } = default!;
-    public DbSet<Review> Reviews { get; set; } = default!;
-    // public DbSet<Details> Details { get; set; } = default!;
+    public DbSet<User> Users { get; set; }
+    public DbSet<Address> Addresses { get; set; }
+    public DbSet<Order> Orders { get; set; }
+    public DbSet<Cart> Cart { get; set; }
+    public DbSet<Canceled> Canceleds { get; set; }
+    public DbSet<Returned> Returneds { get; set; }
+    public DbSet<UserRefreshToken> UserRefreshTokens { get; set; }
+    public DbSet<UserSpecification> UserSpecifications { get; set; }
+    public DbSet<Role> Roles { get; set; }
+    public DbSet<Permission> Permissions { get; set; }
+    public DbSet<UserRole> UserRoles { get; set; }
+    public DbSet<Product> Products { get; set; }
+    public DbSet<StockItem> StockItems { get; set; }
+    public DbSet<Slider> Sliders { get; set; }
+    public DbSet<DescriptionEntity> Descriptions { get; set; }
+    public DbSet<LogoImages> LogoImages { get; set; }
+    public DbSet<EntityMainImage<Guid, LogoImages>> OrgThumbnailImages { get; set; }
+    public DbSet<EntityImage<Guid, LogoImages>> FaviconThumbnailImages { get; set; }
+    public DbSet<EntityImage<Guid, Category>> CategoryImages { get; set; }
+    public DbSet<EntityImage<Guid, Product>> ProductImages { get; set; }
+    public DbSet<EntityMainImage<Guid, Product>> ProductMainImages { get; set; }
+    public DbSet<EntityImage<Guid, Brand>> BrandImages { get; set; }
+    public DbSet<EntityImage<Guid, ProductSize>> ProductSizeImages { get; set; }
+    public DbSet<EntityImage<Guid, Review>> ReviewImages { get; set; }
+    public DbSet<EntityImage<Guid, User>> UserImages { get; set; }
+    public DbSet<EntityImage<Guid, UserSpecification>> UserSpecificationImages { get; set; }
+    public DbSet<EntityImage<Guid, Slider>> SliderImages { get; set; }
+    public DbSet<EntityImage<Guid, Order>> PurchaseInvoice { get; set; }
+    public DbSet<EntityImage<Guid, StockItem>> StockImages { get; set; }
+    public DbSet<EntityImage<Guid, DescriptionEntity>> MediaImages { get; set; }
+    public DbSet<EntityImage<Guid, Banner>> BannerImages { get; set; }
+    public DbSet<EntityImage<Guid, Article>> ArticleImages { get; set; }
+    public DbSet<EntityImage<Guid, FooterBanner>> FooterBannerImages { get; set; }
+    public DbSet<EntityImage<Guid, DesignItem>> DesignItemImages { get; set; }
+    public DbSet<StoreCategory> StoreCategories { get; set; }
+    public DbSet<GeneralSetting> GeneralSettings { get; set; }
+    public DbSet<DesignItem> DesignItems { get; set; }
+    public DbSet<Article> Articles { get; set; }
+    public DbSet<ArticleReview> ArticleReviews { get; set; }
+    public DbSet<ArticleBanner> ArticleBanners { get; set; }
+    public DbSet<Banner> Banners { get; set; }
+    public DbSet<FooterBanner> FooterBanners { get; set; }
+    public DbSet<Category> Categories { get; set; }
+    public DbSet<Brand> Brands { get; set; }
+    public DbSet<ProductFeature> ProductFeatures { get; set; }
+    public DbSet<CategoryProductFeature> CategoryProductFeatures { get; set; }
+    public DbSet<FeatureValue> FeatureValues { get; set; }
+    public DbSet<ProductSize> ProductSizes { get; set; }
+    public DbSet<ProductSizeProductSizeValue> ProductSizeProductSizeValues { get; set; }
+    public DbSet<CategoryProductSize> CategoryProductSizes { get; set; }
+    public DbSet<Sizes> Sizes { get; set; }
+    public DbSet<CategorySize> CategorySizes { get; set; }
+    public DbSet<ProductScale> ProductScales { get; set; }
+    public DbSet<SizeIds> SizeIds { get; set; }
+    public DbSet<SizeModel> SizeModels { get; set; }
+    public DbSet<ProductSizeValues> ProductSizeValues { get; set; }
+    public DbSet<Review> Reviews { get; set; }
+    public DbSet<HeaderText> HeaderTexts { get; set; }
+    public DbSet<SloganFooter> SloganFooters { get; set; }
+    public DbSet<Support> Supports { get; set; }
+    public DbSet<Redirects> Redirects { get; set; }
 }

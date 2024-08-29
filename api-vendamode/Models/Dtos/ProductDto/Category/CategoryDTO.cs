@@ -20,6 +20,7 @@ public class CategoryDTO : BaseClass<Guid>
     public CategorySizeDTO CategorySizes { get; set; } = new CategorySizeDTO();
     public int BrandCount { get; set; }
     public bool IsActive { get; set; }
+    public bool IsActiveProduct { get; set; }
     public bool IsDeleted { get; set; }
     public bool HasSizeProperty { get; set; }
     public CategoryDTO? ParentCategory { get; set; }

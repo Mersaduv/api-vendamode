@@ -17,6 +17,7 @@ public class ProductDTO
     public List<EntityImageDto>? ImagesSrc { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
+    public string Author { get; set; } = string.Empty;
     public double Price { get; set; }
     public StatusType Status { get; set; }
     public bool IsFake { get; set; }

@@ -8,7 +8,9 @@ using api_vendace.Models.Dtos;
 using api_vendace.Models.Dtos.ProductDto.Review;
 using api_vendace.Models.Query;
 using api_vendace.Utility;
+using api_vendamode.Entities;
 using api_vendamode.Models.Dtos.ProductDto.Review;
+using api_vendamode.Models.Dtos.ProductDto.Review.Article;
 using Microsoft.EntityFrameworkCore;
 
 namespace api_vendace.Services.Products;
@@ -114,6 +116,7 @@ public class ReviewServices : IReviewServices
             .Skip(skipCount)
             .Take(pageSize)
             .Include(u => u.User)
+            .ThenInclude(us => us.UserSpecification)
             .Select(r => new ReviewDto
             {
                 Id = r.Id,
@@ -181,5 +184,189 @@ public class ReviewServices : IReviewServices
             return false;
         }
         return true;
+    }
+
+    public async Task<ServiceResponse<bool>> CreateArticleReview(ArticleReviewCreateDTO articleReviewCreate)
+    {
+        var isExist = await CheckArticleExist(articleReviewCreate.ArticleId);
+        var userId = _userServices.GetUserId();
+        if (!isExist)
+        {
+            return new ServiceResponse<bool>
+            {
+                Success = false,
+                Message = "مقاله‌ای برای این دیدگاه پیدا نشد."
+            };
+        }
+
+        var review = new ArticleReview
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            ArticleId = articleReviewCreate.ArticleId,
+            Status = 1,
+            Comment = articleReviewCreate.Comment,
+            Created = DateTime.UtcNow,
+            LastUpdated = DateTime.UtcNow
+        };
+
+        await _context.ArticleReviews.AddAsync(review);
+        await _unitOfWork.SaveChangesAsync();
+
+        return new ServiceResponse<bool>
+        {
+            Data = true,
+            Message = "دیدگاه شما بعد از تایید ناظر منتشر خواهد شد"
+        };
+    }
+
+    public async Task<ServiceResponse<bool>> DeleteArticleReview(Guid id)
+    {
+        var review = await _context.Reviews.FirstOrDefaultAsync(x => x.Id == id);
+        if (review == null)
+        {
+            return new ServiceResponse<bool>
+            {
+                Message = "دیدگاهی پیدا نشد",
+                Success = false
+            };
+        }
+        _context.Reviews.Remove(review);
+        await _unitOfWork.SaveChangesAsync();
+        return new ServiceResponse<bool>
+        {
+            Data = true
+        };
+    }
+
+    public async Task<ServiceResponse<Pagination<ArticleReviewDto>>> GetArticleReviews(Guid articleId, RequestQuery requestQuery)
+    {
+        var pageNumber = requestQuery.PageNumber ?? 1;
+        var pageSize = requestQuery.PageSize ?? 15;
+        var skipCount = (pageNumber - 1) * pageSize;
+
+        var reviews = await _context.ArticleReviews
+            .Where(r => r.ArticleId == articleId)
+            .OrderByDescending(r => r.Created)
+            .Skip(skipCount)
+            .Take(pageSize)
+            .Include(u => u.User)
+            .ThenInclude(us => us.UserSpecification)
+            .Select(r => new ArticleReviewDto
+            {
+                Id = r.Id,
+                Comment = r.Comment,
+                Status = r.Status,
+                UserName = r.User.UserSpecification.FirstName + " " + r.User.UserSpecification.FamilyName,
+                UserId = r.User.Id,
+                Created = r.Created,
+                LastUpdated = r.LastUpdated
+            })
+            .ToListAsync();
+
+        var totalReviews = await _context.Reviews.CountAsync(r => r.ProductId == articleId);
+
+        var pagination = new Pagination<ArticleReviewDto>
+        {
+            CurrentPage = pageNumber,
+            NextPage = pageNumber + 1,
+            PreviousPage = pageNumber > 1 ? pageNumber - 1 : 0,
+            HasNextPage = (skipCount + pageSize) < totalReviews,
+            HasPreviousPage = pageNumber > 1,
+            LastPage = (int)Math.Ceiling((decimal)totalReviews / pageSize),
+            TotalCount = totalReviews,
+            Data = reviews
+        };
+
+        return new ServiceResponse<Pagination<ArticleReviewDto>>
+        {
+            Data = pagination
+        };
+    }
+
+    public async Task<ServiceResponse<ArticleReviewDto>> GetArticleReviewBy(Guid id)
+    {
+        var review = await _context.Reviews
+            .Include(r => r.User)
+            .FirstOrDefaultAsync(r => r.Id == id);
+
+        if (review == null)
+        {
+            return new ServiceResponse<ArticleReviewDto>
+            {
+                Success = false,
+                Message = "دیدگاهی پیدا نشد"
+            };
+        }
+
+        var reviewDto = new ArticleReviewDto
+        {
+            Id = review.Id,
+            Comment = review.Comment,
+            UserName = review.User.UserSpecification.FirstName + " " + review.User.UserSpecification.FamilyName,
+            UserId = review.User.Id,
+            Created = review.Created,
+            LastUpdated = review.LastUpdated
+        };
+
+        return new ServiceResponse<ArticleReviewDto>
+        {
+            Data = reviewDto
+        };
+    }
+
+    private async Task<bool> CheckArticleExist(Guid articleId)
+    {
+        var article = await _context.Articles
+           .AsNoTracking().FirstOrDefaultAsync(i => i.Id == articleId);
+        if (article is null)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    public async Task<ServiceResponse<Pagination<ArticleReviewDto>>> GetAllArticleReviews(RequestQuery requestQuery)
+    {
+        var pageNumber = requestQuery.PageNumber ?? 1;
+        var pageSize = requestQuery.PageSize ?? 15;
+        var skipCount = (pageNumber - 1) * pageSize;
+
+        var reviews = await _context.ArticleReviews
+            .OrderByDescending(r => r.Created)
+            .Skip(skipCount)
+            .Take(pageSize)
+            .Include(u => u.User)
+            .ThenInclude(us => us.UserSpecification)
+            .Select(r => new ArticleReviewDto
+            {
+                Id = r.Id,
+                Comment = r.Comment,
+                Status = r.Status,
+                UserName = r.User.UserSpecification.FirstName + " " + r.User.UserSpecification.FamilyName,
+                UserId = r.User.Id,
+                Created = r.Created,
+                LastUpdated = r.LastUpdated
+            })
+            .ToListAsync();
+
+        var totalReviews = await _context.Reviews.CountAsync();
+
+        var pagination = new Pagination<ArticleReviewDto>
+        {
+            CurrentPage = pageNumber,
+            NextPage = pageNumber + 1,
+            PreviousPage = pageNumber > 1 ? pageNumber - 1 : 0,
+            HasNextPage = (skipCount + pageSize) < totalReviews,
+            HasPreviousPage = pageNumber > 1,
+            LastPage = (int)Math.Ceiling((decimal)totalReviews / pageSize),
+            TotalCount = totalReviews,
+            Data = reviews
+        };
+
+        return new ServiceResponse<Pagination<ArticleReviewDto>>
+        {
+            Data = pagination
+        };
     }
 }

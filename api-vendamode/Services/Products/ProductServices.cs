@@ -22,7 +22,6 @@ using api_vendamode.Models.Dtos.ProductDto.Stock;
 using api_vendace.Models.Dtos.ProductDto.Brand;
 using api_vendamode.Entities.Products;
 using api_vendamode.Models.Dtos;
-
 public class ProductServices : IProductServices
 {
 
@@ -32,21 +31,51 @@ public class ProductServices : IProductServices
     private readonly IUnitOfWork _unitOfWork;
     private readonly ByteFileUtility _byteFileUtility;
 
-    public ProductServices(IProductRepository productRepository, IUnitOfWork unitOfWork, ByteFileUtility byteFileUtility, ApplicationDbContext context, ICategoryServices categoryServices)
+    private readonly IUserServices _userServices;
+
+    public ProductServices(IProductRepository productRepository, IUnitOfWork unitOfWork, ByteFileUtility byteFileUtility, ApplicationDbContext context, ICategoryServices categoryServices, IUserServices userServices)
     {
         _productRepository = productRepository;
         _unitOfWork = unitOfWork;
         _byteFileUtility = byteFileUtility;
         _context = context;
         _categoryServices = categoryServices;
+        _userServices = userServices;
     }
-    public async Task<ServiceResponse<bool>> BulkUpdateProductStatus(List<Guid> productIds, bool isActive)
+    public async Task<ServiceResponse<bool>> BulkUpdateProductStatus(List<Guid> productIds, string action)
     {
         var products = await _context.Products.Where(p => productIds.Contains(p.Id)).ToListAsync();
-        foreach (var product in products)
+        if (action == "1")
         {
-            product.IsActive = isActive;
+            foreach (var product in products)
+            {
+                product.IsActive = true;
+                product.IsDeleted = false;
+            }
         }
+        else if (action == "2")
+        {
+            foreach (var product in products)
+            {
+                product.IsActive = false;
+            }
+        }
+        else if (action == "3")
+        {
+            foreach (var product in products)
+            {
+                product.IsActive = false;
+                product.IsDeleted = true;
+            }
+        }
+        else
+        {
+            foreach (var product in products)
+            {
+                product.IsDeleted = false;
+            }
+        }
+
 
         _context.Products.UpdateRange(products);
         var result = await _unitOfWork.SaveChangesAsync();
@@ -60,6 +89,8 @@ public class ProductServices : IProductServices
     {
         var productId = Guid.NewGuid();
         var product = productCreateDTO.ToProducts(_byteFileUtility, productId);
+        var userId = _userServices.GetUserId();
+        var userInfo = await _context.Users.Include(us => us.UserSpecification).FirstOrDefaultAsync(u => u.Id == userId);
 
         // load feature
         // Null-checks 
@@ -96,6 +127,7 @@ public class ProductServices : IProductServices
         var productSlug = GenerateSlug(productCreateDTO.Title, productCode);
         product.Id = productId;
         product.Slug = productSlug;
+        product.Author = userInfo?.UserSpecification.FirstName + " " + userInfo?.UserSpecification.FamilyName;
         product.Code = productCode;
         product.FeatureValueIds = featureValueIds;
         product.ProductFeatures = productFeatures;
@@ -125,6 +157,7 @@ public class ProductServices : IProductServices
                 {
                     Id = stockItemDTO.Id,
                     StockId = stockItemDTO.StockId,
+                    IsHidden = stockItemDTO.IsHidden,
                     Images = stockItemDTO.ImageStock != null ? _byteFileUtility.SaveFileInFolder<EntityImage<Guid, StockItem>>([stockItemDTO.ImageStock], nameof(StockItem), false) : [],
                     Idx = stockItemDTO.Idx ?? string.Empty,
                     ProductId = product.Id,
@@ -132,6 +165,9 @@ public class ProductServices : IProductServices
                     SizeId = sizeId2 == Guid.Empty ? null : sizeId2,
                     Quantity = stockItemDTO.Quantity,
                     Discount = stockItemDTO.Discount,
+                    OfferStartTime = DateTime.UtcNow,
+                    OfferEndTime = stockItemDTO.OfferTime.HasValue ? DateTime.UtcNow.AddHours(stockItemDTO.OfferTime.Value) : null,
+                    OfferTime = stockItemDTO.OfferTime,
                     Price = stockItemDTO.Price,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -258,6 +294,30 @@ public class ProductServices : IProductServices
             // Initial query
             var query = _productRepository.GetQuery();
 
+            // Admin LIst 
+            if (requestQuery.AdminList is not null)
+            {
+                query = query.Where(x => !x.IsDeleted);
+            }
+
+            // Deleted Filter
+            if (requestQuery.IsDeleted is not null)
+            {
+                query = query.Where(x => x.IsDeleted);
+            }
+
+            // isActive Filter
+            if (requestQuery.IsActive is not null)
+            {
+                query = query.Where(x => x.IsActive);
+            }
+
+            // isActive Filter
+            if (requestQuery.InActive is not null)
+            {
+                query = query.Where(x => !x.IsActive && !x.IsDeleted);
+            }
+
             // Brand filter
             if (requestQuery.Brands != null && requestQuery.Brands.Length > 0)
             {
@@ -283,7 +343,7 @@ public class ProductServices : IProductServices
             }
 
             // Category filter
-            if (requestQuery.CategoryId is not null)
+            if (requestQuery.CategoryId is not null && requestQuery.SingleCategory is not null)
             {
                 Guid categoryId;
                 if (Guid.TryParse(requestQuery.CategoryId, out categoryId))
@@ -294,11 +354,16 @@ public class ProductServices : IProductServices
                 }
             }
 
-            if (!string.IsNullOrEmpty(requestQuery.Category))
+            if (!string.IsNullOrEmpty(requestQuery.Category) && requestQuery.SingleCategory is not null)
             {
                 var allCategoryIds = _categoryServices.GetAllCategoryIdsBy(requestQuery.Category);
 
                 query = query.Where(p => allCategoryIds.Contains(p.CategoryId));
+            }
+
+            if (requestQuery.CategoryId is not null && requestQuery.SingleCategory is null)
+            {
+                query = query.Where(p => p.CategoryId == Guid.Parse(requestQuery.CategoryId));
             }
 
             // Search filter
@@ -322,6 +387,30 @@ public class ProductServices : IProductServices
             if (requestQuery.Discount.HasValue && requestQuery.Discount.Value)
             {
                 query = query.Where(p => p.StockItems.Any(si => si.Discount >= 1) && p.InStock >= 1);
+            }
+
+            // Product filters based on ProductIds
+            if (requestQuery.ProductIds != null && requestQuery.ProductIds.Length > 0)
+            {
+                // Split each brand string by comma and convert to GUIDs safely
+                var productIdGuids = new List<Guid>();
+                foreach (var product in requestQuery.ProductIds)
+                {
+                    var productIds = product.Split(',');
+                    foreach (var productId in productIds)
+                    {
+                        if (Guid.TryParse(productId, out var parsedGuid))
+                        {
+                            productIdGuids.Add(parsedGuid);
+                        }
+                    }
+                }
+
+                // Apply the Product filter if there are valid GUIDs
+                if (productIdGuids.Count > 0)
+                {
+                    query = query.Where(product => productIdGuids.Contains(product.Id));
+                }
             }
 
 
@@ -885,26 +974,47 @@ public class ProductServices : IProductServices
 
         result.ProductFeatureInfo = new ProductFeatureInfo(featureData);
 
-        result.StockItems = product.StockItems is not null ? product.StockItems.Select(ps => new GetStockItemDTO
+        if (product.StockItems is not null)
         {
-            Id = ps.Id,
-            StockId = ps.StockId,
-            ProductId = ps.ProductId,
-            Idx = ps.Idx,
-            ImagesSrc = _byteFileUtility.GetEncryptedFileActionUrl
-            (ps.Images.Select(img => new EntityImageDto
+            result.StockItems = product.StockItems.Select(ps =>
             {
-                Id = img.Id,
-                ImageUrl = img.ImageUrl!,
-                Placeholder = img.Placeholder!
-            }).ToList(), nameof(StockItem)),
-            Discount = ps.Discount,
-            Price = ps.Price,
-            FeatureValueId = ps.FeatureValueId,
-            Quantity = ps.Quantity,
-            SizeId = ps.SizeId,
-            AdditionalProperties = ps.AdditionalProperties
-        }).ToList() : [];
+                string? discountRemainingTime = null;
+                if (ps.OfferEndTime.HasValue && ps.OfferEndTime.Value > DateTime.UtcNow)
+                {
+                    var remainingTime = ps.OfferEndTime.Value - DateTime.UtcNow;
+
+                    var totalHours = (int)remainingTime.TotalHours;
+                    var minutes = remainingTime.Minutes;
+                    var seconds = remainingTime.Seconds;
+
+                    discountRemainingTime = $"{totalHours:D2}:{minutes:D2}:{seconds:D2}";
+                }
+                return new GetStockItemDTO
+                {
+                    Id = ps.Id,
+                    StockId = ps.StockId,
+                    IsHidden = ps.IsHidden,
+                    ProductId = ps.ProductId,
+                    Idx = ps.Idx,
+                    ImagesSrc = _byteFileUtility.GetEncryptedFileActionUrl(ps.Images.Select(img => new EntityImageDto
+                    {
+                        Id = img.Id,
+                        ImageUrl = img.ImageUrl!,
+                        Placeholder = img.Placeholder!
+                    }).ToList(), nameof(StockItem)),
+                    Discount = ps.Discount,
+                    OfferTime = ps.OfferTime,
+                    Price = ps.Price,
+                    FeatureValueId = ps.FeatureValueId,
+                    Quantity = ps.Quantity,
+                    SizeId = ps.SizeId,
+                    AdditionalProperties = ps.AdditionalProperties,
+                    DiscountRemainingTime = discountRemainingTime,
+                    Created = ps.CreatedAt,
+                    LastUpdated = ps.UpdatedAt
+                };
+            }).ToList();
+        }
 
 
         double sumOfRatings = 0;
@@ -950,6 +1060,8 @@ public class ProductServices : IProductServices
 
     public async Task<ServiceResponse<Guid>> UpdateProduct(ProductUpdateDTO productUpdateDTO)
     {
+        var userId = _userServices.GetUserId();
+        var userInfo = await _context.Users.Include(us => us.UserSpecification).FirstOrDefaultAsync(u => u.Id == userId);
         var product = await _context.Products
                             .Include(x => x.Brand)
                             .Include(x => x.Images)
@@ -984,6 +1096,7 @@ public class ProductServices : IProductServices
             Title = productUpdateDTO.Title,
             Code = product.Code,
             Slug = product.Slug,
+            Author = userInfo?.UserSpecification.FirstName + " " + userInfo?.UserSpecification.FamilyName,
             IsActive = productUpdateDTO.IsActive,
             CategoryId = productUpdateDTO.CategoryId,
             Status = productUpdateDTO.Status,
@@ -1081,6 +1194,7 @@ public class ProductServices : IProductServices
                 {
                     Id = stockItemDTO.Id,
                     StockId = stockItemDTO.StockId,
+                    IsHidden = stockItemDTO.IsHidden,
                     Images = stockItemDTO.ImageStock != null ? _byteFileUtility.SaveFileInFolder<EntityImage<Guid, StockItem>>([stockItemDTO.ImageStock], nameof(StockItem), false) : new List<EntityImage<Guid, StockItem>>(),
                     Idx = stockItemDTO.Idx ?? string.Empty,
                     ProductId = productId,
@@ -1088,6 +1202,9 @@ public class ProductServices : IProductServices
                     SizeId = sizeId2 == Guid.Empty ? null : sizeId2,
                     Quantity = stockItemDTO.Quantity,
                     Discount = stockItemDTO.Discount,
+                    OfferStartTime = DateTime.UtcNow,
+                    OfferEndTime = stockItemDTO.OfferTime.HasValue ? DateTime.UtcNow.AddHours(stockItemDTO.OfferTime.Value) : null,
+                    OfferTime = stockItemDTO.OfferTime,
                     Price = stockItemDTO.Price,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -1132,6 +1249,57 @@ public class ProductServices : IProductServices
         {
             Success = false,
             Message = $"محصول {product.Slug} با موفقیت حذف شد"
+        };
+    }
+
+    public async Task<ServiceResponse<bool>> DeleteTrashAsync(Guid id)
+    {
+        var product = await _context.Products
+                                    .FirstOrDefaultAsync(p => p.Id == id);
+
+
+        if (product == null)
+        {
+            return new ServiceResponse<bool>
+            {
+                Success = false,
+                Message = "محصولی پیدا نشد."
+            };
+        }
+        product.IsDeleted = true;
+        product.IsActive = false;
+        _context.Products.Update(product);
+        await _unitOfWork.SaveChangesAsync();
+
+        return new ServiceResponse<bool>
+        {
+            Success = false,
+            Message = $"محصول {product.Slug} با موفقیت حذف شد"
+        };
+    }
+
+    public async Task<ServiceResponse<bool>> RestoreProductAsync(Guid id)
+    {
+        var product = await _context.Products
+                                    .FirstOrDefaultAsync(p => p.Id == id);
+
+
+        if (product == null)
+        {
+            return new ServiceResponse<bool>
+            {
+                Success = false,
+                Message = "محصولی پیدا نشد."
+            };
+        }
+        product.IsDeleted = false;
+        _context.Products.Update(product);
+        await _unitOfWork.SaveChangesAsync();
+
+        return new ServiceResponse<bool>
+        {
+            Success = false,
+            Message = $"محصول {product.Slug} با موفقیت بازگردانی شد"
         };
     }
 

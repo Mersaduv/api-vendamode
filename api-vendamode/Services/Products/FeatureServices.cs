@@ -177,7 +177,7 @@ public class FeatureServices : IFeatureServices
                                     .AsQueryable();
 
         featuresQuery = featuresQuery.OrderByDescending(f => f.Values.Any(v => !string.IsNullOrEmpty(v.HexCode)))
-                                     .ThenByDescending(f => f.LastUpdated);
+                                     .ThenByDescending(f => f.Created);
 
 
         // Search filter
@@ -340,10 +340,10 @@ public class FeatureServices : IFeatureServices
                             .Include(f => f.Products)
                             .Include(c => c.CategoryProductFeatures)
                             .ThenInclude(c => c.Category)
-                            .Where(f =>  f.CategoryProductFeatures.Any(x => x.CategoryId == categoryId))
+                            .Where(f => f.CategoryProductFeatures.Any(x => x.CategoryId == categoryId))
                             .AsNoTracking()
                             .AsQueryable();
-        
+
         // Fetch features related to the category
         var features = await featuresQuery
             .ToListAsync();

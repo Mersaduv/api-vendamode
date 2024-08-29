@@ -214,6 +214,121 @@ namespace api_vendamode.Migrations
                     b.ToTable("StockImages");
                 });
 
+            modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Designs.DesignItem>", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Placeholder")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityId")
+                        .IsUnique();
+
+                    b.ToTable("DesignItemImages");
+                });
+
+            modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Designs.LogoImages>", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Placeholder")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityId")
+                        .IsUnique();
+
+                    b.ToTable("FaviconThumbnailImages");
+                });
+
+            modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Products.Article>", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Placeholder")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityId")
+                        .IsUnique();
+
+                    b.ToTable("ArticleImages");
+                });
+
+            modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Products.Banner>", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Placeholder")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityId")
+                        .IsUnique();
+
+                    b.ToTable("BannerImages");
+                });
+
+            modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Products.FooterBanner>", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Placeholder")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityId")
+                        .IsUnique();
+
+                    b.ToTable("FooterBannerImages");
+                });
+
             modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Products.Order>", b =>
                 {
                     b.Property<Guid>("Id")
@@ -306,6 +421,29 @@ namespace api_vendamode.Migrations
                     b.ToTable("ProductMainImages");
                 });
 
+            modelBuilder.Entity("api_vendace.Entities.EntityMainImage<System.Guid, api_vendamode.Entities.Designs.LogoImages>", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Placeholder")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityId")
+                        .IsUnique();
+
+                    b.ToTable("OrgThumbnailImages");
+                });
+
             modelBuilder.Entity("api_vendace.Entities.Products.Brand", b =>
                 {
                     b.Property<Guid>("Id")
@@ -356,6 +494,9 @@ namespace api_vendamode.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsActiveProduct")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsDeleted")
@@ -456,6 +597,10 @@ namespace api_vendamode.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Author")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<Guid?>("BrandId")
                         .HasColumnType("uuid");
 
@@ -486,6 +631,9 @@ namespace api_vendamode.Migrations
                         .HasColumnType("integer");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsFake")
@@ -1115,6 +1263,18 @@ namespace api_vendamode.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("OfferEndTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("OfferStartTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("OfferTime")
+                        .HasColumnType("integer");
+
                     b.Property<double>("Price")
                         .HasColumnType("double precision");
 
@@ -1138,6 +1298,40 @@ namespace api_vendamode.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("StockItems");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.ArticleReview", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArticleId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ArticleReviews");
                 });
 
             modelBuilder.Entity("api_vendamode.Entities.Canceled", b =>
@@ -1165,6 +1359,270 @@ namespace api_vendamode.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Canceleds");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Designs.DesignItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Index")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Link")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DesignItems");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Designs.GeneralSetting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("GoogleTags")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ShortIntroduction")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("GeneralSettings");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Designs.LogoImages", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("LogoImages");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Designs.Redirects", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Redirects");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Designs.SloganFooter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Headline")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("IntroductionText")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SloganFooters");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Designs.Support", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContactAndSupport")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Copyright")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Supports");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Products.Article", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Author")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Place")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.ToTable("Articles");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Products.ArticleBanner", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Index")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArticleId");
+
+                    b.ToTable("ArticleBanners");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Products.Banner", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Index")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Link")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Banners");
                 });
 
             modelBuilder.Entity("api_vendamode.Entities.Products.Cart", b =>
@@ -1272,6 +1730,64 @@ namespace api_vendamode.Migrations
                     b.ToTable("CategorySizes");
                 });
 
+            modelBuilder.Entity("api_vendamode.Entities.Products.FooterBanner", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Index")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Link")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("FooterBanners");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Products.HeaderText", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("HeaderTexts");
+                });
+
             modelBuilder.Entity("api_vendamode.Entities.Products.Order", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1371,25 +1887,43 @@ namespace api_vendamode.Migrations
                     b.Property<DateTime>("Created")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<bool>("IsMain")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsPublic")
+                    b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastUpdated")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Title")
+                    b.Property<string>("Link")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Uri")
+                    b.Property<string>("Type")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
 
                     b.ToTable("Sliders");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Products.StoreCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("StoreCategories");
                 });
 
             modelBuilder.Entity("api_vendamode.Entities.Returned", b =>
@@ -1537,6 +2071,61 @@ namespace api_vendamode.Migrations
                     b.Navigation("Entity");
                 });
 
+            modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Designs.DesignItem>", b =>
+                {
+                    b.HasOne("api_vendamode.Entities.Designs.DesignItem", "Entity")
+                        .WithOne("Image")
+                        .HasForeignKey("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Designs.DesignItem>", "EntityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Entity");
+                });
+
+            modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Designs.LogoImages>", b =>
+                {
+                    b.HasOne("api_vendamode.Entities.Designs.LogoImages", "Entity")
+                        .WithOne("FaviconThumbnail")
+                        .HasForeignKey("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Designs.LogoImages>", "EntityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Entity");
+                });
+
+            modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Products.Article>", b =>
+                {
+                    b.HasOne("api_vendamode.Entities.Products.Article", "Entity")
+                        .WithOne("Image")
+                        .HasForeignKey("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Products.Article>", "EntityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Entity");
+                });
+
+            modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Products.Banner>", b =>
+                {
+                    b.HasOne("api_vendamode.Entities.Products.Banner", "Entity")
+                        .WithOne("Image")
+                        .HasForeignKey("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Products.Banner>", "EntityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Entity");
+                });
+
+            modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Products.FooterBanner>", b =>
+                {
+                    b.HasOne("api_vendamode.Entities.Products.FooterBanner", "Entity")
+                        .WithOne("Image")
+                        .HasForeignKey("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Products.FooterBanner>", "EntityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Entity");
+                });
+
             modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Products.Order>", b =>
                 {
                     b.HasOne("api_vendamode.Entities.Products.Order", "Entity")
@@ -1575,6 +2164,17 @@ namespace api_vendamode.Migrations
                     b.HasOne("api_vendace.Entities.Products.Product", "Entity")
                         .WithOne("MainImage")
                         .HasForeignKey("api_vendace.Entities.EntityMainImage<System.Guid, api_vendace.Entities.Products.Product>", "EntityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Entity");
+                });
+
+            modelBuilder.Entity("api_vendace.Entities.EntityMainImage<System.Guid, api_vendamode.Entities.Designs.LogoImages>", b =>
+                {
+                    b.HasOne("api_vendamode.Entities.Designs.LogoImages", "Entity")
+                        .WithOne("OrgThumbnail")
+                        .HasForeignKey("api_vendace.Entities.EntityMainImage<System.Guid, api_vendamode.Entities.Designs.LogoImages>", "EntityId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1879,6 +2479,45 @@ namespace api_vendamode.Migrations
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.ArticleReview", b =>
+                {
+                    b.HasOne("api_vendamode.Entities.Products.Article", "Article")
+                        .WithMany("ArticleReviews")
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("api_vendace.Entities.Users.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Article");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Products.Article", b =>
+                {
+                    b.HasOne("api_vendace.Entities.Products.Category", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId");
+
+                    b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Products.ArticleBanner", b =>
+                {
+                    b.HasOne("api_vendamode.Entities.Products.Article", "Article")
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Article");
                 });
 
             modelBuilder.Entity("api_vendamode.Entities.Products.Cart", b =>
@@ -2203,6 +2842,35 @@ namespace api_vendamode.Migrations
             modelBuilder.Entity("api_vendace.Models.Dtos.ProductDto.Stock.StockItem", b =>
                 {
                     b.Navigation("Images");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Designs.DesignItem", b =>
+                {
+                    b.Navigation("Image");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Designs.LogoImages", b =>
+                {
+                    b.Navigation("FaviconThumbnail");
+
+                    b.Navigation("OrgThumbnail");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Products.Article", b =>
+                {
+                    b.Navigation("ArticleReviews");
+
+                    b.Navigation("Image");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Products.Banner", b =>
+                {
+                    b.Navigation("Image");
+                });
+
+            modelBuilder.Entity("api_vendamode.Entities.Products.FooterBanner", b =>
+                {
+                    b.Navigation("Image");
                 });
 
             modelBuilder.Entity("api_vendamode.Entities.Products.Order", b =>

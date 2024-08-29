@@ -22,7 +22,10 @@ public static class SliderEndpoints
         .Accepts<SliderCreateDto>("multipart/form-data");
 
         sliderGroup.MapPost("update", UpdateSlider)
-        .Accepts<SliderUpdateDto>("multipart/form-data");
+        .Accepts<SliderUpsertDto>("multipart/form-data");
+
+        sliderGroup.MapPost("upsert", UpsertSlider)
+        .Accepts<SliderBulkUpsertDto>("multipart/form-data");
 
         sliderGroup.MapPut(string.Empty, UpdateSlider);
 
@@ -42,11 +45,20 @@ public static class SliderEndpoints
         return TypedResults.Ok(result);
     }
 
-    private async static Task<Ok<ServiceResponse<bool>>> UpdateSlider(ISliderServices sliderServices, SliderUpdateDto slider, ILogger<Program> _logger)
+    private async static Task<Ok<ServiceResponse<bool>>> UpdateSlider(ISliderServices sliderServices, SliderUpsertDto slider, ILogger<Program> _logger)
     {
         _logger.Log(LogLevel.Information, "Update Slider");
 
         var result = await sliderServices.UpdateSlider(slider);
+
+        return TypedResults.Ok(result);
+    }
+
+    private async static Task<Ok<ServiceResponse<bool>>> UpsertSlider(ISliderServices sliderServices, SliderBulkUpsertDto request, ILogger<Program> _logger)
+    {
+        _logger.Log(LogLevel.Information, "Upsert Slider");
+
+        var result = await sliderServices.UpsertSliders(request.Sliders);
 
         return TypedResults.Ok(result);
     }
@@ -78,7 +90,7 @@ public static class SliderEndpoints
         return TypedResults.Ok(result);
     }
 
-        private async static Task<Ok<ServiceResponse<IReadOnlyList<SliderDto>>>> GetMainSliders(ISliderServices sliderServices, ILogger<Program> _logger)
+    private async static Task<Ok<ServiceResponse<IReadOnlyList<SliderDto>>>> GetMainSliders(ISliderServices sliderServices, ILogger<Program> _logger)
     {
         _logger.Log(LogLevel.Information, "Getting Main Sliders");
 

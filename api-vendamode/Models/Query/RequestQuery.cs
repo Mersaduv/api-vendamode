@@ -20,11 +20,15 @@ public class RequestQuery
 
     [FromQuery(Name = "maxPrice")]
     public double? MaxPrice { get; set; }
+    [FromQuery(Name = "productIds")]
+    public string[]? ProductIds { get; set; }
 
     [FromQuery(Name = "category")]
     public string? Category { get; set; }
     [FromQuery(Name = "categoryId")]
     public string? CategoryId { get; set; }
+    [FromQuery(Name = "singleCategory")]
+    public bool? SingleCategory { get; set; }
     [FromQuery(Name = "sizes")]
     public Guid[]? SizeIds { get; set; }
 
@@ -44,8 +48,23 @@ public class RequestQuery
 
     [FromQuery(Name = "discount")]
     public bool? Discount { get; set; }
+
+    [FromQuery(Name = "place")]
+    public string? Place { get; set; }
+
     [FromQuery(Name = "isAdmin")]
     public bool? Admin { get; set; }
     [FromQuery(Name = "isActive")]
     public bool? IsActive { get; set; }
+
+    [FromQuery(Name = "inActive")]
+    public bool? InActive { get; set; }
+
+    [FromQuery(Name = "isDeleted")]
+    public bool? IsDeleted { get; set; }
+    [FromQuery(Name = "adminList")]
+    public bool? AdminList { get; set; }
+
+    [FromQuery(Name = "isSlider")]
+    public bool? IsSlider { get; set; }
 }

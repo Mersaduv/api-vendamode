@@ -489,7 +489,7 @@ public class ProductSizeServices : IProductSizeServices
         var pageSize = requestQuery.PageSize ?? 15;
 
         var sizeQuery = _context.Sizes
-                                    .OrderByDescending(f => f.LastUpdated)
+                                    .OrderByDescending(f => f.Created)
                                     .AsNoTracking()
                                     .AsQueryable();
 

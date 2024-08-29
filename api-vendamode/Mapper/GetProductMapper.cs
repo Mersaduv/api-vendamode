@@ -16,6 +16,7 @@ public static class GetProductMapper
             Title = product.Title,
             Code = product.Code,
             Slug = product.Slug,
+            Author = product.Author,
             MainImageSrc = byteFileUtility.GetEncryptedFileActionUrl
             ([new EntityImageDto
                             {
@@ -54,6 +55,7 @@ public static class GetProductMapper
                 Title = prod.Title,
                 Slug = prod.Slug,
                 Code = prod.Code,
+                Author = prod.Author,
                 ImagesSrc = byteFileUtility.GetEncryptedFileActionUrl
                 (prod.Images.Select(img => new EntityImageDto
                 {

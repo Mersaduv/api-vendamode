@@ -5,7 +5,8 @@ namespace api_vendamode.Interfaces.IServices;
 public interface ISliderServices
 {
     Task<ServiceResponse<bool>> AddSlider(SliderCreateDto slider);
-    Task<ServiceResponse<bool>> UpdateSlider(SliderUpdateDto slider);
+    Task<ServiceResponse<bool>> UpsertSliders(List<SliderUpsertDto> sliderUpsertDtos);
+    Task<ServiceResponse<bool>> UpdateSlider(SliderUpsertDto slider);
     Task<ServiceResponse<bool>> DeleteSlider(Guid id);
     Task<ServiceResponse<SliderDto>> GetSliderBy(Guid id);
     Task<ServiceResponse<IReadOnlyList<SliderDto>>> GetSliders();

@@ -69,6 +69,7 @@ public class ProductRepository : IProductRepository
                             .Include(c => c.Category)
                             .ThenInclude(c => c.ParentCategory)
                             .Include(c => c.StockItems)
+                            .ThenInclude(x => x.Images)
                             .AsQueryable();
         return query;
     }

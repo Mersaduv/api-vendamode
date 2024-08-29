@@ -8,8 +8,7 @@ public class Slider : BaseClass<Guid>
 {
     public Guid? CategoryId { get; set; }
     public EntityImage<Guid, Slider>? Image { get; set; }
-    public string Title { get; set; } = string.Empty;
-    public string? Uri { get; set; }
-    public bool IsPublic { get; set; }
-    public bool IsMain { get; set; }
+    public string Link { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
 }

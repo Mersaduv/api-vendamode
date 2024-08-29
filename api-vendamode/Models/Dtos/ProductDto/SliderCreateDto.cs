@@ -4,12 +4,11 @@ namespace api_vendamode.Models.Dtos.ProductDto;
 
 public class SliderCreateDto
 {
-    public Guid? CategoryId { get; set; }
     public required IFormFile Thumbnail { get; set; }
-    public string Title { get; set; } = string.Empty;
-    public string Uri { get; set; } = string.Empty;
-    public bool IsPublic { get; set; }
-    public bool IsMain { get; set; }
+    public Guid? CategoryId { get; set; }
+    public string Link { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
 
     public static async ValueTask<SliderCreateDto?> BindAsync(HttpContext context, ParameterInfo parameter)
     {
@@ -24,18 +23,12 @@ public class SliderCreateDto
             return null;
         }
 
-        var title = form["Title"];
-        var uri = form["Uri"];
+        var link = form["Link"];
+        var type = form["Type"];
 
-        if (!bool.TryParse(form["IsPublic"], out var isPublic))
+        if (!bool.TryParse(form["IsActive"], out var isActive))
         {
-            // Handle error: IsPublic must be a boolean
-            return null;
-        }
-
-        if (!bool.TryParse(form["IsMain"], out var isMain))
-        {
-            // Handle error: IsMain must be a boolean
+            // Handle error: IsActive must be a boolean
             return null;
         }
 
@@ -43,10 +36,9 @@ public class SliderCreateDto
         {
             CategoryId = categoryId,
             Thumbnail = url,
-            Title = title!,
-            Uri = uri!,
-            IsPublic = isPublic,
-            IsMain = isMain
+            Link = link!,
+            Type = type!,
+            IsActive = isActive,
         };
     }
 }

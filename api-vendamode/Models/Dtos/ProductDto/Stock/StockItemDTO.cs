@@ -7,6 +7,7 @@ public class StockItemDTO
 {
     public Guid Id { get; set; }
     public int StockId { get; set; }
+    public bool IsHidden { get; set; }
     public string? Idx { get; set; }
     public IFormFile? ImageStock { get; set; }
     public List<Guid>? FeatureValueId { get; set; }
@@ -14,6 +15,7 @@ public class StockItemDTO
     public int Quantity { get; set; }
     public double Price { get; set; }
     public double? Discount { get; set; }
+    public int? OfferTime { get; set; }
     [JsonExtensionData]
     [Column(TypeName = "jsonb")]
     public Dictionary<string, object>? AdditionalProperties { get; set; }

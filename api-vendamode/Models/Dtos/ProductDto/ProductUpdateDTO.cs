@@ -23,7 +23,7 @@ public class ProductUpdateDTO
     public List<Guid>? FeatureValueIds { get; set; }
     public ProductScaleDTO? ProductScale { get; set; }
     public List<StockItemDTO>? StockItems { get; set; }
-   public StatusType Status { get; set; }
+    public StatusType Status { get; set; }
 
 
     public static async ValueTask<ProductUpdateDTO?> BindAsync(HttpContext context,
@@ -74,12 +74,14 @@ public class ProductUpdateDTO
                 {
                     StockId = tempItem.StockId,
                     Idx = tempItem.Idx,
+                    IsHidden = tempItem.IsHidden,
                     ImageStock = thumbnailStock,
                     FeatureValueId = tempItem.FeatureValueId,
                     SizeId = tempItem.SizeId,
                     Quantity = tempItem.Quantity ?? 0,
                     Price = tempItem.Price ?? 0,
                     Discount = tempItem.Discount ?? 0,
+                    OfferTime = tempItem.OfferTime ?? 0,
                     AdditionalProperties = tempItem.AdditionalProperties
                 };
                 stockItems.Add(stockItem);

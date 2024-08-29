@@ -10,6 +10,7 @@ public class Category : BaseClass<Guid>
     public string Slug { get; set; } = string.Empty;
     public int Level { get; set; }
     public bool IsActive { get; set; }
+    public bool IsActiveProduct { get; set; }
     public bool IsDeleted { get; set; }
     public bool HasSizeProperty { get; set; }
     public List<EntityImage<Guid, Category>>? Images { get; set; }

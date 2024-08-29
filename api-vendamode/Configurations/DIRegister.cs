@@ -11,6 +11,7 @@ using api_vendace.Utility;
 using api_vendamode.Interfaces.IServices;
 using api_vendamode.Services;
 using api_vendamode.Services.Auth;
+using api_vendamode.Services.Design;
 using api_vendamode.Services.Products;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -40,7 +41,10 @@ public static class DIRegister
                 .AddScoped<IAddressServices, AddressServices>()
                 .AddScoped<ISliderServices, SliderServices>()
                 .AddScoped<IOrderServices, OrderService>()
-                .AddScoped<ICanceledServices, CanceledServices>();
+                .AddScoped<ICanceledServices, CanceledServices>()
+                .AddScoped<IDesignServices, DesignServices>()
+                .AddScoped<IBannerServices, BannerServices>()
+                .AddScoped<IArticleServices, ArticleServices>();
         // services.AddScoped<IPaymentService, PaymentService>();
     }
 
