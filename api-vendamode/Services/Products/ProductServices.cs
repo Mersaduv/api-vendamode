@@ -363,7 +363,8 @@ public class ProductServices : IProductServices
 
             if (requestQuery.CategoryId is not null && requestQuery.SingleCategory is null)
             {
-                query = query.Where(p => p.CategoryId == Guid.Parse(requestQuery.CategoryId));
+
+                if (requestQuery.CategoryId != "default") query = query.Where(p => p.CategoryId == Guid.Parse(requestQuery.CategoryId));
             }
 
             // Search filter
@@ -372,7 +373,6 @@ public class ProductServices : IProductServices
                 string searchLower = requestQuery.Search.ToLower();
                 query = query.Where(p => p.Slug.ToLower().Contains(searchLower));
             }
-
 
             // Price filter
             if (requestQuery.MinPrice.HasValue || requestQuery.MaxPrice.HasValue)
@@ -528,7 +528,7 @@ public class ProductServices : IProductServices
             var mainMinPrice = await stockItemsQuery.MinAsync(si => (double?)si.Price) ?? 0;
 
 
-            if (requestQuery.CategoryId is not null)
+            if (requestQuery.CategoryId is not null && requestQuery.CategoryId != "default")
             {
                 var productDtoListByParentCategory = productDtoList.Where(c => c.ParentCategories.ParentCategories.Any(c => c.Id == Guid.Parse(requestQuery.CategoryId)))
                              .ToList();
