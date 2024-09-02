@@ -8,6 +8,7 @@ using api_vendamode.Interfaces.IServices;
 using api_vendamode.Models.Dtos.ArticleDto;
 using api_vendamode.Models.Dtos.designDto;
 using api_vendamode.Models.Dtos.ProductDto;
+using api_vendamode.Models.Query;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace api_vendamode.Endpoints;
@@ -27,6 +28,8 @@ public static class DesignEndpoints
         articleGroup.MapDelete("{id:guid}", DeleteArticle);
         articleGroup.MapPost("trash/{id:guid}", DeleteTrashArticle);
         articleGroup.MapPost("restore/{id:guid}", RestoreArticle);
+        articleGroup.MapGet(string.Empty, GetArticleBySlug);
+        articleGroup.MapGet("category", GetArticleByCategory);
 
         // designItem 
         designGroup.MapPost("items", UpsertDesignItem).Accepts<DesignBulkUpsertDto>("multipart/form-data");
@@ -57,6 +60,23 @@ public static class DesignEndpoints
         designGroup.MapGet("sloganFooter", GetSloganFooter);
 
         return apiGroup;
+    }
+    private async static Task<Ok<ServiceResponse<ArticleDto>>> GetArticleByCategory(IArticleServices articleServices, ILogger<Program> _logger, [AsParameters] RequestBy request)
+    {
+        _logger.Log(LogLevel.Information, "Get Article");
+
+        var result = await articleServices.GetBy(request.Id);
+
+        return TypedResults.Ok(result);
+    }
+
+    private async static Task<Ok<ServiceResponse<ArticleDto>>> GetArticleBySlug(IArticleServices articleServices, ILogger<Program> _logger, [AsParameters] RequestBy request)
+    {
+        _logger.Log(LogLevel.Information, "Get Article");
+
+        var result = await articleServices.GetBy(request.Slug);
+
+        return TypedResults.Ok(result);
     }
     private static async Task<Ok<ServiceResponse<bool>>> UpsertRedirect(IDesignServices designServices,
                                                                     Support support, ILogger<Program> _logger, HttpContext context)

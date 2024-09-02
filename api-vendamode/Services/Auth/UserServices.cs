@@ -18,6 +18,7 @@ using api_vendace.Entities;
 using api_vendace.Models.Query;
 using api_vendace.Models.Dtos;
 using api_vendamode.Models.Dtos.AuthDto;
+using api_vendamode.Models.Dtos.AuthDto.RoleDto;
 
 namespace api_vendace.Services.Auth;
 
@@ -681,6 +682,121 @@ public class UserServices : IUserServices
         return new ServiceResponse<Guid>
         {
             Data = userId
+        };
+    }
+
+    public async Task<ServiceResponse<bool>> UpsertPermission(PermissionUpsertDTO permissionUpsert)
+    {
+        string message = "";
+        var permissionDb = await _context.Permissions.FirstOrDefaultAsync(x => x.Id == permissionUpsert.Id);
+        if (permissionDb is null)
+        {
+            // Create new HeaderText
+            var newPermission = new Permission
+            {
+                Id = Guid.NewGuid(),
+                Name = permissionUpsert.Name,
+                IsActive = permissionUpsert.IsActive,
+                ParentPermissionId = permissionUpsert.ParentPermissionId,
+                Created = DateTime.UtcNow,
+                LastUpdated = DateTime.UtcNow
+            };
+            _context.Permissions.Add(newPermission);
+            message = "دسترسی با موفقیت ایجاد شد";
+        }
+        else
+        {
+            // Update existing Permission
+            permissionDb.Name = permissionUpsert.Name;
+            permissionDb.IsActive = permissionUpsert.IsActive;
+            permissionDb.ParentPermissionId = permissionUpsert.ParentPermissionId;
+            permissionDb.LastUpdated = DateTime.UtcNow;
+            message = "دسترسی با موفقیت بروزرسانی شد";
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+        return new ServiceResponse<bool> { Data = true, Message = message };
+    }
+
+    public async Task<ServiceResponse<List<Permission>>> GetPermissions()
+    {
+        var permissions = await _context.Permissions.Include(x => x.ChildPermissions).ToListAsync();
+
+        var permissionsDto = BuildPermissions(permissions);
+
+        return new ServiceResponse<List<Permission>>
+        {
+            Count = permissions.Count,
+            Data = permissionsDto
+        };
+    }
+    private List<Permission> BuildPermissions(List<Permission> permissions)
+    {
+        return permissions.Select(permission => new Permission
+        {
+            Id = permission.Id,
+            Name = permission.Name,
+            IsActive = permission.IsActive,
+            ParentPermissionId = permission.ParentPermissionId,
+            ParentPermission = permission.ParentPermission != null ? new Permission { Id = permission.ParentPermission.Id, Name = permission.ParentPermission.Name, ParentPermissionId = permission.ParentPermissionId } : null,
+            ChildPermissions = BuildPermissions(permission.ChildPermissions ?? []),
+            Created = permission.Created,
+            LastUpdated = permission.LastUpdated
+        }).ToList();
+    }
+
+    public async Task<ServiceResponse<bool>> UpsertRole(RoleUpsertDTO roleUpsert)
+    {
+        string message = "";
+        var roleDb = await _context.Roles.Include(x => x.Permissions).FirstOrDefaultAsync(x => x.Id == roleUpsert.Id);
+        var permissionDb = await _context.Permissions.Where(x => roleUpsert.PermissionIds.Contains(x.Id)).ToListAsync();
+        if (roleDb is null)
+        {
+            // Create new HeaderText
+            var newRole = new Role
+            {
+                Id = Guid.NewGuid(),
+                Title = roleUpsert.Title,
+                IsActive = roleUpsert.IsActive,
+                Permissions = permissionDb,
+                Created = DateTime.UtcNow,
+                LastUpdated = DateTime.UtcNow
+            };
+            _context.Roles.Add(newRole);
+            message = "سمت با موفقیت ایجاد شد";
+        }
+        else
+        {
+            // Update existing Role
+            roleDb.Title = roleUpsert.Title;
+            roleDb.Permissions = permissionDb;
+            roleDb.IsActive = roleUpsert.IsActive;
+            roleDb.LastUpdated = DateTime.UtcNow;
+            message = "سمت با موفقیت بروزرسانی شد";
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+        return new ServiceResponse<bool> { Data = true, Message = message };
+    }
+
+    public async Task<ServiceResponse<List<Role>>> GetRoles()
+    {
+
+        var roles = await _context.Roles.Include(x => x.Permissions).ThenInclude(x => x.ChildPermissions).ToListAsync();
+
+        var rolesDto = roles.Select(role => new Role
+        {
+            Id = role.Id,
+            Title = role.Title,
+            IsActive = role.IsActive,
+            Permissions = BuildPermissions(role.Permissions),
+            Created = role.Created,
+            LastUpdated = role.LastUpdated
+        }).ToList();
+        return new ServiceResponse<List<Role>>
+        {
+            Count = roles.Count,
+            Data = roles
         };
     }
 }

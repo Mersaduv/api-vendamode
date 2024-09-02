@@ -1,10 +1,12 @@
 using api_vendace.Const;
 using api_vendace.Entities.Users;
+using api_vendace.Entities.Users.Security;
 using api_vendace.Interfaces.IServices;
 using api_vendace.Models;
 using api_vendace.Models.Dtos.AuthDto;
 using api_vendace.Models.Query;
 using api_vendamode.Models.Dtos.AuthDto;
+using api_vendamode.Models.Dtos.AuthDto.RoleDto;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,18 +17,78 @@ public static class AuthEndpoints
     public static IEndpointRouteBuilder MapAuthApi(this IEndpointRouteBuilder apiGroup)
     {
         var authGroup = apiGroup.MapGroup(Constants.Auth);
-        apiGroup.MapGet(Constants.Users, GetUsers);
-        apiGroup.MapGet($"/{Constants.User}/info", GetUserInfo).RequireAuthorization();
-        apiGroup.MapGet($"/{Constants.User}/info/me", GetUserInfoMe).RequireAuthorization();
-        apiGroup.MapPut($"/{Constants.User}", EditUserProfile).Accepts<UserProfileUpdateDTO>("application/json").RequireAuthorization();
-
         authGroup.MapPost($"/{Constants.Register}", RegisterUser).Accepts<UserQueryDTO>("application/json");
         authGroup.MapPost($"/{Constants.Login}", LogInUser).Accepts<UserQueryDTO>("application/json");
         // authGroup.MapPost(Constants.ChangePassword, ChangePasswordAsync).RequireAuthorization();
         authGroup.MapPost(Constants.GenerateRefreshToken, GenerateNewToken);
-        authGroup.MapPost(Constants.AddUser, AddUser).Accepts<UserCreateDTO>("multipart/form-data");
+
+
+        var usersGroup = apiGroup.MapGroup(Constants.Users);
+        var userGroup = apiGroup.MapGroup(Constants.User);
+        usersGroup.MapGet(string.Empty, GetUsers);
+        userGroup.MapGet("info", GetUserInfo).RequireAuthorization();
+        userGroup.MapGet("info/me", GetUserInfoMe).RequireAuthorization();
+        userGroup.MapPut(string.Empty, EditUserProfile).Accepts<UserProfileUpdateDTO>("application/json").RequireAuthorization();
+        userGroup.MapPost(string.Empty, AddUser).Accepts<UserCreateDTO>("multipart/form-data");
+
+
+        var permissionsGroup = apiGroup.MapGroup(Constants.Permissions);
+        var permissionGroup = apiGroup.MapGroup(Constants.Permission);
+        permissionsGroup.MapGet(string.Empty, GetPermissions);
+        permissionGroup.MapPost(string.Empty, UpsertPermission);
+
+        var rolesGroup = apiGroup.MapGroup(Constants.Roles);
+        var roleGroup = apiGroup.MapGroup(Constants.Role);
+        rolesGroup.MapGet(string.Empty, GetRoles);
+        roleGroup.MapPost(string.Empty, UpsertRole);
 
         return apiGroup;
+    }
+    
+    private static async Task<Ok<ServiceResponse<List<Role>>>> GetRoles(IUserServices userServices, ILogger<Program> _logger, HttpContext context)
+    {
+        _logger.Log(LogLevel.Information, "Get Role");
+
+        // await AccessControl.CheckProductPermissionFlag(context, "product-add");
+
+        var result = await userServices.GetRoles();
+
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<ServiceResponse<bool>>> UpsertRole(IUserServices userServices,
+           RoleUpsertDTO roleUpsert, ILogger<Program> _logger, HttpContext context)
+    {
+        _logger.Log(LogLevel.Information, "Upsert Role");
+
+        // await AccessControl.CheckProductPermissionFlag(context, "product-add");
+
+        var result = await userServices.UpsertRole(roleUpsert);
+
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<ServiceResponse<List<Permission>>>> GetPermissions(IUserServices userServices, ILogger<Program> _logger, HttpContext context)
+    {
+        _logger.Log(LogLevel.Information, "Get Permissions");
+
+        // await AccessControl.CheckProductPermissionFlag(context, "product-add");
+
+        var result = await userServices.GetPermissions();
+
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<ServiceResponse<bool>>> UpsertPermission(IUserServices userServices,
+           PermissionUpsertDTO permissionUpsert, ILogger<Program> _logger, HttpContext context)
+    {
+        _logger.Log(LogLevel.Information, "Upsert Permission");
+
+        // await AccessControl.CheckProductPermissionFlag(context, "product-add");
+
+        var result = await userServices.UpsertPermission(permissionUpsert);
+
+        return TypedResults.Ok(result);
     }
 
     private static async Task<Results<Ok<ServiceResponse<GenerateNewTokenResultDTO>>, BadRequest<ServiceResponse<GenerateNewTokenResultDTO>>>> GenerateNewToken(

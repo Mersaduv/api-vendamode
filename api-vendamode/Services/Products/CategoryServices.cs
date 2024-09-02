@@ -285,7 +285,6 @@ public class CategoryServices : ICategoryServices
 
     public async Task<ServiceResponse<bool>> Delete(Guid id)
     {
-        // بازیابی دسته‌بندی
         var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id);
         if (category == null)
         {

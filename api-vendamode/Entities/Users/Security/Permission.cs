@@ -8,5 +8,5 @@ public class Permission : BaseClass<Guid>
     public bool IsActive { get; set; } = true;
     public Guid? ParentPermissionId { get; set; }
     public virtual Permission? ParentPermission { get; set; }
-    public virtual ICollection<Permission> ChildPermissions { get; set; } = new List<Permission>();
+    public virtual List<Permission>? ChildPermissions { get; set; }
 }

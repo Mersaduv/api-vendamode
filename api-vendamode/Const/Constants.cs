@@ -10,6 +10,10 @@ public static class Constants
     public const string Auth = "auth";
     public const string User = "user";
     public const string Users = "users";
+    public const string Permissions = "permissions";
+    public const string Permission = "permission";
+    public const string Roles = "roles";
+    public const string Role = "role";
     public const string AddUser = "add-user";
     public const string Cart = "cart";
     public const string ChangePassword = "changePassword";

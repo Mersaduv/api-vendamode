@@ -21,10 +21,8 @@ public class CategoryCreateDTO
         var thumbnail = thumbnailFiles.Any() ? thumbnailFiles.ToList() : null;
         var name = form["Name"];
         
-        // بررسی و تبدیل امن برای IsActive
         var isActive = bool.TryParse(form["IsActive"], out var isActiveResult) && isActiveResult;
 
-        // بررسی و تبدیل امن برای IsActiveProduct
         var isActiveProduct = bool.TryParse(form["IsActiveProduct"], out var isActiveProductResult) && isActiveProductResult;
 
         var mainCategoryId = string.IsNullOrEmpty(form["MainCategoryId"]) ? null : (Guid?)Guid.Parse(form["MainCategoryId"]!);

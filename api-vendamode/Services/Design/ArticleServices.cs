@@ -170,6 +170,25 @@ public class ArticleServices : IArticleServices
             articlesQuery = articlesQuery.Where(a => a.Place.ToString() == requestQuery.Place);
         }
 
+        // Sort
+        if (!string.IsNullOrEmpty(requestQuery.Sort))
+        {
+            switch (requestQuery.Sort)
+            {
+                case "1": // Sort by latest
+                    articlesQuery = articlesQuery.OrderByDescending(p => p.Created);
+                    break;
+
+                case "2": // Sort by best-selling
+                    articlesQuery = articlesQuery.OrderBy(p => p.Created);
+                    break;
+                default:
+                    articlesQuery = articlesQuery.OrderByDescending(p => p.Created);
+                    break;
+            }
+        }
+
+
         // Category filter
         if (requestQuery.CategoryId is not null && requestQuery.SingleCategory is not null)
         {
@@ -351,5 +370,87 @@ public class ArticleServices : IArticleServices
         };
     }
 
+    public async Task<ServiceResponse<ArticleDto>> GetBy(string slug)
+    {
+        var article = await _context.Articles.Include(a => a.ArticleReviews).Include(a => a.Category).Include(x => x.Image).FirstOrDefaultAsync(x => x.Slug == slug);
+        if (article == null)
+        {
+            return new ServiceResponse<ArticleDto>
+            {
+                Data = null,
+                Success = false,
+                Message = "مقاله مورد نظر یافت نشد"
+            };
+        }
+        var articleDto = new ArticleDto
+        {
+            Id = article.Id,
+            Title = article.Title,
+            Slug = article.Slug,
+            Category = article.Category != null ? article.Category.Name : "",
+            Created = article.Created,
+            LastUpdated = article.LastUpdated,
+            CategoryId = article.CategoryId,
+            Description = article.Description,
+            IsActive = article.IsActive,
+            Place = article.Place,
+            Author = article.Author,
+            NumReviews = article.ArticleReviews != null ? article.ArticleReviews.Count(x => x.Status == 2) : 0,
+            Code = article.Code,
+            IsDeleted = article.IsDeleted,
+            Image = article.Image != null ? _byteFileUtility.GetEncryptedFileActionUrl(new List<EntityImageDto>
+            {
+                new EntityImageDto { Id = article.Image.Id , ImageUrl =article.Image.ImageUrl ?? string.Empty, Placeholder=article.Image.Placeholder ?? string.Empty}
+            }, nameof(Article)).First() : null,
 
+        };
+
+        return new ServiceResponse<ArticleDto>
+        {
+
+            Data = articleDto
+        };
+    }
+
+    public async Task<ServiceResponse<ArticleDto>> GetBy(Guid? id)
+    {
+        var article = await _context.Articles.Include(a => a.ArticleReviews).Include(a => a.Category).Include(x => x.Image).FirstOrDefaultAsync(x => x.CategoryId == id);
+        if (article == null)
+        {
+            return new ServiceResponse<ArticleDto>
+            {
+                Data = null,
+                Success = false,
+                Message = "مقاله مورد نظر یافت نشد"
+            };
+        }
+        var articleDto = new ArticleDto
+        {
+            Id = article.Id,
+            Title = article.Title,
+            Slug = article.Slug,
+            Category = article.Category != null ? article.Category.Name : "",
+            Created = article.Created,
+            LastUpdated = article.LastUpdated,
+            CategoryId = article.CategoryId,
+            Description = article.Description,
+            IsActive = article.IsActive,
+            Place = article.Place,
+            Author = article.Author,
+            NumReviews = article.ArticleReviews != null ? article.ArticleReviews.Count(x => x.Status == 2) : 0,
+            Code = article.Code,
+            IsDeleted = article.IsDeleted,
+            Image = article.Image != null ? _byteFileUtility.GetEncryptedFileActionUrl(new List<EntityImageDto>
+            {
+                new EntityImageDto { Id = article.Image.Id , ImageUrl =article.Image.ImageUrl ?? string.Empty, Placeholder=article.Image.Placeholder ?? string.Empty}
+            }, nameof(Article)).First() : null,
+
+        };
+
+        return new ServiceResponse<ArticleDto>
+        {
+
+            Data = articleDto
+        };
+    }
 }

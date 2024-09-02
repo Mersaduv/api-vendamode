@@ -12,5 +12,7 @@ public interface IArticleServices
     Task<ServiceResponse<bool>> DeleteTrashAsync(Guid id);
     Task<ServiceResponse<bool>> RestoreArticleAsync(Guid id);
     Task<ServiceResponse<ArticleDto>> GetArticle(Guid id);
+    Task<ServiceResponse<ArticleDto>> GetBy(Guid? id);
+    Task<ServiceResponse<ArticleDto>> GetBy(string? id);
 
 }
