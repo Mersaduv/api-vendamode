@@ -215,7 +215,7 @@ public class CategoryServices : ICategoryServices
 
         return count;
     }
-    private List<CategoryDTO> BuildCategoryTree(List<Category> categories, List<Category> allCategories)
+    public List<CategoryDTO> BuildCategoryTree(List<Category> categories, List<Category> allCategories)
     {
         var categoriesDto = new List<CategoryDTO>();
 

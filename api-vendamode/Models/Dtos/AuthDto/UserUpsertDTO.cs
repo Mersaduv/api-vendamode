@@ -1,10 +1,12 @@
 using System.Reflection;
 using api_vendace.Enums;
+using api_vendamode.Enums;
 
 namespace api_vendace.Models.Dtos.AuthDto;
 
-public class UserCreateDTO
+public class UserUpsertDTO
 {
+    public Guid? Id { get; set; }
     public UserTypes UserType { get; set; }
     public List<Guid>? RoleIds { get; set; }
     public bool IsActive { get; set; }
@@ -27,21 +29,36 @@ public class UserCreateDTO
     public string BankAccountNumber { get; set; } = string.Empty;
     public string ShabaNumber { get; set; } = string.Empty;
     public string Note { get; set; } = string.Empty;
-
-    public static async ValueTask<UserCreateDTO?> BindAsync(HttpContext context, ParameterInfo parameter)
+    // Supplier
+    // store specification 
+    public string StoreName { get; set; } = string.Empty;
+    public string StoreTelephone { get; set; } = string.Empty;
+    public string StoreAddress { get; set; } = string.Empty;
+    public string BussinessLicenseNumber { get; set; } = string.Empty;
+    // store setting
+    public bool IsActiveAddProduct { get; set; }
+    public bool IsPublishProduct { get; set; }
+    public bool IsSelectedAsSpecialSeller { get; set; }
+    public CommissionType? CommissionType { get; set; }
+    public string PercentageValue { get; set; } = string.Empty;
+    public string SellerPerformance { get; set; } = string.Empty;
+    public string TimelySupply { get; set; } = string.Empty;
+    public string ShippingCommitment { get; set; } = string.Empty;
+    public string NoReturns { get; set; } = string.Empty;
+    public static async ValueTask<UserUpsertDTO?> BindAsync(HttpContext context, ParameterInfo parameter)
     {
         var form = await context.Request.ReadFormAsync();
 
         var thumbnailFiles = form.Files.GetFiles("Thumbnail");
         var thumbnail = thumbnailFiles.Any() ? thumbnailFiles.ToList() : new List<IFormFile>();
-
+        if (!Guid.TryParse(form["Id"], out var id))
+        {
+        }
         var idCardThumbnailFiles = form.Files.GetFiles("IdCardThumbnail");
         var idCardThumbnail = idCardThumbnailFiles.Any() ? idCardThumbnailFiles.ToList() : new List<IFormFile>();
 
         var userType = Enum.Parse<UserTypes>(form["UserType"]!);
-
         var isActive = bool.Parse(form["IsActive"].ToString()!);
-
         var roleIds = form["RoleIds"]
             .SelectMany(id => id!.Split(',', StringSplitOptions.RemoveEmptyEntries))
             .Select(Guid.Parse)
@@ -65,8 +82,30 @@ public class UserCreateDTO
         var shabaNumber = form["ShabaNumber"].ToString();
         var note = form["Note"].ToString();
 
-        return new UserCreateDTO
+        // Supplier fields
+        var storeName = form["StoreName"].ToString();
+        var storeTelephone = form["StoreTelephone"].ToString();
+        var storeAddress = form["StoreAddress"].ToString();
+        var bussinessLicenseNumber = form["BussinessLicenseNumber"].ToString();
+
+        var isActiveAddProductForm = bool.TryParse(form["isActiveAddProduct"], out var isActiveAddProduct) && isActiveAddProduct;
+        var isPublishProductForm = bool.TryParse(form["isPublishProduct"], out var isPublishProduct) && isPublishProduct;
+        var isSelectedAsSpecialSellerForm = bool.TryParse(form["isSelectedAsSpecialSeller"], out var isSelectedAsSpecialSeller) && isSelectedAsSpecialSeller;
+
+        CommissionType? commissionType = null;
+        if (Enum.TryParse<CommissionType>(form["CommissionType"], out var parsedCommissionType))
         {
+            commissionType = parsedCommissionType;
+        }
+        var percentageValue = form["PercentageValue"].ToString();
+        var sellerPerformance = form["SellerPerformance"].ToString();
+        var timelySupply = form["TimelySupply"].ToString();
+        var shippingCommitment = form["ShippingCommitment"].ToString();
+        var noReturns = form["NoReturns"].ToString();
+
+        return new UserUpsertDTO
+        {
+            Id = id,
             UserType = userType,
             IsActive = isActive,
             RoleIds = roleIds,
@@ -88,7 +127,22 @@ public class UserCreateDTO
             NationalCode = nationalCode!,
             BankAccountNumber = bankAccountNumber!,
             ShabaNumber = shabaNumber!,
-            Note = note!
+            Note = note!,
+            // Supplier fields
+            StoreName = storeName!,
+            StoreTelephone = storeTelephone!,
+            StoreAddress = storeAddress!,
+            BussinessLicenseNumber = bussinessLicenseNumber!,
+            IsActiveAddProduct = isActiveAddProductForm,
+            IsPublishProduct = isPublishProductForm,
+            IsSelectedAsSpecialSeller = isSelectedAsSpecialSellerForm,
+            CommissionType = commissionType,
+            PercentageValue = percentageValue!,
+            SellerPerformance = sellerPerformance!,
+            TimelySupply = timelySupply!,
+            ShippingCommitment = shippingCommitment!,
+            NoReturns = noReturns!
         };
     }
+
 }

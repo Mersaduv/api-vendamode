@@ -169,4 +169,6 @@ public class ApplicationDbContext : DbContext
     public DbSet<SloganFooter> SloganFooters { get; set; }
     public DbSet<Support> Supports { get; set; }
     public DbSet<Redirects> Redirects { get; set; }
+    public DbSet<Copyright> Copyrights { get; set; }
+    public DbSet<ColumnFooter> ColumnFooters { get; set; }
 }

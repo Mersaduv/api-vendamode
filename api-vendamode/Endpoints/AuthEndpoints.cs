@@ -29,7 +29,7 @@ public static class AuthEndpoints
         userGroup.MapGet("info", GetUserInfo).RequireAuthorization();
         userGroup.MapGet("info/me", GetUserInfoMe).RequireAuthorization();
         userGroup.MapPut(string.Empty, EditUserProfile).Accepts<UserProfileUpdateDTO>("application/json").RequireAuthorization();
-        userGroup.MapPost(string.Empty, AddUser).Accepts<UserCreateDTO>("multipart/form-data");
+        userGroup.MapPost(string.Empty, AddUser).Accepts<UserUpsertDTO>("multipart/form-data");
 
 
         var permissionsGroup = apiGroup.MapGroup(Constants.Permissions);
@@ -144,13 +144,13 @@ public static class AuthEndpoints
     }
 
     private static async Task<Ok<ServiceResponse<bool>>> AddUser(IUserServices userServices,
-              UserCreateDTO userCreate, ILogger<Program> _logger, HttpContext context)
+              UserUpsertDTO userUpsert, ILogger<Program> _logger, HttpContext context)
     {
-        _logger.Log(LogLevel.Information, "Create User");
+        _logger.Log(LogLevel.Information, "Upsert User");
 
         // await AccessControl.CheckProductPermissionFlag(context, "product-add");
 
-        var result = await userServices.CreateUserAsync(userCreate);
+        var result = await userServices.UserUpsertAsync(userUpsert);
 
         return TypedResults.Ok(result);
     }

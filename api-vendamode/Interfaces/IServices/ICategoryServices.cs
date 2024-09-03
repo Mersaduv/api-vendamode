@@ -32,4 +32,5 @@ public interface ICategoryServices
     Task<ServiceResponse<CategoryDTO>> GetBySlugAsync(string category);
     List<Guid> GetAllCategoryIds(Guid categoryId);
     List<Guid> GetAllCategoryIdsBy(string categorySlug);
+    List<CategoryDTO> BuildCategoryTree(List<Category> categories, List<Category> allCategories);
 }

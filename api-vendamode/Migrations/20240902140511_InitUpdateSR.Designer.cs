@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using api_vendace.Data;
@@ -12,9 +13,11 @@ using api_vendace.Data;
 namespace api_vendamode.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240902140511_InitUpdateSR")]
+    partial class InitUpdateSR
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1409,48 +1412,6 @@ namespace api_vendamode.Migrations
                     b.ToTable("Canceleds");
                 });
 
-            modelBuilder.Entity("api_vendamode.Entities.Designs.ColumnFooter", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("LastUpdated")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ColumnFooters");
-                });
-
-            modelBuilder.Entity("api_vendamode.Entities.Designs.Copyright", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("LastUpdated")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Copyrights");
-                });
-
             modelBuilder.Entity("api_vendamode.Entities.Designs.DesignItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1541,6 +1502,10 @@ namespace api_vendamode.Migrations
                     b.Property<Guid>("ArticleId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Copyright")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("Created")
                         .HasColumnType("timestamp with time zone");
 
@@ -1596,10 +1561,6 @@ namespace api_vendamode.Migrations
 
                     b.Property<DateTime?>("LastUpdated")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ResponseTime")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.HasKey("Id");
 

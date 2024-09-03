@@ -1,6 +1,7 @@
 using api_vendace.Const;
 using api_vendace.Entities.Users;
 using api_vendace.Models;
+using api_vendace.Models.Dtos.ProductDto.Category;
 using api_vendace.Models.Query;
 using api_vendamode.Entities.Designs;
 using api_vendamode.Entities.Products;
@@ -40,6 +41,7 @@ public static class DesignEndpoints
         designGroup.MapPost("storeCategory", UpsertStoreCategories).Accepts<StoreCategoryBulkDTO>("application/json");
         designGroup.MapDelete("storeCategory/{id:guid}", DeleteStoreCategory);
         designGroup.MapGet("storeCategories", GetStoreCategories);
+        designGroup.MapGet("storeCategoryList", GetStoreCategoryList);
 
         designGroup.MapPost("logoImages", UpsertLogoImages).Accepts<LogoUpsertDTO>("multipart/form-data");
         designGroup.MapGet("logoImages", GetLogoImages);
@@ -59,7 +61,59 @@ public static class DesignEndpoints
         designGroup.MapPost("sloganFooter", UpsertSloganFooter);
         designGroup.MapGet("sloganFooter", GetSloganFooter);
 
+        designGroup.MapPost("copyright", UpsertCopyright);
+        designGroup.MapGet("copyright", GetCopyright);
+
+
+        designGroup.MapPost("columnFooters", UpsertColumnFooters);
+        designGroup.MapGet("columnFooters", GetColumnFooters);
+
         return apiGroup;
+    }
+    private async static Task<Ok<ServiceResponse<IReadOnlyList<CategoryDTO>>>> GetStoreCategoryList(IDesignServices designServices, ILogger<Program> _logger)
+    {
+        _logger.Log(LogLevel.Information, "Get Store Category List");
+
+        var result = await designServices.GetStoreCategoryList();
+
+        return TypedResults.Ok(result);
+    }
+
+    private async static Task<Ok<ServiceResponse<List<ColumnFooter>>>> GetColumnFooters(IDesignServices designServices, ILogger<Program> _logger)
+    {
+        _logger.Log(LogLevel.Information, "Get Column Footers");
+
+        var result = await designServices.GetColumnFooters();
+
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<ServiceResponse<bool>>> UpsertColumnFooters(IDesignServices designServices,
+                                                                ColumnFooterBulkUpsertDTO columnFooterBulk, ILogger<Program> _logger, HttpContext context)
+    {
+        _logger.Log(LogLevel.Information, "Upsert Column Footers");
+
+        var result = await designServices.UpsertColumnFooters(columnFooterBulk.ColumnFooters);
+
+        return TypedResults.Ok(result);
+    }
+    private async static Task<Ok<ServiceResponse<Copyright>>> GetCopyright(IDesignServices designServices, ILogger<Program> _logger)
+    {
+        _logger.Log(LogLevel.Information, "Get Copyright");
+
+        var result = await designServices.GetCopyright();
+
+        return TypedResults.Ok(result);
+    }
+
+    private static async Task<Ok<ServiceResponse<bool>>> UpsertCopyright(IDesignServices designServices,
+                                                                Copyright copyright, ILogger<Program> _logger, HttpContext context)
+    {
+        _logger.Log(LogLevel.Information, "Upsert Copyright");
+
+        var result = await designServices.UpsertCopyright(copyright);
+
+        return TypedResults.Ok(result);
     }
     private async static Task<Ok<ServiceResponse<ArticleDto>>> GetArticleByCategory(IArticleServices articleServices, ILogger<Program> _logger, [AsParameters] RequestBy request)
     {

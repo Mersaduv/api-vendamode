@@ -43,20 +43,31 @@ public class UserServices : IUserServices
         _byteFileUtility = byteFileUtility;
     }
 
-    public async Task<ServiceResponse<bool>> CreateUserAsync(UserCreateDTO userCreate)
+    public async Task<ServiceResponse<bool>> UserUpsertAsync(UserUpsertDTO userUpsert)
     {
-        var passwordSalt = _passwordHasher.GenerateSalt();
-        var hashedPassword = _passwordHasher.HashPassword(userCreate.PassCode, passwordSalt);
-        var passCode = _passwordHasher.EncryptPassword(userCreate.PassCode);
-        var userId = Guid.NewGuid();
+        var userId = userUpsert.Id ?? Guid.NewGuid();
 
+        var passwordSalt = _passwordHasher.GenerateSalt();
+        var hashedPassword = _passwordHasher.HashPassword(userUpsert.PassCode, passwordSalt);
+        var passCode = _passwordHasher.EncryptPassword(userUpsert.PassCode);
+
+        var user = await _context.Users.Include(x => x.Roles)
+            .Include(u => u.Addresses)
+                .ThenInclude(a => a.Province)
+            .Include(u => u.Addresses)
+                .ThenInclude(a => a.City)
+            .Include(u => u.Images)
+            .Include(u => u.UserSpecification)
+                .ThenInclude(us => us.IdCardImages)
+                                       .FirstOrDefaultAsync(u => u.Id == userId);
+
+        List<Role>? roles = new List<Role>();
+        if (userUpsert.RoleIds is not null)
+        {
+            roles = await _context.Roles.Where(r => userUpsert.RoleIds.Contains(r.Id)).ToListAsync();
+        }
 
         var defaultRole = await _context.Roles.FirstOrDefaultAsync(r => r.Title == "مشتری");
-        List<Role>? roles = new List<Role>();
-        if (userCreate.RoleIds is not null)
-        {
-            roles = await _context.Roles.Where(r => userCreate.RoleIds.Contains(r.Id)).ToListAsync();
-        }
         if (defaultRole == null)
         {
             return new ServiceResponse<bool>
@@ -64,6 +75,7 @@ public class UserServices : IUserServices
                 Message = "مشکلی در هنگام شناسایی سمت مشتری پیش آمده "
             };
         }
+
         if (roles == null)
         {
             return new ServiceResponse<bool>
@@ -71,51 +83,129 @@ public class UserServices : IUserServices
                 Message = "مشکلی در هنگام اضافه کردن سمت برای کاربر پیش آمده "
             };
         }
+
         if (!roles.Any(x => x.Title == defaultRole.Title))
         {
             roles.Add(defaultRole);
         }
-        var specification = new UserSpecification
-        {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            Roles = roles.Select(r => r.Title).ToList(),
-            IdCardImages = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, UserSpecification>>(userCreate.IdCardThumbnail!, nameof(UserSpecification), false),
-            MobileNumber = userCreate.MobileNumber,
-            PasswordSalt = passwordSalt,
-            Password = hashedPassword,
-            PassCode = passCode,
-            FirstName = userCreate.FirstName,
-            FamilyName = userCreate.FamilyName,
-            FatherName = userCreate.FatherName,
-            TelePhone = userCreate.TelePhone,
-            Province = userCreate.Province,
-            City = userCreate.City,
-            PostalCode = userCreate.PostalCode,
-            FirstAddress = userCreate.FirstAddress,
-            SecondAddress = userCreate.SecondAddress,
-            BirthDate = userCreate.BirthDate,
-            IdNumber = userCreate.IdNumber,
-            NationalCode = userCreate.NationalCode,
-            BankAccountNumber = userCreate.BankAccountNumber,
-            ShabaNumber = userCreate.ShabaNumber,
-            IsActive = userCreate.IsActive,
-            Note = userCreate.Note,
-            Created = DateTime.UtcNow,
-            LastUpdated = DateTime.UtcNow
-        };
-        var user = new User
-        {
-            Id = userId,
-            UserType = userCreate.UserType,
-            Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, User>>(userCreate.Thumbnail!, nameof(User), false),
-            UserSpecification = specification,
-            Roles = roles,
-            Created = DateTime.UtcNow,
-            LastUpdated = DateTime.UtcNow
-        };
 
-        await _context.Users.AddAsync(user);
+        if (user == null)
+        {
+            var specification = new UserSpecification
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Roles = roles.Select(r => r.Title).ToList(),
+                IdCardImages = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, UserSpecification>>(userUpsert.IdCardThumbnail!, nameof(UserSpecification), false),
+                MobileNumber = userUpsert.MobileNumber,
+                PasswordSalt = passwordSalt,
+                Password = hashedPassword,
+                PassCode = passCode,
+                FirstName = userUpsert.FirstName,
+                FamilyName = userUpsert.FamilyName,
+                FatherName = userUpsert.FatherName,
+                TelePhone = userUpsert.TelePhone,
+                Province = userUpsert.Province,
+                City = userUpsert.City,
+                PostalCode = userUpsert.PostalCode,
+                FirstAddress = userUpsert.FirstAddress,
+                SecondAddress = userUpsert.SecondAddress,
+                BirthDate = userUpsert.BirthDate,
+                IdNumber = userUpsert.IdNumber,
+                NationalCode = userUpsert.NationalCode,
+                BankAccountNumber = userUpsert.BankAccountNumber,
+                ShabaNumber = userUpsert.ShabaNumber,
+                IsActive = userUpsert.IsActive,
+                Note = userUpsert.Note,
+                Created = DateTime.UtcNow,
+                LastUpdated = DateTime.UtcNow,
+
+                StoreName = userUpsert.StoreName,
+                StoreTelephone = userUpsert.StoreTelephone,
+                StoreAddress = userUpsert.StoreAddress,
+                BussinessLicenseNumber = userUpsert.BussinessLicenseNumber,
+                IsActiveAddProduct = userUpsert.IsActiveAddProduct,
+                IsPublishProduct = userUpsert.IsPublishProduct,
+                IsSelectedAsSpecialSeller = userUpsert.IsSelectedAsSpecialSeller,
+                CommissionType = userUpsert.CommissionType, // nullable
+                PercentageValue = userUpsert.PercentageValue,
+                SellerPerformance = userUpsert.SellerPerformance,
+                TimelySupply = userUpsert.TimelySupply,
+                ShippingCommitment = userUpsert.ShippingCommitment,
+                NoReturns = userUpsert.NoReturns
+            };
+
+            user = new User
+            {
+                Id = userId,
+                UserType = userUpsert.UserType,
+                Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, User>>(userUpsert.Thumbnail!, nameof(User), false),
+                UserSpecification = specification,
+                Roles = roles,
+                Created = DateTime.UtcNow,
+                LastUpdated = DateTime.UtcNow
+            };
+
+            await _context.Users.AddAsync(user);
+        }
+        else
+        {
+            if (userUpsert.Thumbnail != null)
+            {
+                if (user.Images != null)
+                {
+                    _byteFileUtility.DeleteFiles(user.Images, nameof(User));
+                }
+                user.Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, User>>(userUpsert.Thumbnail, nameof(User), false);
+            }
+            if (userUpsert.IdCardThumbnail != null)
+            {
+                if (user.UserSpecification.IdCardImages != null)
+                {
+                    _byteFileUtility.DeleteFiles(user.UserSpecification.IdCardImages, nameof(UserSpecification));
+                }
+                user.UserSpecification.IdCardImages = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, UserSpecification>>(userUpsert.IdCardThumbnail, nameof(UserSpecification), false);
+            }
+            user.UserType = userUpsert.UserType;
+            user.UserSpecification.Roles = roles.Select(r => r.Title).ToList();
+            user.UserSpecification.MobileNumber = userUpsert.MobileNumber;
+            user.UserSpecification.PasswordSalt = passwordSalt;
+            user.UserSpecification.Password = hashedPassword;
+            user.UserSpecification.PassCode = passCode;
+            user.UserSpecification.FirstName = userUpsert.FirstName;
+            user.UserSpecification.FamilyName = userUpsert.FamilyName;
+            user.UserSpecification.FatherName = userUpsert.FatherName;
+            user.UserSpecification.TelePhone = userUpsert.TelePhone;
+            user.UserSpecification.Province = userUpsert.Province;
+            user.UserSpecification.City = userUpsert.City;
+            user.UserSpecification.PostalCode = userUpsert.PostalCode;
+            user.UserSpecification.FirstAddress = userUpsert.FirstAddress;
+            user.UserSpecification.SecondAddress = userUpsert.SecondAddress;
+            user.UserSpecification.BirthDate = userUpsert.BirthDate;
+            user.UserSpecification.IdNumber = userUpsert.IdNumber;
+            user.UserSpecification.NationalCode = userUpsert.NationalCode;
+            user.UserSpecification.BankAccountNumber = userUpsert.BankAccountNumber;
+            user.UserSpecification.ShabaNumber = userUpsert.ShabaNumber;
+            user.UserSpecification.IsActive = userUpsert.IsActive;
+            user.UserSpecification.Note = userUpsert.Note;
+
+            user.UserSpecification.StoreName = userUpsert.StoreName;
+            user.UserSpecification.StoreTelephone = userUpsert.StoreTelephone;
+            user.UserSpecification.StoreAddress = userUpsert.StoreAddress;
+            user.UserSpecification.BussinessLicenseNumber = userUpsert.BussinessLicenseNumber;
+            user.UserSpecification.IsActiveAddProduct = userUpsert.IsActiveAddProduct;
+            user.UserSpecification.IsPublishProduct = userUpsert.IsPublishProduct;
+            user.UserSpecification.IsSelectedAsSpecialSeller = userUpsert.IsSelectedAsSpecialSeller;
+            user.UserSpecification.CommissionType = userUpsert.CommissionType; // nullable
+            user.UserSpecification.PercentageValue = userUpsert.PercentageValue;
+            user.UserSpecification.SellerPerformance = userUpsert.SellerPerformance;
+            user.UserSpecification.TimelySupply = userUpsert.TimelySupply;
+            user.UserSpecification.ShippingCommitment = userUpsert.ShippingCommitment;
+            user.UserSpecification.NoReturns = userUpsert.NoReturns;
+
+            user.LastUpdated = DateTime.UtcNow;
+        }
+
         await _unitOfWork.SaveChangesAsync();
 
         return new ServiceResponse<bool>
@@ -123,6 +213,7 @@ public class UserServices : IUserServices
             Data = true,
         };
     }
+
 
     public async Task<ServiceResponse<Guid>> RegisterUserAsync(string mobileNumber, string password)
     {
@@ -324,7 +415,14 @@ public class UserServices : IUserServices
         var response = new ServiceResponse<List<User>>();
         try
         {
-            var users = await _context.Users.Include(u => u.Roles).Include(us => us.UserSpecification).ToListAsync();
+            var users = await _context.Users.Include(x => x.Roles)
+            .Include(u => u.Addresses)
+                .ThenInclude(a => a.Province)
+            .Include(u => u.Addresses)
+                .ThenInclude(a => a.City)
+            .Include(u => u.Images)
+            .Include(u => u.UserSpecification)
+                .ThenInclude(us => us.IdCardImages).ToListAsync();
             response.Data = users;
             response.Count = users.Count;
         }
@@ -469,66 +567,93 @@ public class UserServices : IUserServices
         var lastPage = (int)Math.Ceiling((double)totalCount / pageSize);
         var pageNumber = requestQuery.PageNumber ?? 1;
         var skipCount = (pageNumber - 1) * pageSize;
-        var users = await _context.Users.Include(us => us.UserSpecification)
+        var users = await _context.Users.Include(x => x.Roles)
+            .Include(u => u.Addresses)
+                .ThenInclude(a => a.Province)
+            .Include(u => u.Addresses)
+                .ThenInclude(a => a.City)
+            .Include(u => u.Images)
+            .Include(u => u.UserSpecification)
+                .ThenInclude(us => us.IdCardImages)
             .Skip(skipCount)
             .Take(pageSize)
             .ToListAsync();
         var userDto = users.Select(user => new UserDTO
         {
             Id = user.Id,
-            ImageSrc = user.UserSpecification != null && user.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(user.Images.Select(img => new EntityImageDto
+            ImageSrc = user.UserSpecification != null && user.Images != null
+            ? _byteFileUtility.GetEncryptedFileActionUrl(user.Images.Select(img => new EntityImageDto
             {
                 Id = img.Id,
                 ImageUrl = img.ImageUrl ?? string.Empty,
                 Placeholder = img.Placeholder ?? string.Empty
-            }).ToList(), nameof(User)).First() : null,
-            FullName = user.UserSpecification != null ? user.UserSpecification.FirstName : string.Empty + " " + user.UserSpecification!.FamilyName,
-            Roles = user.UserSpecification.Roles,
-            MobileNumber = user.UserSpecification.MobileNumber,
-            Email = user.UserSpecification.Email,
-            LastActivity = user.UserSpecification.LastActivity,
+            }).ToList(), nameof(User)).First()
+            : null,
+            FullName = (user.UserSpecification?.FirstName ?? string.Empty) + " " + (user.UserSpecification?.FamilyName ?? string.Empty),
+            Roles = user.UserSpecification?.Roles,
+            MobileNumber = user.UserSpecification?.MobileNumber ?? string.Empty,
+            Email = user.UserSpecification?.Email ?? string.Empty,
+            LastActivity = user.UserSpecification?.LastActivity,
             OrderCount = 0,
-            City = user.UserSpecification.City,
+            City = user.UserSpecification?.City,
             Wallet = false,
-            IsActive = user.UserSpecification.IsActive,
+            IsActive = user.UserSpecification?.IsActive ?? false,
             UserSpecification = new UserSpecificationDTO
             {
-                UserId = user.UserSpecification.UserId,
-                Id = user.UserSpecification.Id,
+                UserId = user.UserSpecification?.UserId ?? Guid.Empty,
+                Id = user.UserSpecification?.Id ?? Guid.Empty,
                 UserType = user.UserType,
-                Roles = user.Roles.ToList(),
-                IsActive = user.UserSpecification.IsActive,
-                ImageScr = user.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(user.Images.Select(img => new EntityImageDto
+                Roles = user.Roles?.ToList(),
+                IsActive = user.UserSpecification?.IsActive ?? false,
+                ImageScr = user.Images != null
+                ? _byteFileUtility.GetEncryptedFileActionUrl(user.Images.Select(img => new EntityImageDto
                 {
                     Id = img.Id,
                     ImageUrl = img.ImageUrl ?? string.Empty,
                     Placeholder = img.Placeholder ?? string.Empty
-                }).ToList(), nameof(User)).First() : null,
-                IdCardImageSrc = user.UserSpecification.IdCardImages != null ? _byteFileUtility.GetEncryptedFileActionUrl(user.UserSpecification.IdCardImages.Select(img => new EntityImageDto
+                }).ToList(), nameof(User)).First()
+                : null,
+                IdCardImageSrc = user.UserSpecification?.IdCardImages != null
+                ? _byteFileUtility.GetEncryptedFileActionUrl(user.UserSpecification.IdCardImages.Select(img => new EntityImageDto
                 {
                     Id = img.Id,
                     ImageUrl = img.ImageUrl ?? string.Empty,
                     Placeholder = img.Placeholder ?? string.Empty
-                }).ToList(), nameof(UserSpecification)).First() : null,
-                MobileNumber = user.UserSpecification.MobileNumber,
-                PassCode = _passwordHasher.DecryptPassword(user.UserSpecification.PassCode),
-                FirstName = user.UserSpecification.FirstName,
-                FamilyName = user.UserSpecification.FamilyName,
-                FatherName = user.UserSpecification.FatherName,
-                TelePhone = user.UserSpecification.TelePhone,
-                Province = user.UserSpecification.Province,
-                City = user.UserSpecification.City,
-                PostalCode = user.UserSpecification.PostalCode,
-                FirstAddress = user.UserSpecification.FirstAddress,
-                SecondAddress = user.UserSpecification.SecondAddress,
-                BirthDate = user.UserSpecification.BirthDate,
-                IdNumber = user.UserSpecification.IdNumber,
-                NationalCode = user.UserSpecification.NationalCode,
-                BankAccountNumber = user.UserSpecification.BankAccountNumber,
-                ShabaNumber = user.UserSpecification.ShabaNumber,
-                Note = user.UserSpecification.Note,
-                Created = user.UserSpecification.Created,
-                LastUpdated = user.UserSpecification.LastUpdated
+                }).ToList(), nameof(UserSpecification)).First()
+                : null,
+                MobileNumber = user.UserSpecification?.MobileNumber ?? string.Empty,
+                PassCode = user.UserSpecification != null ? _passwordHasher.DecryptPassword(user.UserSpecification.PassCode) : string.Empty,
+                FirstName = user.UserSpecification?.FirstName ?? string.Empty,
+                FamilyName = user.UserSpecification?.FamilyName ?? string.Empty,
+                FatherName = user.UserSpecification?.FatherName ?? string.Empty,
+                TelePhone = user.UserSpecification?.TelePhone ?? string.Empty,
+                Province = user.UserSpecification?.Province ?? string.Empty,
+                City = user.UserSpecification?.City ?? string.Empty,
+                PostalCode = user.UserSpecification?.PostalCode ?? string.Empty,
+                FirstAddress = user.UserSpecification?.FirstAddress ?? string.Empty,
+                SecondAddress = user.UserSpecification?.SecondAddress ?? string.Empty,
+                BirthDate = user.UserSpecification?.BirthDate ?? string.Empty,
+                IdNumber = user.UserSpecification?.IdNumber ?? string.Empty,
+                NationalCode = user.UserSpecification?.NationalCode ?? string.Empty,
+                BankAccountNumber = user.UserSpecification?.BankAccountNumber ?? string.Empty,
+                ShabaNumber = user.UserSpecification?.ShabaNumber ?? string.Empty,
+                Note = user.UserSpecification?.Note ?? string.Empty,
+                Created = user.UserSpecification?.Created ?? DateTime.MinValue,
+                LastUpdated = user.UserSpecification?.LastUpdated ?? DateTime.MinValue,
+
+                StoreName = user.UserSpecification?.StoreName ?? string.Empty,
+                StoreTelephone = user.UserSpecification?.StoreTelephone ?? string.Empty,
+                StoreAddress = user.UserSpecification?.StoreAddress ?? string.Empty,
+                BussinessLicenseNumber = user.UserSpecification?.BussinessLicenseNumber ?? string.Empty,
+                IsActiveAddProduct = user.UserSpecification?.IsActiveAddProduct ?? false,
+                IsPublishProduct = user.UserSpecification?.IsPublishProduct ?? false,
+                IsSelectedAsSpecialSeller = user.UserSpecification?.IsSelectedAsSpecialSeller ?? false,
+                CommissionType = user.UserSpecification?.CommissionType,
+                PercentageValue = user.UserSpecification?.PercentageValue ?? string.Empty,
+                SellerPerformance = user.UserSpecification?.SellerPerformance ?? string.Empty,
+                TimelySupply = user.UserSpecification?.TimelySupply ?? string.Empty,
+                ShippingCommitment = user.UserSpecification?.ShippingCommitment ?? string.Empty,
+                NoReturns = user.UserSpecification?.NoReturns ?? string.Empty,
             },
             Created = user.Created,
             LastUpdated = user.LastUpdated
@@ -555,6 +680,7 @@ public class UserServices : IUserServices
     public async Task<ServiceResponse<UserDTO>> GetUserBy(Guid userId)
     {
         var data = await _context.Users
+            .Include(x => x.Roles)
             .Include(u => u.Addresses)
                 .ThenInclude(a => a.Province)
             .Include(u => u.Addresses)

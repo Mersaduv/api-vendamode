@@ -1,5 +1,6 @@
 using api_vendace.Entities.Users.Security;
 using api_vendace.Enums;
+using api_vendamode.Enums;
 
 namespace api_vendace.Models.Dtos.AuthDto;
 
@@ -30,4 +31,17 @@ public class UserSpecificationDTO : BaseClass<Guid>
     public string BankAccountNumber { get; set; } = string.Empty;
     public string ShabaNumber { get; set; } = string.Empty;
     public string Note { get; set; } = string.Empty;
+    public string StoreName { get; set; } = string.Empty;
+    public string StoreTelephone { get; set; } = string.Empty;
+    public string StoreAddress { get; set; } = string.Empty;
+    public string BussinessLicenseNumber { get; set; } = string.Empty;
+    public bool IsActiveAddProduct { get; set; }
+    public bool IsPublishProduct { get; set; }
+    public bool IsSelectedAsSpecialSeller { get; set; }
+    public CommissionType? CommissionType { get; set; } // nullable
+    public string PercentageValue { get; set; } = string.Empty;
+    public string SellerPerformance { get; set; } = string.Empty;
+    public string TimelySupply { get; set; } = string.Empty;
+    public string ShippingCommitment { get; set; } = string.Empty;
+    public string NoReturns { get; set; } = string.Empty;
 }

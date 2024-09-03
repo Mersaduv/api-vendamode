@@ -10,7 +10,7 @@ namespace api_vendace.Interfaces.IServices;
 
 public interface IUserServices
 {
-    Task<ServiceResponse<bool>> CreateUserAsync(UserCreateDTO userCreate);
+    Task<ServiceResponse<bool>> UserUpsertAsync(UserUpsertDTO userUpsert);
     Task<ServiceResponse<Guid>> RegisterUserAsync(string mobileNumber, string passCode);
     Task<ServiceResponse<Guid>> EditUserProfileAsync(UserProfileUpdateDTO userProfileUpdate);
     Task<ServiceResponse<LoginDTO>> AuthenticateUserAsync(string mobileNumber, string plainPassword);

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using api_vendace.Data;
@@ -12,9 +13,11 @@ using api_vendace.Data;
 namespace api_vendamode.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240902104625_InitUpdateUSerSpecifications")]
+    partial class InitUpdateUSerSpecifications
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1042,16 +1045,9 @@ namespace api_vendamode.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("BussinessLicenseNumber")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("City")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<int?>("CommissionType")
-                        .HasColumnType("integer");
 
                     b.Property<DateTime>("Created")
                         .HasColumnType("timestamp with time zone");
@@ -1087,15 +1083,6 @@ namespace api_vendamode.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("IsActiveAddProduct")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsPublishProduct")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsSelectedAsSpecialSeller")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("LastActivity")
                         .HasColumnType("text");
 
@@ -1107,10 +1094,6 @@ namespace api_vendamode.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("NationalCode")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("NoReturns")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -1130,10 +1113,6 @@ namespace api_vendamode.Migrations
                         .IsRequired()
                         .HasColumnType("bytea");
 
-                    b.Property<string>("PercentageValue")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("PostalCode")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1150,35 +1129,11 @@ namespace api_vendamode.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("SellerPerformance")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("ShabaNumber")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("ShippingCommitment")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("StoreAddress")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("StoreName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("StoreTelephone")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("TelePhone")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("TimelySupply")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -1409,48 +1364,6 @@ namespace api_vendamode.Migrations
                     b.ToTable("Canceleds");
                 });
 
-            modelBuilder.Entity("api_vendamode.Entities.Designs.ColumnFooter", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("LastUpdated")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ColumnFooters");
-                });
-
-            modelBuilder.Entity("api_vendamode.Entities.Designs.Copyright", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("LastUpdated")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Copyrights");
-                });
-
             modelBuilder.Entity("api_vendamode.Entities.Designs.DesignItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1583,11 +1496,11 @@ namespace api_vendamode.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Address")
+                    b.Property<string>("ContactAndSupport")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("ContactAndSupport")
+                    b.Property<string>("Copyright")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -1596,10 +1509,6 @@ namespace api_vendamode.Migrations
 
                     b.Property<DateTime?>("LastUpdated")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ResponseTime")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.HasKey("Id");
 

@@ -1,8 +1,10 @@
 using api_vendace.Data;
 using api_vendace.Entities;
+using api_vendace.Entities.Products;
 using api_vendace.Interfaces;
 using api_vendace.Models;
 using api_vendace.Models.Dtos;
+using api_vendace.Models.Dtos.ProductDto.Category;
 using api_vendace.Utility;
 using api_vendamode.Entities.Designs;
 using api_vendamode.Entities.Products;
@@ -18,12 +20,14 @@ public class DesignServices : IDesignServices
     private readonly ApplicationDbContext _context;
     private readonly ByteFileUtility _byteFileUtility;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICategoryServices _categoryServices;
 
-    public DesignServices(ByteFileUtility byteFileUtility, ApplicationDbContext context, IUnitOfWork unitOfWork)
+    public DesignServices(ByteFileUtility byteFileUtility, ApplicationDbContext context, IUnitOfWork unitOfWork, ICategoryServices categoryServices)
     {
         _byteFileUtility = byteFileUtility;
         _context = context;
         _unitOfWork = unitOfWork;
+        _categoryServices = categoryServices;
     }
     //HeaderText
     public async Task<ServiceResponse<bool>> UpsertHeaderText(HeaderTextUpsertDTO headerTextDto)
@@ -370,6 +374,37 @@ public class DesignServices : IDesignServices
         return new ServiceResponse<IReadOnlyList<StoreCategory>> { Data = designItems };
     }
 
+    public async Task<ServiceResponse<IReadOnlyList<CategoryDTO>>> GetStoreCategoryList()
+    {
+        var designItemsData = await _context.StoreCategories.ToListAsync();
+        List<Guid> storeCategoryIds = designItemsData.Select(x => x.CategoryId).ToList();
+        var categoriesQuery = _context.Categories
+            .Where(x => storeCategoryIds.Contains(x.Id))
+            .Include(c => c.ChildCategories)
+            .Include(c => c.Images)
+            .OrderByDescending(category => category.LastUpdated)
+            .AsQueryable();
+        var allCategories = await categoriesQuery.Select(category => new CategoryDTO
+        {
+            Id = category.Id,
+            Name = category.Name,
+            Slug = category.Slug,
+            Level = category.Level,
+            IsActive = category.IsActive,
+            IsActiveProduct = category.IsActiveProduct,
+            IsDeleted = category.IsDeleted,
+            ImagesSrc = category.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(category.Images.Select(img => new EntityImageDto
+            {
+                Id = img.Id,
+                ImageUrl = img.ImageUrl ?? string.Empty,
+                Placeholder = img.Placeholder ?? string.Empty
+            }).ToList(), nameof(Category)).First() : null,
+
+        }).ToListAsync();
+
+        return new ServiceResponse<IReadOnlyList<CategoryDTO>> { Data = allCategories };
+    }
+
     public async Task<ServiceResponse<bool>> DeleteStoreCategory(Guid id)
     {
         var storeCategory = await _context.StoreCategories.FirstOrDefaultAsync(x => x.Id == id);
@@ -440,8 +475,10 @@ public class DesignServices : IDesignServices
             {
                 Id = Guid.NewGuid(),
                 ContactAndSupport = support.ContactAndSupport,
-                Copyright = support.ContactAndSupport,
-                Created = DateTime.UtcNow
+                ResponseTime = support.ResponseTime,
+                Address = support.Address,
+                Created = DateTime.UtcNow,
+                LastUpdated = DateTime.UtcNow
             };
             _context.Supports.Add(newSupport);
         }
@@ -449,7 +486,7 @@ public class DesignServices : IDesignServices
         {
             // Update existing Support
             supportDb.ContactAndSupport = support.ContactAndSupport;
-            supportDb.Copyright = support.ContactAndSupport;
+            supportDb.Address = support.Address;
             supportDb.LastUpdated = DateTime.UtcNow;
         }
 
@@ -481,7 +518,6 @@ public class DesignServices : IDesignServices
         var redirectsDb = await _context.Redirects.FirstOrDefaultAsync(x => x.Id == redirects.Id);
         if (redirectsDb is null)
         {
-            // Create new HeaderText
             var newRedirect = new Redirects
             {
                 Id = Guid.NewGuid(),
@@ -492,7 +528,6 @@ public class DesignServices : IDesignServices
         }
         else
         {
-            // Update existing HeaderText
             redirectsDb.ArticleId = redirects.ArticleId;
             redirectsDb.LastUpdated = DateTime.UtcNow;
         }
@@ -517,6 +552,98 @@ public class DesignServices : IDesignServices
         {
             Data = redirects.Count > 0 ? redirects.First() : null,
             Success = true
+        };
+    }
+
+    public async Task<ServiceResponse<bool>> UpsertCopyright(Copyright copyrightDto)
+    {
+        var copyrightDb = await _context.Copyrights.FirstOrDefaultAsync(x => x.Id == copyrightDto.Id);
+        if (copyrightDb is null)
+        {
+            var newCopyright = new Copyright
+            {
+                Id = Guid.NewGuid(),
+                Name = copyrightDto.Name,
+                Created = DateTime.UtcNow,
+                LastUpdated = DateTime.UtcNow
+            };
+            _context.Copyrights.Add(newCopyright);
+        }
+        else
+        {
+            copyrightDb.Name = copyrightDto.Name;
+            copyrightDb.LastUpdated = DateTime.UtcNow;
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+        return new ServiceResponse<bool> { Data = true, Message = "کپی رایت بروزرسانی شد" };
+    }
+
+    public async Task<ServiceResponse<Copyright>> GetCopyright()
+    {
+        var copyrights = await _context.Copyrights.ToListAsync();
+        if (copyrights is null)
+        {
+            return new ServiceResponse<Copyright>
+            {
+                Success = false,
+                Message = "کپی رایت وجود ندارد"
+            };
+        }
+
+        return new ServiceResponse<Copyright>
+        {
+            Data = copyrights.Count > 0 ? copyrights.First() : null,
+            Success = true
+        };
+    }
+
+    public async Task<ServiceResponse<bool>> UpsertColumnFooters(List<ColumnFooter> columnFooters)
+    {
+        foreach (var columnFooterDto in columnFooters)
+        {
+            var columnFooterDb = await _context.ColumnFooters.FirstOrDefaultAsync(x => x.Id == columnFooterDto.Id);
+
+            if (columnFooterDb is null)
+            {
+                // Create new HeaderText
+                var newColumnFooter = new ColumnFooter
+                {
+                    Id = Guid.NewGuid(),
+                    Name = columnFooterDto.Name,
+                    Created = DateTime.UtcNow,
+                    LastUpdated = DateTime.UtcNow
+                };
+                _context.ColumnFooters.Add(newColumnFooter);
+            }
+            else
+            {
+                // Update existing HeaderText
+                columnFooterDb.Name = columnFooterDto.Name;
+                columnFooterDb.LastUpdated = DateTime.UtcNow;
+            }
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+        return new ServiceResponse<bool> { Data = true, Message = "ستون های فوتر بروزرسانی شد" };
+    }
+
+    public async Task<ServiceResponse<List<ColumnFooter>>> GetColumnFooters()
+    {
+        var columnFooters = await _context.ColumnFooters.ToListAsync();
+        if (columnFooters is null)
+        {
+            return new ServiceResponse<List<ColumnFooter>>
+            {
+                Success = false,
+                Message = "ستون فوترها وجود ندارد"
+            };
+        }
+
+        return new ServiceResponse<List<ColumnFooter>>
+        {
+            Count = columnFooters.Count,
+            Data = columnFooters
         };
     }
 }
