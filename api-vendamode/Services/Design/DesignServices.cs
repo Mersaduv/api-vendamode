@@ -542,6 +542,7 @@ public class DesignServices : IDesignServices
         var redirect = redirects.First();
         var article = await _context.Articles.FirstOrDefaultAsync(x => x.Id == redirect.ArticleId);
         redirect.ArticleTitle = article.Title;
+        redirect.Slug = article.Slug;
         if (redirects is null)
         {
             return new ServiceResponse<Redirects>
