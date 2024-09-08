@@ -539,6 +539,9 @@ public class DesignServices : IDesignServices
     public async Task<ServiceResponse<Redirects>> GetRedirect()
     {
         var redirects = await _context.Redirects.ToListAsync();
+        var redirect = redirects.First();
+        var article = await _context.Articles.FirstOrDefaultAsync(x => x.Id == redirect.ArticleId);
+        redirect.ArticleTitle = article.Title;
         if (redirects is null)
         {
             return new ServiceResponse<Redirects>
@@ -550,7 +553,7 @@ public class DesignServices : IDesignServices
 
         return new ServiceResponse<Redirects>
         {
-            Data = redirects.Count > 0 ? redirects.First() : null,
+            Data = redirects.Count > 0 ? redirect : null,
             Success = true
         };
     }
@@ -611,6 +614,7 @@ public class DesignServices : IDesignServices
                 {
                     Id = Guid.NewGuid(),
                     Name = columnFooterDto.Name,
+                    Index = columnFooterDto.Index,
                     Created = DateTime.UtcNow,
                     LastUpdated = DateTime.UtcNow
                 };
@@ -619,6 +623,7 @@ public class DesignServices : IDesignServices
             else
             {
                 // Update existing HeaderText
+                columnFooterDb.Index = columnFooterDto.Index;
                 columnFooterDb.Name = columnFooterDto.Name;
                 columnFooterDb.LastUpdated = DateTime.UtcNow;
             }
@@ -630,7 +635,7 @@ public class DesignServices : IDesignServices
 
     public async Task<ServiceResponse<List<ColumnFooter>>> GetColumnFooters()
     {
-        var columnFooters = await _context.ColumnFooters.ToListAsync();
+        var columnFooters = await _context.ColumnFooters.OrderBy(x => x.Index).ToListAsync();
         if (columnFooters is null)
         {
             return new ServiceResponse<List<ColumnFooter>>

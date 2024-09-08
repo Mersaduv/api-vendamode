@@ -133,20 +133,20 @@ public static class DesignEndpoints
         return TypedResults.Ok(result);
     }
     private static async Task<Ok<ServiceResponse<bool>>> UpsertRedirect(IDesignServices designServices,
-                                                                    Support support, ILogger<Program> _logger, HttpContext context)
+                                                                    Redirects redirects, ILogger<Program> _logger, HttpContext context)
     {
         _logger.Log(LogLevel.Information, "Upsert Redirect");
 
-        var result = await designServices.UpsertSupport(support);
+        var result = await designServices.UpsertRedirect(redirects);
 
         return TypedResults.Ok(result);
     }
 
-    private async static Task<Ok<ServiceResponse<Support>>> GetRedirect(IDesignServices designServices, ILogger<Program> _logger)
+    private async static Task<Ok<ServiceResponse<Redirects>>> GetRedirect(IDesignServices designServices, ILogger<Program> _logger)
     {
         _logger.Log(LogLevel.Information, "Get Redirect");
 
-        var result = await designServices.GetSupport();
+        var result = await designServices.GetRedirect();
 
         return TypedResults.Ok(result);
     }

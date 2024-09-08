@@ -342,6 +342,12 @@ public class ProductServices : IProductServices
                 }
             }
 
+            // Best selling product
+            if (requestQuery.IsBestSeller is not null)
+            {
+                query = query.Where(x => x.Sold > 0).OrderByDescending(x => x.Sold);
+            }
+
             // Category filter
             if (requestQuery.CategoryId is not null && requestQuery.SingleCategory is not null)
             {
@@ -600,101 +606,6 @@ public class ProductServices : IProductServices
 
         return categoryIds;
     }
-
-
-    // public async Task<ServiceResponse<GetProductsResult>> GetProducts(RequestQuery requestQuery)
-    // {
-    //     try
-    //     {
-    //         int pageNumber = requestQuery.PageNumber ?? 1;
-    //         int pageSize = requestQuery.PageSize;
-
-    //         // Apply filtering logic based on the query parameters
-    //         var productPaginationList = await _productRepository.GetPaginationAsync(pageNumber, pageSize);
-    //         var query = _productRepository.GetQuery();
-    //         if (!string.IsNullOrEmpty(requestQuery.Category))
-    //         {
-    //             query = query.Where(p => p.Category!.Name == requestQuery.Category);
-    //         }
-
-    //         if (requestQuery.MinPrice.HasValue)
-    //         {
-    //             query = query.Where(p => p.Price >= requestQuery.MinPrice.Value);
-    //         }
-
-    //         if (requestQuery.MaxPrice.HasValue)
-    //         {
-    //             query = query.Where(p => p.Price <= requestQuery.MaxPrice.Value);
-    //         }
-
-    //         if ((requestQuery.FeatureIds?.Any() ?? false) && (requestQuery.FeatureValueIds?.Any() ?? false))
-    //         {
-    //             var featureFilters = requestQuery.FeatureIds.Concat(requestQuery.FeatureValueIds).ToList();
-    //             foreach (var featureFilter in featureFilters)
-    //             {
-    //                 query = query.Where(p => p.ProductFeatures != null && p.ProductFeatures
-    //                     .Any(f => f.Id == featureFilter && f.Values != null && f.Values.Any(v => v.Id == featureFilter)));
-    //             }
-    //         }
-
-    //         if (!string.IsNullOrEmpty(requestQuery.SortBy))
-    //         {
-    //             if (requestQuery.Sort?.ToLower() == "desc")
-    //             {
-    //                 query = query.OrderByDescending(p => EF.Property<object>(p, requestQuery.SortBy));
-    //             }
-    //             else
-    //             {
-    //                 query = query.OrderBy(p => EF.Property<object>(p, requestQuery.SortBy));
-    //             }
-    //         }
-
-    //         var totalCount = await query.CountAsync();
-    //         var paginatedProducts = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
-
-    //         var productDtoList = new List<ProductDTO>();
-
-    //         foreach (var product in paginatedProducts)
-    //         {
-    //             var result = await BuildProductResponse(product);
-    //             productDtoList.Add(result);
-    //         }
-
-    //         var pagination = new Pagination<ProductDTO>
-    //         {
-    //             CurrentPage = pageNumber,
-    //             NextPage = pageNumber < (totalCount / pageSize) ? pageNumber + 1 : pageNumber,
-    //             PreviousPage = pageNumber > 1 ? pageNumber - 1 : 1,
-    //             HasNextPage = pageNumber < (totalCount / pageSize),
-    //             HasPreviousPage = pageNumber > 1,
-    //             LastPage = (int)Math.Ceiling((double)totalCount / pageSize),
-    //             Data = productDtoList,
-    //             TotalCount = totalCount
-    //         };
-
-    //         var results = new GetProductsResult
-    //         {
-    //             ProductsLength = totalCount,
-    //             MainMaxPrice = paginatedProducts.Max(p => p.Price),
-    //             MainMinPrice = paginatedProducts.Min(p => p.Price),
-    //             Pagination = pagination
-    //         };
-
-    //         return new ServiceResponse<GetProductsResult>
-    //         {
-    //             Data = results,
-    //             Success = true
-    //         };
-    //     }
-    //     catch (Exception)
-    //     {
-    //         return new ServiceResponse<GetProductsResult>
-    //         {
-    //             Success = false,
-    //             Message = "An error occurred while processing your request."
-    //         };
-    //     }
-    // }
 
     public async Task<ServiceResponse<ProductDTO>> GetSingleProductBy(Guid id)
     {

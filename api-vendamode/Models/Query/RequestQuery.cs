@@ -42,6 +42,9 @@ public class RequestQuery
 
     [FromQuery(Name = "search")]
     public string? Search { get; set; }
+    
+    [FromQuery(Name = "bestSelling")]
+    public string? IsBestSeller { get; set; }
 
     [FromQuery(Name = "inStock")]
     public string? InStock { get; set; }
@@ -65,6 +68,6 @@ public class RequestQuery
     [FromQuery(Name = "adminList")]
     public bool? AdminList { get; set; }
 
-    [FromQuery(Name = "isSlider")]
+    [FromQuery(Name = "isActiveSlider")]
     public bool? IsSlider { get; set; }
 }
