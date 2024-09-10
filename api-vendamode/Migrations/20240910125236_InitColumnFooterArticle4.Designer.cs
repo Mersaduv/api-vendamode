@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using api_vendace.Data;
@@ -12,9 +13,11 @@ using api_vendace.Data;
 namespace api_vendamode.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240910125236_InitColumnFooterArticle4")]
+    partial class InitColumnFooterArticle4
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -472,11 +475,7 @@ namespace api_vendamode.Migrations
                     b.Property<DateTime?>("LastUpdated")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("NameEn")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("NameFa")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -1419,6 +1418,10 @@ namespace api_vendamode.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ColumnFooterArticles")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("Created")
                         .HasColumnType("timestamp with time zone");
 
@@ -1491,34 +1494,6 @@ namespace api_vendamode.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("DesignItems");
-                });
-
-            modelBuilder.Entity("api_vendamode.Entities.Designs.FooterArticleColumn", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ArticleId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("ColumnFooterId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("Index")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("LastUpdated")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ColumnFooterId");
-
-                    b.ToTable("FooterArticleColumns");
                 });
 
             modelBuilder.Entity("api_vendamode.Entities.Designs.GeneralSetting", b =>
@@ -2637,13 +2612,6 @@ namespace api_vendamode.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("api_vendamode.Entities.Designs.FooterArticleColumn", b =>
-                {
-                    b.HasOne("api_vendamode.Entities.Designs.ColumnFooter", null)
-                        .WithMany("FooterArticleColumns")
-                        .HasForeignKey("ColumnFooterId");
-                });
-
             modelBuilder.Entity("api_vendamode.Entities.Products.Article", b =>
                 {
                     b.HasOne("api_vendace.Entities.Products.Category", "Category")
@@ -2986,11 +2954,6 @@ namespace api_vendamode.Migrations
             modelBuilder.Entity("api_vendace.Models.Dtos.ProductDto.Stock.StockItem", b =>
                 {
                     b.Navigation("Images");
-                });
-
-            modelBuilder.Entity("api_vendamode.Entities.Designs.ColumnFooter", b =>
-                {
-                    b.Navigation("FooterArticleColumns");
                 });
 
             modelBuilder.Entity("api_vendamode.Entities.Designs.DesignItem", b =>

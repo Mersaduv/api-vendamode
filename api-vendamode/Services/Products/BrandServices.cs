@@ -27,7 +27,7 @@ public class BrandServices : IBrandServices
 
     public async Task<ServiceResponse<bool>> AddBrand(BrandCommandDTO brandCreate)
     {
-        if (await _context.Brands.FirstOrDefaultAsync(b => b.Name == brandCreate.Name) != null)
+        if (await _context.Brands.FirstOrDefaultAsync(b => b.NameFa == brandCreate.NameFa) != null)
         {
             return new ServiceResponse<bool>
             {
@@ -39,7 +39,8 @@ public class BrandServices : IBrandServices
         var brand = new Brand
         {
             Id = Guid.NewGuid(),
-            Name = brandCreate.Name,
+            NameFa = brandCreate.NameFa,
+            NameEn = brandCreate.NameEn,
             Count = 0,
             Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Brand>>(brandCreate.Thumbnail!, nameof(Brand), false),
             Description = brandCreate.Description ?? "",
@@ -98,7 +99,8 @@ public class BrandServices : IBrandServices
                 ImageUrl = img.ImageUrl ?? string.Empty,
                 Placeholder = img.Placeholder ?? string.Empty
             }).ToList(), nameof(Brand)).First() : null,
-            Name = brand.Name,
+            NameFa = brand.NameFa,
+            NameEn = brand.NameEn,
             Description = brand.Description,
             Count = brand.Products is not null ? brand.Products.Count : 0,
             InSlider = brand.InSlider,
@@ -139,7 +141,7 @@ public class BrandServices : IBrandServices
         if (!string.IsNullOrEmpty(requestQuery.Search))
         {
             string searchLower = requestQuery.Search.ToLower();
-            brandsQuery = brandsQuery.Where(f => f.Name.ToLower().Contains(searchLower));
+            brandsQuery = brandsQuery.Where(f => f.NameFa.ToLower().Contains(searchLower) || f.NameEn.ToLower().Contains(searchLower));
         }
 
         // active brand Slider Filter
@@ -174,7 +176,8 @@ public class BrandServices : IBrandServices
                     ImageUrl = img.ImageUrl ?? string.Empty,
                     Placeholder = img.Placeholder ?? string.Empty
                 }).ToList(), nameof(Brand)).First() : null,
-                Name = brand.Name,
+                NameFa = brand.NameFa,
+                NameEn = brand.NameEn,
                 Description = brand.Description,
                 Count = brand.Products != null ? brand.Products.Count : 0,
                 InSlider = brand.InSlider,
@@ -216,7 +219,8 @@ public class BrandServices : IBrandServices
             };
         }
 
-        brand.Name = brandUpdate.Name;
+        brand.NameFa = brandUpdate.NameFa;
+        brand.NameEn = brandUpdate.NameEn;
         brand.Description = brandUpdate.Description ?? "";
         brand.InSlider = brandUpdate.InSlider;
         brand.IsActive = brandUpdate.IsActive;

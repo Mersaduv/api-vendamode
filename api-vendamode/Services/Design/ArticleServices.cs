@@ -162,16 +162,17 @@ public class ArticleServices : IArticleServices
         {
             articlesQuery = articlesQuery.Where(x => !x.IsActive && !x.IsDeleted);
         }
-
-        if (requestQuery.Place is not null && requestQuery.Place != "0")
+        // Place filter
+        if (requestQuery.Place is not null && requestQuery.Place == "1")
         {
-            articlesQuery = articlesQuery.Where(a => a.Place.ToString() == requestQuery.Place);
+            articlesQuery = articlesQuery.Where(a => a.CategoryId != null);
         }
 
-        if (requestQuery.Place is not null && requestQuery.Place == "0")
+        if (requestQuery.Place is not null && requestQuery.Place == "2")
         {
-            articlesQuery = articlesQuery.Where(a => a.Place.ToString() == requestQuery.Place);
+            articlesQuery = articlesQuery.Where(a => a.CategoryId == null);
         }
+
         // Search filter
         if (!string.IsNullOrEmpty(requestQuery.Search))
         {
@@ -218,9 +219,15 @@ public class ArticleServices : IArticleServices
             articlesQuery = articlesQuery.Where(p => allCategoryIds.Contains(p.CategoryId ?? Guid.Empty));
         }
 
+        // if (requestQuery.CategoryId is not null && requestQuery.SingleCategory is null)
+        // {
+        //     articlesQuery = articlesQuery.Where(p => p.CategoryId == Guid.Parse(requestQuery.CategoryId));
+        // }
+
         if (requestQuery.CategoryId is not null && requestQuery.SingleCategory is null)
         {
-            articlesQuery = articlesQuery.Where(p => p.CategoryId == Guid.Parse(requestQuery.CategoryId));
+
+            if (requestQuery.CategoryId != "default") articlesQuery = articlesQuery.Where(p => p.CategoryId == Guid.Parse(requestQuery.CategoryId));
         }
 
         var totalCount = await articlesQuery.CountAsync();

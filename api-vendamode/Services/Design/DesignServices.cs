@@ -616,6 +616,7 @@ public class DesignServices : IDesignServices
                     Id = Guid.NewGuid(),
                     Name = columnFooterDto.Name,
                     Index = columnFooterDto.Index,
+                    FooterArticleColumns = columnFooterDto.FooterArticleColumns,
                     Created = DateTime.UtcNow,
                     LastUpdated = DateTime.UtcNow
                 };
@@ -623,9 +624,10 @@ public class DesignServices : IDesignServices
             }
             else
             {
-                // Update existing HeaderText
+                // Update existing
                 columnFooterDb.Index = columnFooterDto.Index;
                 columnFooterDb.Name = columnFooterDto.Name;
+                columnFooterDb.FooterArticleColumns = columnFooterDto.FooterArticleColumns;
                 columnFooterDb.LastUpdated = DateTime.UtcNow;
             }
         }

@@ -752,11 +752,11 @@ public class ProductServices : IProductServices
         var result = product.ToProductResponse(_byteFileUtility);
         if (product.Brand != null)
         {
-            result.BrandName = product.Brand!.Name;
+            result.BrandName = product.Brand!.NameFa;
             result.BrandData = new BrandDTO
             {
                 Id = product.Id,
-                Name = product.Brand!.Name,
+                NameFa = product.Brand!.NameFa,
             };
 
         }

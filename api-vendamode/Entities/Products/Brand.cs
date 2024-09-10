@@ -4,7 +4,8 @@ namespace api_vendace.Entities.Products;
 
 public class Brand : BaseClass<Guid>
 {
-    public string Name { get; set; } = string.Empty;
+    public string NameFa { get; set; } = string.Empty;
+    public string NameEn { get; set; } = string.Empty;
     public List<EntityImage<Guid, Brand>>? Images { get; set; }
     public bool InSlider { get; set; }
     public bool IsActive { get; set; }

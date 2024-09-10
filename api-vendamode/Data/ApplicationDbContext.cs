@@ -14,6 +14,7 @@ using api_vendace.Models.Dtos.ProductDto.Stock;
 using api_vendamode.Utility;
 using api_vendamode.Models.Dtos;
 using api_vendamode.Entities.Designs;
+using System.Text.Json;
 
 namespace api_vendace.Data;
 public class ApplicationDbContext : DbContext
@@ -171,4 +172,5 @@ public class ApplicationDbContext : DbContext
     public DbSet<Redirects> Redirects { get; set; }
     public DbSet<Copyright> Copyrights { get; set; }
     public DbSet<ColumnFooter> ColumnFooters { get; set; }
+    public DbSet<FooterArticleColumn> FooterArticleColumns { get; set; }
 }
