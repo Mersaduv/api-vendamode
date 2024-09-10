@@ -652,4 +652,17 @@ public class DesignServices : IDesignServices
             Data = columnFooters
         };
     }
+
+    public async Task<ServiceResponse<bool>> DeleteColumnFooter(Guid id)
+    {
+        var columnFooter = await _context.ColumnFooters.FirstOrDefaultAsync(x => x.Id == id);
+        if (columnFooter == null)
+        {
+            return new ServiceResponse<bool> { Data = false, Message = "ستون های فوتر پیدا نشد" };
+        }
+
+        _context.ColumnFooters.Remove(columnFooter);
+        await _context.SaveChangesAsync();
+        return new ServiceResponse<bool> { Data = true };
+    }
 }

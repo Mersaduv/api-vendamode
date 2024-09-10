@@ -25,6 +25,8 @@ public class RequestQuery
 
     [FromQuery(Name = "category")]
     public string? Category { get; set; }
+    [FromQuery(Name = "categorySlug")]
+    public string? CategorySlug { get; set; }
     [FromQuery(Name = "categoryId")]
     public string? CategoryId { get; set; }
     [FromQuery(Name = "singleCategory")]
@@ -42,7 +44,7 @@ public class RequestQuery
 
     [FromQuery(Name = "search")]
     public string? Search { get; set; }
-    
+
     [FromQuery(Name = "bestSelling")]
     public string? IsBestSeller { get; set; }
 

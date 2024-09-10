@@ -1,5 +1,6 @@
 using api_vendace.Models;
 using api_vendace.Models.Dtos;
+using api_vendamode.Models.Dtos.ProductDto.Category;
 
 namespace api_vendamode.Models.Dtos.ArticleDto;
 
@@ -14,6 +15,7 @@ public class ArticleDto : BaseClass<Guid>
     public string Description { get; set; } = string.Empty;
     public Guid? CategoryId { get; set; }
     public string Category { get; set; } = string.Empty;
+    public CategoryWithAllParents ParentCategories { get; set; }
     public string Author { get; set; } = string.Empty;
     public int NumReviews { get; set; }
     public bool IsDeleted { get; set; }

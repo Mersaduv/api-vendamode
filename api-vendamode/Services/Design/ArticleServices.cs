@@ -5,11 +5,13 @@ using api_vendace.Interfaces;
 using api_vendace.Interfaces.IServices;
 using api_vendace.Models;
 using api_vendace.Models.Dtos;
+using api_vendace.Models.Dtos.ProductDto.Category;
 using api_vendace.Models.Query;
 using api_vendace.Utility;
 using api_vendamode.Entities.Products;
 using api_vendamode.Interfaces.IServices;
 using api_vendamode.Models.Dtos.ArticleDto;
+using api_vendamode.Models.Dtos.ProductDto.Category;
 using Microsoft.EntityFrameworkCore;
 
 namespace api_vendamode.Services.Design;
@@ -134,6 +136,7 @@ public class ArticleServices : IArticleServices
                     .Include(a => a.ArticleReviews)
                     .Include(c => c.Image)
                     .Include(a => a.Category)
+                    .ThenInclude(c => c.ParentCategory)
                     .AsQueryable();
 
         // Admin LIst 
@@ -169,6 +172,13 @@ public class ArticleServices : IArticleServices
         {
             articlesQuery = articlesQuery.Where(a => a.Place.ToString() == requestQuery.Place);
         }
+        // Search filter
+        if (!string.IsNullOrEmpty(requestQuery.Search))
+        {
+            string searchLower = requestQuery.Search.ToLower();
+            articlesQuery = articlesQuery.Where(p => p.Title.ToLower().Contains(searchLower));
+        }
+
 
         // Sort
         if (!string.IsNullOrEmpty(requestQuery.Sort))
@@ -215,13 +225,40 @@ public class ArticleServices : IArticleServices
 
         var totalCount = await articlesQuery.CountAsync();
 
-        var articlesList = await articlesQuery.Select(article => new ArticleDto
+        var articlesQueryList = await articlesQuery.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
+
+        var articleList = articlesQueryList.Select(article => new ArticleDto
         {
             Id = article.Id,
             Slug = article.Slug,
             Title = article.Title,
             CategoryId = article.CategoryId,
             Category = article.Category != null ? article.Category.Name : "",
+
+            ParentCategories = article.Category != null ? new CategoryWithAllParents
+            {
+                Category = new CategoryDTO
+                {
+                    Id = article.Category.Id,
+                    Name = article.Category.Name,
+                    Slug = article.Category.Name,
+                    Level = article.Category.Level,
+                    ParentCategoryId = article.Category.ParentCategoryId,
+                    Created = article.Category.Created,
+                    LastUpdated = article.Category.LastUpdated
+                },
+                ParentCategories = article.Category.GetParentCategories(_context)?
+                    .Select(category => new CategoryDTO
+                    {
+                        Id = category.Id,
+                        Name = category.Name,
+                        Slug = category.Name,
+                        Level = category.Level,
+                        Created = category.Created,
+                        LastUpdated = category.LastUpdated
+                    }).Reverse().ToList() ?? new List<CategoryDTO>()
+            } : null, // اگر Category null باشد، ParentCategories نیز null خواهد بود.
+
             Description = article.Description,
             IsActive = article.IsActive,
             Place = article.Place,
@@ -230,12 +267,13 @@ public class ArticleServices : IArticleServices
             Code = article.Code,
             IsDeleted = article.IsDeleted,
             Image = article.Image != null ? _byteFileUtility.GetEncryptedFileActionUrl(new List<EntityImageDto>
-            {
-                new EntityImageDto { Id = article.Image.Id , ImageUrl =article.Image.ImageUrl ?? string.Empty, Placeholder=article.Image.Placeholder ?? string.Empty}
-            }, nameof(Article)).First() : null,
+    {
+        new EntityImageDto { Id = article.Image.Id , ImageUrl = article.Image.ImageUrl ?? string.Empty, Placeholder = article.Image.Placeholder ?? string.Empty }
+    }, nameof(Article)).First() : null,
             Created = article.Created,
             LastUpdated = article.LastUpdated
-        }).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
+        }).ToList();
+
 
         var pagination = new Pagination<ArticleDto>
         {
@@ -245,7 +283,7 @@ public class ArticleServices : IArticleServices
             HasNextPage = pageNumber < (totalCount / pageSize),
             HasPreviousPage = pageNumber > 1,
             LastPage = (int)Math.Ceiling((double)totalCount / pageSize),
-            Data = articlesList,
+            Data = articleList,
             TotalCount = totalCount
         };
 

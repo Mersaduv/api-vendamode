@@ -25,12 +25,12 @@ public interface ICategoryServices
     Task<List<Category>> GetCategoriesAsync();
     IEnumerable<Guid> GetAllChildCategoriesHelper(Guid parentCategoryId, List<Category> allCategories, List<Category> allChildCategories);
     IEnumerable<Guid> GetAllChildCategories(Guid parentCategoryId);
-    Task<ServiceResponse<List<CategoryDTO>>> GetParentSubCategoryAsync(Guid id,RequestBy requestSub);
+    Task<ServiceResponse<List<CategoryDTO>>> GetParentSubCategoryAsync(Guid id, RequestBy requestSub);
     Task<ServiceResponse<SubCategoryResult>> GetSubCategoryAsync(RequestBy requestSub);
     Task<ServiceResponse<Pagination<CategoryDTO>>> GetAllCategories(RequestQuery requestQuery);
     Task<ServiceResponse<CategoryResult>> GetCategories();
     Task<ServiceResponse<CategoryDTO>> GetBySlugAsync(string category);
     List<Guid> GetAllCategoryIds(Guid categoryId);
     List<Guid> GetAllCategoryIdsBy(string categorySlug);
-    List<CategoryDTO> BuildCategoryTree(List<Category> categories, List<Category> allCategories);
+    List<CategoryDTO> BuildCategoryTree(List<Category> categories, List<Category> allCategories, bool isParent);
 }

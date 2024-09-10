@@ -164,6 +164,50 @@ public class ReviewServices : IReviewServices
             Data = result
         };
     }
+     public async Task<ServiceResponse<Pagination<ArticleReviewDto>>> GetArticleReviews(Guid articleId, RequestQuery requestQuery)
+    {
+        var pageNumber = requestQuery.PageNumber ?? 1;
+        var pageSize = requestQuery.PageSize ?? 15;
+        var skipCount = (pageNumber - 1) * pageSize;
+
+        var reviews = await _context.ArticleReviews
+            .Where(r => r.ArticleId == articleId)
+            .OrderByDescending(r => r.Created)
+            .Skip(skipCount)
+            .Take(pageSize)
+            .Include(u => u.User)
+            .ThenInclude(us => us.UserSpecification)
+            .Select(r => new ArticleReviewDto
+            {
+                Id = r.Id,
+                Comment = r.Comment,
+                Status = r.Status,
+                UserName = r.User.UserSpecification.FirstName + " " + r.User.UserSpecification.FamilyName,
+                UserId = r.User.Id,
+                Created = r.Created,
+                LastUpdated = r.LastUpdated
+            })
+            .ToListAsync();
+
+        var totalReviews = await _context.Reviews.CountAsync(r => r.ProductId == articleId);
+
+        var pagination = new Pagination<ArticleReviewDto>
+        {
+            CurrentPage = pageNumber,
+            NextPage = pageNumber + 1,
+            PreviousPage = pageNumber > 1 ? pageNumber - 1 : 0,
+            HasNextPage = (skipCount + pageSize) < totalReviews,
+            HasPreviousPage = pageNumber > 1,
+            LastPage = (int)Math.Ceiling((decimal)totalReviews / pageSize),
+            TotalCount = totalReviews,
+            Data = reviews
+        };
+
+        return new ServiceResponse<Pagination<ArticleReviewDto>>
+        {
+            Data = pagination
+        };
+    }
 
     public Task<ServiceResponse<ReviewDto>> GetReviewBy(Guid id)
     {
@@ -239,50 +283,7 @@ public class ReviewServices : IReviewServices
         };
     }
 
-    public async Task<ServiceResponse<Pagination<ArticleReviewDto>>> GetArticleReviews(Guid articleId, RequestQuery requestQuery)
-    {
-        var pageNumber = requestQuery.PageNumber ?? 1;
-        var pageSize = requestQuery.PageSize ?? 15;
-        var skipCount = (pageNumber - 1) * pageSize;
-
-        var reviews = await _context.ArticleReviews
-            .Where(r => r.ArticleId == articleId)
-            .OrderByDescending(r => r.Created)
-            .Skip(skipCount)
-            .Take(pageSize)
-            .Include(u => u.User)
-            .ThenInclude(us => us.UserSpecification)
-            .Select(r => new ArticleReviewDto
-            {
-                Id = r.Id,
-                Comment = r.Comment,
-                Status = r.Status,
-                UserName = r.User.UserSpecification.FirstName + " " + r.User.UserSpecification.FamilyName,
-                UserId = r.User.Id,
-                Created = r.Created,
-                LastUpdated = r.LastUpdated
-            })
-            .ToListAsync();
-
-        var totalReviews = await _context.Reviews.CountAsync(r => r.ProductId == articleId);
-
-        var pagination = new Pagination<ArticleReviewDto>
-        {
-            CurrentPage = pageNumber,
-            NextPage = pageNumber + 1,
-            PreviousPage = pageNumber > 1 ? pageNumber - 1 : 0,
-            HasNextPage = (skipCount + pageSize) < totalReviews,
-            HasPreviousPage = pageNumber > 1,
-            LastPage = (int)Math.Ceiling((decimal)totalReviews / pageSize),
-            TotalCount = totalReviews,
-            Data = reviews
-        };
-
-        return new ServiceResponse<Pagination<ArticleReviewDto>>
-        {
-            Data = pagination
-        };
-    }
+   
 
     public async Task<ServiceResponse<ArticleReviewDto>> GetArticleReviewBy(Guid id)
     {

@@ -67,8 +67,17 @@ public static class DesignEndpoints
 
         designGroup.MapPost("columnFooters", UpsertColumnFooters);
         designGroup.MapGet("columnFooters", GetColumnFooters);
+        designGroup.MapDelete("columnFooters/{id:guid}", DeleteColumnFooter);
 
         return apiGroup;
+    }
+        private async static Task<Ok<ServiceResponse<bool>>> DeleteColumnFooter(IDesignServices designServices, Guid id, ILogger<Program> _logger, HttpContext context)
+    {
+        _logger.Log(LogLevel.Information, "Delete Column Footer");
+
+        var result = await designServices.DeleteColumnFooter(id);
+
+        return TypedResults.Ok(result);
     }
     private async static Task<Ok<ServiceResponse<IReadOnlyList<CategoryDTO>>>> GetStoreCategoryList(IDesignServices designServices, ILogger<Program> _logger)
     {

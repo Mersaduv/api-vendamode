@@ -68,6 +68,23 @@ public class ProductServices : IProductServices
                 product.IsDeleted = true;
             }
         }
+        else if (action == "4")
+        {
+            foreach (var product in products)
+            {
+                product.IsDeleted = false;
+            }
+        }
+        else if (action == "5")
+        {
+            // foreach (var product in products)
+            // {
+            //     product.IsDeleted = false;
+            // }
+            _context.Products.RemoveRange(products);
+
+            await _unitOfWork.SaveChangesAsync();
+        }
         else
         {
             foreach (var product in products)
@@ -349,6 +366,17 @@ public class ProductServices : IProductServices
             }
 
             // Category filter
+            if (requestQuery.CategorySlug is not null && requestQuery.SingleCategory is not null)
+            {
+                Guid categoryId;
+                if (Guid.TryParse(requestQuery.CategorySlug, out categoryId))
+                {
+                    var allCategoryIds = _categoryServices.GetAllCategoryIds(categoryId);
+
+                    query = query.Where(p => allCategoryIds.Contains(p.CategoryId));
+                }
+            }
+
             if (requestQuery.CategoryId is not null && requestQuery.SingleCategory is not null)
             {
                 Guid categoryId;
@@ -496,11 +524,11 @@ public class ProductServices : IProductServices
             {
                 if (requestQuery.InStock == "1")
                 {
-                    query = query.Where(x => x.InStock > 0);
+                    query = query.Where(x => x.InStock > 0 && x.StockItems.Any(x => x.Price > 0));
                 }
                 else if (requestQuery.InStock == "true")
                 {
-                    query = query.Where(x => x.InStock > 0);
+                    query = query.Where(x => x.InStock > 0 && x.StockItems.Any(xs => xs.Price > 0));
                 }
                 else
                 {

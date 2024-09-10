@@ -67,13 +67,13 @@ public class CategoryServices : ICategoryServices
 
             parentCategory = await _context.Categories.FindAsync(parentCategory.ParentCategoryId);
         }
-
+        var categoryNewId = Guid.NewGuid();
         var category = new Category
         {
-            Id = Guid.NewGuid(),
+            Id = categoryNewId,
             Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Category>>(categoryCreate.Thumbnail!, nameof(Category), false),
             Name = categoryCreate.Name,
-            Slug = categoryCreate.Name,
+            Slug = categoryCreate.Name + categoryNewId,
             IsActive = categoryCreate.IsActive,
             IsActiveProduct = categoryCreate.IsActiveProduct,
             MainCategoryId = categoryCreate.MainCategoryId ?? null,
@@ -207,15 +207,22 @@ public class CategoryServices : ICategoryServices
         };
     }
 
-    private int GetProductCount(Category category, List<Category> allCategories)
+    private int GetProductCount(Category category, List<Category> allCategories, bool isParent = false)
     {
         int count = category.Products != null ? category.Products.Count : 0;
 
         var childCategories = allCategories.Where(c => c.ParentCategoryId == category.Id).ToList();
+        if (isParent)
+        {
 
+            foreach (var childCategory in childCategories)
+            {
+                count += GetProductCount(childCategory, allCategories, isParent);
+            }
+        }
         return count;
     }
-    public List<CategoryDTO> BuildCategoryTree(List<Category> categories, List<Category> allCategories)
+    public List<CategoryDTO> BuildCategoryTree(List<Category> categories, List<Category> allCategories, bool isParent = false)
     {
         var categoriesDto = new List<CategoryDTO>();
 
@@ -238,7 +245,7 @@ public class CategoryServices : ICategoryServices
                     ImageUrl = img.ImageUrl ?? string.Empty,
                     Placeholder = img.Placeholder ?? string.Empty
                 }).ToList(), nameof(Category)).First() : null,
-                Count = GetProductCount(category, allCategories),
+                Count = GetProductCount(category, allCategories, isParent),
                 SubCategoryCount = allCategories.Count(c => c.ParentCategoryId == category.Id),
                 FeatureCount = category.CategoryProductFeatures != null ? category.CategoryProductFeatures.Count : 0,
                 FeatureIds = category.CategoryProductFeatures?.Select(cpf => cpf.ProductFeature.Id).ToList(),
@@ -273,7 +280,7 @@ public class CategoryServices : ICategoryServices
             };
 
             // Get child categories recursively
-            categoryDto.ChildCategories = BuildCategoryTree(allCategories.Where(c => c.ParentCategoryId == category.Id).ToList(), allCategories);
+            categoryDto.ChildCategories = BuildCategoryTree(allCategories.Where(c => c.ParentCategoryId == category.Id).ToList(), allCategories, isParent);
 
             categoriesDto.Add(categoryDto);
         }
@@ -397,7 +404,7 @@ public class CategoryServices : ICategoryServices
         }
 
         category.Name = categoryUpdate.Name;
-        category.Slug = categoryUpdate.Name;
+        category.Slug = categoryUpdate.Name + category.Id;
         category.IsActive = categoryUpdate.IsActive;
         category.IsActiveProduct = categoryUpdate.IsActiveProduct;
         category.MainCategoryId = categoryUpdate.MainCategoryId ?? null;
@@ -625,22 +632,22 @@ public class CategoryServices : ICategoryServices
             }).ToList(), nameof(Category)).First() : null,
             Categories = subCategoryList,
             Count = category.Products != null ? category.Products.Count : 0,
-            ParentCategories = category.GetParentCategories(_context).Where(c => c.IsActive == true).Select(cate => new CategoryDTO
+            ParentCategories = category.GetParentCategories(_context).Select(category => new CategoryDTO
             {
-                Id = cate.Id,
-                Name = cate.Name,
-                Slug = cate.Name,
-                Level = cate.Level,
-                IsActive = cate.IsActive,
-                IsDeleted = cate.IsDeleted,
-                ParentCategoryId = cate.ParentCategoryId,
-                Count = cate.Products != null ? cate.Products.Count : 0,
-                FeatureCount = cate.CategoryProductFeatures != null ? cate.CategoryProductFeatures.Count : 0,
+                Id = category.Id,
+                Name = category.Name,
+                Slug = category.Name,
+                Level = category.Level,
+                IsActive = category.IsActive,
+                IsDeleted = category.IsDeleted,
+                ParentCategoryId = category.ParentCategoryId,
+                Count = category.Products != null ? category.Products.Count : 0,
+                FeatureCount = category.CategoryProductFeatures != null ? category.CategoryProductFeatures.Count : 0,
                 SizeCount = 0,
                 BrandCount = 0,
-                Created = cate.Created,
-                LastUpdated = cate.LastUpdated
-            }).ToList(),
+                Created = category.Created,
+                LastUpdated = category.LastUpdated
+            }).Reverse().ToList(),
             Created = category.Created,
             LastUpdated = category.LastUpdated,
             FeatureIds = category.CategoryProductFeatures?.Select(cpf => cpf.ProductFeature.Id).ToList()
@@ -1019,7 +1026,7 @@ public class CategoryServices : ICategoryServices
         // // Get root categories (categories with level 0)
         var rootCategories = paginatedCategories.Where(c => c.Level == 0).ToList();
 
-        var categoriesTree = BuildCategoryTree(rootCategories, sortedCategories);
+        var categoriesTree = BuildCategoryTree(rootCategories, sortedCategories, true);
 
         var pagination = new Pagination<CategoryDTO>
         {

@@ -30,6 +30,7 @@ public interface IDesignServices
 
     Task<ServiceResponse<bool>> UpsertColumnFooters(List<ColumnFooter> columnFooters);
     Task<ServiceResponse<List<ColumnFooter>>> GetColumnFooters();
+    Task<ServiceResponse<bool>> DeleteColumnFooter(Guid id);
 
     // DesignItem
     Task<ServiceResponse<bool>> AddDesignItem(DesignItemUpsertDTO designItemUpsertDto);

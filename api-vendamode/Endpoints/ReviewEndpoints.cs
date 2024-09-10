@@ -26,11 +26,10 @@ public static class ReviewEndpoints
         var articleReviewsGroup = apiGroup.MapGroup(Constants.ArticleReviews);
 
         apiGroup.MapGet("all-articleReviews", GetAllArticleReviews);
-        articleReviewsGroup.MapPost(string.Empty, CreateArticleReview).Accepts<ArticleReviewCreateDTO>("multipart/form-data");
+        articleReviewsGroup.MapPost(string.Empty, CreateArticleReview);
         articleReviewsGroup.MapGet("/{id:guid}", GetArticleReviews);
         articleReviewsGroup.MapDelete("/{id:guid}", DeleteArticleReview);
         articleReviewsGroup.MapGet("single/{id:guid}", GetArticleReview);
-
 
         return apiGroup;
     }
