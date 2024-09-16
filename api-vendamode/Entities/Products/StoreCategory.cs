@@ -5,4 +5,5 @@ namespace api_vendamode.Entities.Products;
 public class StoreCategory : BaseClass<Guid>
 {
     public Guid CategoryId { get; set; }
+    public bool IsActive { get; set; }
 }

@@ -1,6 +1,7 @@
 using api_vendace.Const;
 using api_vendace.Entities.Users;
 using api_vendace.Models;
+using api_vendace.Models.Dtos.ProductDto.Brand;
 using api_vendace.Models.Dtos.ProductDto.Category;
 using api_vendace.Models.Query;
 using api_vendamode.Entities.Designs;
@@ -43,6 +44,11 @@ public static class DesignEndpoints
         designGroup.MapGet("storeCategories", GetStoreCategories);
         designGroup.MapGet("storeCategoryList", GetStoreCategoryList);
 
+        designGroup.MapPost("storeBrand", UpsertStoreBrands).Accepts<StoreBrandBulkDTO>("application/json");
+        designGroup.MapDelete("storeBrand/{id:guid}", DeleteStoreBrand);
+        designGroup.MapGet("storeBrands", GetStoreBrands);
+        designGroup.MapGet("storeBrandList", GetStoreBrandList);
+
         designGroup.MapPost("logoImages", UpsertLogoImages).Accepts<LogoUpsertDTO>("multipart/form-data");
         designGroup.MapGet("logoImages", GetLogoImages);
 
@@ -68,10 +74,55 @@ public static class DesignEndpoints
         designGroup.MapPost("columnFooters", UpsertColumnFooters);
         designGroup.MapGet("columnFooters", GetColumnFooters);
         designGroup.MapDelete("columnFooters/{id:guid}", DeleteColumnFooter);
+        designGroup.MapDelete("footerArticleColumn/{id:guid}", DeleteFooterArticleColumn);
 
         return apiGroup;
     }
-        private async static Task<Ok<ServiceResponse<bool>>> DeleteColumnFooter(IDesignServices designServices, Guid id, ILogger<Program> _logger, HttpContext context)
+    private async static Task<Ok<ServiceResponse<IReadOnlyList<BrandDTO>>>> GetStoreBrandList(IDesignServices designServices, ILogger<Program> _logger)
+    {
+        _logger.Log(LogLevel.Information, "Get Store Brand List");
+
+        var result = await designServices.GetStoreBrandList();
+
+        return TypedResults.Ok(result);
+    }
+    private async static Task<Ok<ServiceResponse<bool>>> DeleteStoreBrand(IDesignServices designServices, Guid id, ILogger<Program> _logger, HttpContext context)
+    {
+        _logger.Log(LogLevel.Information, "Delete Store Brand");
+
+        var result = await designServices.DeleteStoreBrand(id);
+
+        return TypedResults.Ok(result);
+    }
+    private async static Task<Ok<ServiceResponse<IReadOnlyList<StoreBrand>>>> GetStoreBrands(IDesignServices designServices, ILogger<Program> _logger)
+    {
+        _logger.Log(LogLevel.Information, "Get Store Brands");
+
+        var result = await designServices.GetStoreBrands();
+
+        return TypedResults.Ok(result);
+    }
+    private static async Task<Ok<ServiceResponse<bool>>> UpsertStoreBrands(IDesignServices designServices,
+                        StoreBrandBulkDTO storeBrandBulkDTO, ILogger<Program> _logger, HttpContext context)
+    {
+        _logger.Log(LogLevel.Information, "Upsert Store Brands");
+
+        var result = await designServices.UpsertStoreBrands(storeBrandBulkDTO.StoreBrands);
+
+        return TypedResults.Ok(result);
+    }
+
+
+    //...
+    private async static Task<Ok<ServiceResponse<bool>>> DeleteFooterArticleColumn(IDesignServices designServices, Guid id, ILogger<Program> _logger, HttpContext context)
+    {
+        _logger.Log(LogLevel.Information, "Delete Column Footer");
+
+        var result = await designServices.DeleteFooterArticleColumn(id);
+
+        return TypedResults.Ok(result);
+    }
+    private async static Task<Ok<ServiceResponse<bool>>> DeleteColumnFooter(IDesignServices designServices, Guid id, ILogger<Program> _logger, HttpContext context)
     {
         _logger.Log(LogLevel.Information, "Delete Column Footer");
 

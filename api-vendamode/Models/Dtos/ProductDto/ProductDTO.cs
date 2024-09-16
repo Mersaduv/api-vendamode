@@ -22,6 +22,9 @@ public class ProductDTO
     public StatusType Status { get; set; }
     public bool IsFake { get; set; }
     public bool IsActive { get; set; }
+    public string Date { get; set; } = string.Empty;
+    public DateTimeOffset? ParsedDate { get; set; }
+    public bool PublishTime { get; set; }
     public Guid? BrandId { get; set; }
     public string BrandName { get; set; } = string.Empty;
     public BrandDTO? BrandData { get; set; }

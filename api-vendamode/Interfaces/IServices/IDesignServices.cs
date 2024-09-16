@@ -1,4 +1,5 @@
 using api_vendace.Models;
+using api_vendace.Models.Dtos.ProductDto.Brand;
 using api_vendace.Models.Dtos.ProductDto.Category;
 using api_vendamode.Entities.Designs;
 using api_vendamode.Entities.Products;
@@ -18,6 +19,12 @@ public interface IDesignServices
     Task<ServiceResponse<IReadOnlyList<StoreCategory>>> GetStoreCategories();
     Task<ServiceResponse<IReadOnlyList<CategoryDTO>>> GetStoreCategoryList();
     Task<ServiceResponse<bool>> DeleteStoreCategory(Guid id);
+    //...
+    Task<ServiceResponse<bool>> UpsertStoreBrands(List<StoreBrand> storeBrands);
+    Task<ServiceResponse<IReadOnlyList<StoreBrand>>> GetStoreBrands();
+    Task<ServiceResponse<IReadOnlyList<BrandDTO>>> GetStoreBrandList();
+    Task<ServiceResponse<bool>> DeleteStoreBrand(Guid id);
+
     Task<ServiceResponse<bool>> UpsertGeneralSettings(GeneralSettingUpsertDTO settingUpsertDTO);
     Task<ServiceResponse<GeneralSetting>> GetGeneralSettings();
     Task<ServiceResponse<bool>> UpsertLogoImages(LogoUpsertDTO logoUpsertDTO);
@@ -31,6 +38,7 @@ public interface IDesignServices
     Task<ServiceResponse<bool>> UpsertColumnFooters(List<ColumnFooter> columnFooters);
     Task<ServiceResponse<List<ColumnFooter>>> GetColumnFooters();
     Task<ServiceResponse<bool>> DeleteColumnFooter(Guid id);
+    Task<ServiceResponse<bool>> DeleteFooterArticleColumn(Guid id);
 
     // DesignItem
     Task<ServiceResponse<bool>> AddDesignItem(DesignItemUpsertDTO designItemUpsertDto);

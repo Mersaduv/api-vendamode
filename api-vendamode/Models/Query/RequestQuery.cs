@@ -64,6 +64,8 @@ public class RequestQuery
 
     [FromQuery(Name = "inActive")]
     public bool? InActive { get; set; }
+    [FromQuery(Name = "isPublishTime")]
+    public bool? IsPublishTime { get; set; }
 
     [FromQuery(Name = "isDeleted")]
     public bool? IsDeleted { get; set; }

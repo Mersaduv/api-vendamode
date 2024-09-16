@@ -15,6 +15,8 @@ public class StockItemDTO
     public int Quantity { get; set; }
     public double Price { get; set; }
     public double? Discount { get; set; }
+    public double Weight { get; set; }
+    public double PurchasePrice { get; set; }
     public int? OfferTime { get; set; }
     [JsonExtensionData]
     [Column(TypeName = "jsonb")]

@@ -38,6 +38,7 @@ public static class GetProductMapper
             IsFake = product.IsFake,
             Status = product.Status,
             IsActive = product.IsActive,
+            Date = product.Date,
             InStock = product.InStock,
             Sold = product.Sold,
             Description = product.Description,
@@ -56,6 +57,7 @@ public static class GetProductMapper
                 Slug = prod.Slug,
                 Code = prod.Code,
                 Author = prod.Author,
+                Date = prod.Date,
                 ImagesSrc = byteFileUtility.GetEncryptedFileActionUrl
                 (prod.Images.Select(img => new EntityImageDto
                 {

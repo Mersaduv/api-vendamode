@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using api_vendace.Entities.Products;
 using api_vendace.Enums;
@@ -13,6 +14,7 @@ public class ProductCreateDTO
 {
     public string Title { get; set; } = string.Empty;
     public bool IsActive { get; set; }
+    public string Date { get; set; } = string.Empty;
     public IFormFile MainThumbnail { get; set; } = default!;
     public List<IFormFile> Thumbnail { get; set; } = [];
     public StatusType Status { get; set; }
@@ -23,6 +25,7 @@ public class ProductCreateDTO
     public List<Guid>? FeatureValueIds { get; set; }
     public ProductScaleDTO? ProductScale { get; set; }
     public List<StockItemDTO>? StockItems { get; set; }
+    public DateTimeOffset? ParsedDate { get; set; }
 
     public static async ValueTask<ProductCreateDTO?> BindAsync(HttpContext context, ParameterInfo parameter)
     {
@@ -56,7 +59,8 @@ public class ProductCreateDTO
 
         var productScaleData = form["ProductScale"];
         var productScale = string.IsNullOrEmpty(productScaleData) ? null : JsonConvert.DeserializeObject<ProductScaleDTO>(productScaleData!);
-
+        var dateStr = form["Date"];
+        var parsedDate = ConvertToDateTimeOffset(dateStr);
         var stockItemsData = form["StockItems"];
         List<StockItemDTO> stockItems = new List<StockItemDTO>();
         if (!string.IsNullOrEmpty(stockItemsData))
@@ -76,6 +80,8 @@ public class ProductCreateDTO
                     Quantity = tempItem.Quantity ?? 0,
                     Price = tempItem.Price ?? 0,
                     Discount = tempItem.Discount ?? 0,
+                    PurchasePrice = tempItem.PurchasePrice,
+                    Weight = tempItem.Weight,
                     OfferTime = tempItem.OfferTime ?? 0,
                     AdditionalProperties = tempItem.AdditionalProperties
                 };
@@ -96,10 +102,70 @@ public class ProductCreateDTO
             BrandId = brandId,
             FeatureValueIds = featureValueIds,
             StockItems = stockItems,
-            ProductScale = productScale
+            ProductScale = productScale,
+            ParsedDate = parsedDate,
+            Date = dateStr
         };
     }
+    public static DateTimeOffset? ConvertToDateTimeOffset(string input)
+    {
+        try
+        {
+            // جدا کردن زمان و تاریخ
+            string[] parts = input.Split(" - ");
+            string timePart = parts[0]; // "13:05:00"
+            string datePart = parts[1]; // "1403/06/24"
+            timePart = ConvertPersianNumbersToEnglish(timePart);
+            datePart = ConvertPersianNumbersToEnglish(datePart);
+            // جدا کردن اجزای تاریخ
+            string[] dateParts = datePart.Split('/');
+            int persianYear = int.Parse(dateParts[0]);
+            int persianMonth = int.Parse(dateParts[1]);
+            int persianDay = int.Parse(dateParts[2]);
+
+            // جدا کردن اجزای زمان
+            string[] timeParts = timePart.Split(':');
+            int hour = int.Parse(timeParts[0]);
+            int minute = int.Parse(timeParts[1]);
+            int second = int.Parse(timeParts[2]);
+
+            // ایجاد یک PersianCalendar
+            PersianCalendar persianCalendar = new PersianCalendar();
+
+            // تبدیل تاریخ شمسی به میلادی
+            DateTime gregorianDateTime = persianCalendar.ToDateTime(persianYear, persianMonth, persianDay, hour, minute, second, 0);
+
+            // تنظیم منطقه زمانی (به عنوان مثال +03:30)
+            TimeSpan offset = new TimeSpan(3, 30, 0);
+
+            // ایجاد DateTimeOffset با تنظیم منطقه زمانی
+            DateTimeOffset dateTimeOffset = new DateTimeOffset(gregorianDateTime, offset);
+
+            return dateTimeOffset.ToUniversalTime();;
+        }
+        catch (Exception ex)
+        {
+            System.Console.WriteLine(ex.Message, "exexexexex");
+            // اگر خطایی رخ داد، مقدار null برگردانید
+            return null;
+        }
+    }
+    public static string ConvertPersianNumbersToEnglish(string input)
+    {
+        string[] persianNumbers = new string[] { "۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹" };
+        string[] englishNumbers = new string[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+
+        for (int i = 0; i < persianNumbers.Length; i++)
+        {
+            input = input.Replace(persianNumbers[i], englishNumbers[i]);
+        }
+
+        return input;
+    }
+    
 }
+
+
 public class StockItemTempDTO
 {
     public Guid Id { get; set; }
@@ -111,6 +177,8 @@ public class StockItemTempDTO
     public int? Quantity { get; set; }
     public double? Price { get; set; }
     public double? Discount { get; set; }
+    public double Weight { get; set; }
+    public double PurchasePrice { get; set; }
     public int? OfferTime { get; set; }
     [JsonExtensionData]
     public Dictionary<string, object>? AdditionalProperties { get; set; }

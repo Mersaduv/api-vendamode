@@ -13,7 +13,12 @@ public class Product : BaseClass<Guid>
     public string Code { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public string Author { get; set; } = string.Empty;
+    public string Date { get; set; } = string.Empty;
+    public DateTimeOffset? ParsedDate { get; set; }
+    public bool PublishTime { get; set; }
+
     public bool IsActive { get; set; }
+    public ProductType ProductType { get; set; }
     public bool IsFake { get; set; }
     public bool IsDeleted { get; set; }
     public StatusType Status { get; set; }

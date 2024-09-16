@@ -4,6 +4,7 @@ using api_vendace.Entities.Products;
 using api_vendace.Interfaces;
 using api_vendace.Models;
 using api_vendace.Models.Dtos;
+using api_vendace.Models.Dtos.ProductDto.Brand;
 using api_vendace.Models.Dtos.ProductDto.Category;
 using api_vendace.Utility;
 using api_vendamode.Entities.Designs;
@@ -350,6 +351,7 @@ public class DesignServices : IDesignServices
                 {
                     Id = Guid.NewGuid(),
                     CategoryId = dto.CategoryId,
+                    IsActive = dto.IsActive,
                     Created = DateTime.UtcNow,
                     LastUpdated = DateTime.UtcNow
                 };
@@ -358,6 +360,7 @@ public class DesignServices : IDesignServices
             else
             {
                 storeCategory.CategoryId = dto.CategoryId;
+                storeCategory.IsActive = dto.IsActive;
                 storeCategory.LastUpdated = DateTime.UtcNow;
                 _context.Update(storeCategory);
             }
@@ -377,7 +380,7 @@ public class DesignServices : IDesignServices
     public async Task<ServiceResponse<IReadOnlyList<CategoryDTO>>> GetStoreCategoryList()
     {
         var designItemsData = await _context.StoreCategories.ToListAsync();
-        List<Guid> storeCategoryIds = designItemsData.Select(x => x.CategoryId).ToList();
+        List<Guid> storeCategoryIds = designItemsData.Where(x => x.IsActive).Select(x => x.CategoryId).ToList();
         var categoriesQuery = _context.Categories
             .Where(x => storeCategoryIds.Contains(x.Id))
             .Include(c => c.ChildCategories)
@@ -606,17 +609,25 @@ public class DesignServices : IDesignServices
     {
         foreach (var columnFooterDto in columnFooters)
         {
-            var columnFooterDb = await _context.ColumnFooters.FirstOrDefaultAsync(x => x.Id == columnFooterDto.Id);
+            var columnFooterDb = await _context.ColumnFooters
+                .Include(x => x.FooterArticleColumns)
+                .FirstOrDefaultAsync(x => x.Id == columnFooterDto.Id);
 
             if (columnFooterDb is null)
             {
-                // Create new HeaderText
                 var newColumnFooter = new ColumnFooter
                 {
                     Id = Guid.NewGuid(),
                     Name = columnFooterDto.Name,
                     Index = columnFooterDto.Index,
-                    FooterArticleColumns = columnFooterDto.FooterArticleColumns,
+                    FooterArticleColumns = columnFooterDto.FooterArticleColumns.Select(c => new FooterArticleColumn
+                    {
+                        Id = Guid.NewGuid(),
+                        ArticleId = c.ArticleId,
+                        Index = c.Index,
+                        Created = DateTime.UtcNow,
+                        LastUpdated = DateTime.UtcNow
+                    }).ToList(),
                     Created = DateTime.UtcNow,
                     LastUpdated = DateTime.UtcNow
                 };
@@ -624,11 +635,45 @@ public class DesignServices : IDesignServices
             }
             else
             {
-                // Update existing
                 columnFooterDb.Index = columnFooterDto.Index;
                 columnFooterDb.Name = columnFooterDto.Name;
-                columnFooterDb.FooterArticleColumns = columnFooterDto.FooterArticleColumns;
                 columnFooterDb.LastUpdated = DateTime.UtcNow;
+
+                foreach (var footerArticleColumnDto in columnFooterDto.FooterArticleColumns)
+                {
+                    var footerArticleColumnDb = columnFooterDb.FooterArticleColumns
+                        .FirstOrDefault(x => x.Id == footerArticleColumnDto.Id);
+
+                    if (footerArticleColumnDb is null)
+                    {
+                        var newFooterArticleColumn = new FooterArticleColumn
+                        {
+                            Id = Guid.NewGuid(),
+                            ArticleId = footerArticleColumnDto.ArticleId,
+                            Index = footerArticleColumnDto.Index,
+                            Created = DateTime.UtcNow,
+                            LastUpdated = DateTime.UtcNow
+                        };
+                        _context.FooterArticleColumns.Add(newFooterArticleColumn);
+                        await _unitOfWork.SaveChangesAsync();
+
+                        columnFooterDb.FooterArticleColumns.Add(newFooterArticleColumn);
+                        _context.ColumnFooters.Update(columnFooterDb);
+                        await _unitOfWork.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        footerArticleColumnDb.ArticleId = footerArticleColumnDto.ArticleId;
+                        footerArticleColumnDb.Index = footerArticleColumnDto.Index;
+                        footerArticleColumnDb.LastUpdated = DateTime.UtcNow;
+                    }
+                }
+
+                // var removedFooterArticleColumns = columnFooterDb.FooterArticleColumns
+                //     .Where(x => !columnFooterDto.FooterArticleColumns.Any(c => c.Id == x.Id))
+                //     .ToList();
+
+                // _context.FooterArticleColumns.RemoveRange(removedFooterArticleColumns);
             }
         }
 
@@ -636,9 +681,11 @@ public class DesignServices : IDesignServices
         return new ServiceResponse<bool> { Data = true, Message = "ستون های فوتر بروزرسانی شد" };
     }
 
+
+
     public async Task<ServiceResponse<List<ColumnFooter>>> GetColumnFooters()
     {
-        var columnFooters = await _context.ColumnFooters.OrderBy(x => x.Index).ToListAsync();
+        var columnFooters = await _context.ColumnFooters.Include(x => x.FooterArticleColumns).OrderBy(x => x.Index).ToListAsync();
         if (columnFooters is null)
         {
             return new ServiceResponse<List<ColumnFooter>>
@@ -667,4 +714,97 @@ public class DesignServices : IDesignServices
         await _context.SaveChangesAsync();
         return new ServiceResponse<bool> { Data = true };
     }
+    public async Task<ServiceResponse<bool>> DeleteFooterArticleColumn(Guid id)
+    {
+        var footerArticleColumn = await _context.FooterArticleColumns.FirstOrDefaultAsync(x => x.Id == id);
+        if (footerArticleColumn == null)
+        {
+            return new ServiceResponse<bool> { Data = false, Message = "ستون های مقالات فوتر پیدا نشد" };
+        }
+
+        _context.FooterArticleColumns.Remove(footerArticleColumn);
+        await _context.SaveChangesAsync();
+        return new ServiceResponse<bool> { Data = true };
+    }
+
+    public async Task<ServiceResponse<bool>> UpsertStoreBrands(List<StoreBrand> storeBrands)
+    {
+        foreach (var dto in storeBrands)
+        {
+            var storeBrand = await _context.StoreBrands.FirstOrDefaultAsync(x => x.Id == dto.Id);
+            if (storeBrand == null)
+            {
+                var newStoreBrand = new StoreBrand
+                {
+                    Id = Guid.NewGuid(),
+                    BrandId = dto.BrandId,
+                    IsActive = dto.IsActive,
+                    Created = DateTime.UtcNow,
+                    LastUpdated = DateTime.UtcNow
+                };
+                await _context.StoreBrands.AddAsync(newStoreBrand);
+            }
+            else
+            {
+                storeBrand.BrandId = dto.BrandId;
+                storeBrand.IsActive = dto.IsActive;
+                storeBrand.LastUpdated = DateTime.UtcNow;
+                _context.Update(storeBrand);
+            }
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+        return new ServiceResponse<bool> { Data = true };
+    }
+
+    public async Task<ServiceResponse<IReadOnlyList<StoreBrand>>> GetStoreBrands()
+    {
+        var storeBrands = await _context.StoreBrands.OrderBy(s => s.Created).ToListAsync();
+
+        return new ServiceResponse<IReadOnlyList<StoreBrand>> { Data = storeBrands };
+    }
+
+    public async Task<ServiceResponse<IReadOnlyList<BrandDTO>>> GetStoreBrandList()
+    {
+        var designItemsData = await _context.StoreBrands.ToListAsync();
+        List<Guid> storeBrandyIds = designItemsData.Where(x => x.IsActive).Select(x => x.BrandId).ToList();
+        var brandQuery = _context.Brands
+            .Where(x => storeBrandyIds.Contains(x.Id))
+            .Include(c => c.Images)
+            .OrderByDescending(x => x.LastUpdated)
+            .AsQueryable();
+        var allBrands = await brandQuery.Select(brand => new BrandDTO
+        {
+            Id = brand.Id,
+            ImagesSrc = brand.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(brand.Images.Select(img => new EntityImageDto
+            {
+                Id = img.Id,
+                ImageUrl = img.ImageUrl ?? string.Empty,
+                Placeholder = img.Placeholder ?? string.Empty
+            }).ToList(), nameof(Brand)).First() : null,
+            NameFa = brand.NameFa,
+            NameEn = brand.NameEn,
+            Description = brand.Description,
+            InSlider = brand.InSlider,
+            IsActive = brand.IsActive,
+            Created = brand.Created,
+            LastUpdated = brand.LastUpdated
+        }).ToListAsync();
+
+        return new ServiceResponse<IReadOnlyList<BrandDTO>> { Data = allBrands };
+    }
+
+    public async Task<ServiceResponse<bool>> DeleteStoreBrand(Guid id)
+    {
+        var storeBrand = await _context.StoreBrands.FirstOrDefaultAsync(x => x.Id == id);
+        if (storeBrand == null)
+        {
+            return new ServiceResponse<bool> { Data = false, Message = "Store Brand." };
+        }
+
+        _context.StoreBrands.Remove(storeBrand);
+        await _context.SaveChangesAsync();
+        return new ServiceResponse<bool> { Data = true };
+    }
+
 }

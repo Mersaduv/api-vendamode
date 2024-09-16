@@ -22,6 +22,7 @@ using api_vendamode.Models.Dtos.ProductDto.Stock;
 using api_vendace.Models.Dtos.ProductDto.Brand;
 using api_vendamode.Entities.Products;
 using api_vendamode.Models.Dtos;
+using System.Globalization;
 public class ProductServices : IProductServices
 {
 
@@ -150,7 +151,9 @@ public class ProductServices : IProductServices
         product.ProductFeatures = productFeatures;
         product.ProductScale = productScale;
         product.ProductScaleId = scaleId;
-
+        product.ParsedDate = productCreateDTO.ParsedDate;
+        product.Date = productCreateDTO.Date ?? "";
+        product.PublishTime = product.ParsedDate.HasValue && product.ParsedDate.Value.ToLocalTime() > DateTimeOffset.Now.ToLocalTime();
 
         if (productCreateDTO.StockItems is not null)
         {
@@ -186,6 +189,8 @@ public class ProductServices : IProductServices
                     OfferEndTime = stockItemDTO.OfferTime.HasValue ? DateTime.UtcNow.AddHours(stockItemDTO.OfferTime.Value) : null,
                     OfferTime = stockItemDTO.OfferTime,
                     Price = stockItemDTO.Price,
+                    PurchasePrice = stockItemDTO.PurchasePrice,
+                    Weight = stockItemDTO.Weight,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                     AdditionalProperties = stockItemDTO.AdditionalProperties
@@ -334,6 +339,19 @@ public class ProductServices : IProductServices
             {
                 query = query.Where(x => !x.IsActive && !x.IsDeleted);
             }
+            // isPending Filter
+            if (requestQuery.IsPublishTime is not null)
+            {
+                if (requestQuery.IsPublishTime == true)
+                {
+                    query = query.Where(x => x.ParsedDate.HasValue && x.ParsedDate.Value > DateTimeOffset.UtcNow);
+                }
+                else
+                {
+                    query = query.Where(x => !x.ParsedDate.HasValue || x.ParsedDate.Value <= DateTimeOffset.UtcNow);
+                }
+            }
+
 
             // Brand filter
             if (requestQuery.Brands != null && requestQuery.Brands.Length > 0)
@@ -746,6 +764,38 @@ public class ProductServices : IProductServices
             };
         }
     }
+    public static string ConvertDateTimeOffsetToPersian(DateTimeOffset dateTimeOffset)
+    {
+        // System.Console.WriteLine(dateTimeOffset , "dateTimeOffset");
+        PersianCalendar persianCalendar = new PersianCalendar();
+        int persianYear = persianCalendar.GetYear(dateTimeOffset.DateTime);
+        int persianMonth = persianCalendar.GetMonth(dateTimeOffset.DateTime);
+        int persianDay = persianCalendar.GetDayOfMonth(dateTimeOffset.DateTime);
+        int hour = dateTimeOffset.Hour;
+        int minute = dateTimeOffset.Minute;
+        int second = dateTimeOffset.Second;
+
+        // تبدیل اعداد به فارسی
+        string persianDate = $"{ConvertToPersianNumbers(persianYear)}/{ConvertToPersianNumbers(persianMonth)}/{ConvertToPersianNumbers(persianDay)}";
+        string persianTime = $"{ConvertToPersianNumbers(hour)}:{ConvertToPersianNumbers(minute)}:{ConvertToPersianNumbers(second)}";
+
+        // ترکیب تاریخ و زمان
+        return $"{persianTime} - {persianDate}";
+    }
+
+    public static string ConvertToPersianNumbers(int number)
+    {
+        string[] persianNumbers = new string[] { "۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹" };
+        string[] englishNumbers = new string[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+
+        string numberString = number.ToString();
+        for (int i = 0; i < englishNumbers.Length; i++)
+        {
+            numberString = numberString.Replace(englishNumbers[i], persianNumbers[i]);
+        }
+
+        return numberString;
+    }
 
     private async Task<ProductDTO> BuildProductResponse(Product product)
     {
@@ -779,6 +829,14 @@ public class ProductServices : IProductServices
             ProductId = product.ProductScale.ProductId
         };
         result.ProductScale = productScaleData;
+
+        if (product != null && product.ParsedDate.HasValue)
+        {
+            product.Date = ConvertDateTimeOffsetToPersian(product.ParsedDate.Value.ToLocalTime());
+        }
+        result.Date = product.Date;
+        result.ParsedDate = product.ParsedDate;
+        result.PublishTime = product.ParsedDate.HasValue && product.ParsedDate.Value.ToLocalTime() > DateTimeOffset.Now.ToLocalTime();
 
         var categoryLevelIds = GetCategoryLevelIds(product.Category!);
         var categories = await _context.Categories
@@ -944,6 +1002,8 @@ public class ProductServices : IProductServices
                     Discount = ps.Discount,
                     OfferTime = ps.OfferTime,
                     Price = ps.Price,
+                    PurchasePrice = ps.PurchasePrice,
+                    Weight = ps.Weight,
                     FeatureValueId = ps.FeatureValueId,
                     Quantity = ps.Quantity,
                     SizeId = ps.SizeId,
@@ -1047,7 +1107,9 @@ public class ProductServices : IProductServices
         };
 
         List<Guid> featureValueIds = productUpdateDTO.FeatureValueIds ?? new List<Guid>();
-
+        newProduct.Date = productUpdateDTO.Date;
+        newProduct.ParsedDate = productUpdateDTO.ParsedDate;
+        newProduct.PublishTime = product.ParsedDate.HasValue && product.ParsedDate.Value.ToLocalTime() > DateTimeOffset.Now.ToLocalTime();
         if (product.ProductScale is not null)
         {
             var scaleId = product.ProductScale.Id;
@@ -1145,6 +1207,8 @@ public class ProductServices : IProductServices
                     OfferEndTime = stockItemDTO.OfferTime.HasValue ? DateTime.UtcNow.AddHours(stockItemDTO.OfferTime.Value) : null,
                     OfferTime = stockItemDTO.OfferTime,
                     Price = stockItemDTO.Price,
+                    PurchasePrice = stockItemDTO.PurchasePrice,
+                    Weight = stockItemDTO.Weight,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                     AdditionalProperties = stockItemDTO.AdditionalProperties

@@ -173,4 +173,5 @@ public class ApplicationDbContext : DbContext
     public DbSet<Copyright> Copyrights { get; set; }
     public DbSet<ColumnFooter> ColumnFooters { get; set; }
     public DbSet<FooterArticleColumn> FooterArticleColumns { get; set; }
+    public DbSet<StoreBrand> StoreBrands { get; set; }
 }
