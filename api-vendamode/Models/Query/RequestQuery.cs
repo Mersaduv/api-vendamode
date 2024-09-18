@@ -31,6 +31,8 @@ public class RequestQuery
     public string? CategoryId { get; set; }
     [FromQuery(Name = "singleCategory")]
     public bool? SingleCategory { get; set; }
+    [FromQuery(Name = "isCategory")]
+    public bool? IsCategory { get; set; }
     [FromQuery(Name = "sizes")]
     public Guid[]? SizeIds { get; set; }
 

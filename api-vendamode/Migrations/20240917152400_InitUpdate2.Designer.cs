@@ -13,8 +13,8 @@ using api_vendace.Data;
 namespace api_vendamode.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20240914123944_InitUpdateProduct33")]
-    partial class InitUpdateProduct33
+    [Migration("20240917152400_InitUpdate2")]
+    partial class InitUpdate2
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -100,9 +100,14 @@ namespace api_vendamode.Migrations
                     b.Property<string>("Placeholder")
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("StockItemId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("EntityId");
+
+                    b.HasIndex("StockItemId");
 
                     b.ToTable("ProductImages");
                 });
@@ -193,28 +198,6 @@ namespace api_vendamode.Migrations
                     b.HasIndex("EntityId");
 
                     b.ToTable("UserSpecificationImages");
-                });
-
-            modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendace.Models.Dtos.ProductDto.Stock.StockItem>", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("EntityId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ImageUrl")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Placeholder")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EntityId");
-
-                    b.ToTable("StockImages");
                 });
 
             modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendamode.Entities.Designs.DesignItem>", b =>
@@ -670,6 +653,9 @@ namespace api_vendamode.Migrations
 
                     b.Property<int>("ProductType")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("PublishTime")
+                        .HasColumnType("boolean");
 
                     b.Property<double>("Rating")
                         .HasColumnType("double precision");
@@ -1639,6 +1625,29 @@ namespace api_vendamode.Migrations
                     b.ToTable("SloganFooters");
                 });
 
+            modelBuilder.Entity("api_vendamode.Entities.Designs.StoreBrand", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BrandId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("StoreBrands");
+                });
+
             modelBuilder.Entity("api_vendamode.Entities.Designs.Support", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2074,6 +2083,9 @@ namespace api_vendamode.Migrations
                     b.Property<DateTime>("Created")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime?>("LastUpdated")
                         .HasColumnType("timestamp with time zone");
 
@@ -2169,6 +2181,10 @@ namespace api_vendamode.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("api_vendace.Models.Dtos.ProductDto.Stock.StockItem", null)
+                        .WithMany("Images")
+                        .HasForeignKey("StockItemId");
+
                     b.Navigation("Entity");
                 });
 
@@ -2209,17 +2225,6 @@ namespace api_vendamode.Migrations
                 {
                     b.HasOne("api_vendace.Entities.Users.UserSpecification", "Entity")
                         .WithMany("IdCardImages")
-                        .HasForeignKey("EntityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Entity");
-                });
-
-            modelBuilder.Entity("api_vendace.Entities.EntityImage<System.Guid, api_vendace.Models.Dtos.ProductDto.Stock.StockItem>", b =>
-                {
-                    b.HasOne("api_vendace.Models.Dtos.ProductDto.Stock.StockItem", "Entity")
-                        .WithMany("Images")
                         .HasForeignKey("EntityId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

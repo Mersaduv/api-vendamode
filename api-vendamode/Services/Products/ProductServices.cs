@@ -106,7 +106,9 @@ public class ProductServices : IProductServices
     public async Task<ServiceResponse<Guid>> CreateProduct(ProductCreateDTO productCreateDTO)
     {
         var productId = Guid.NewGuid();
-        var product = productCreateDTO.ToProducts(_byteFileUtility, productId);
+        var productCode = GenerateProductCode();
+        var productSlug = GenerateSlug(productCreateDTO.Title, productCode);
+        var product = productCreateDTO.ToProducts(_byteFileUtility, productId, productCode);
         var userId = _userServices.GetUserId();
         var userInfo = await _context.Users.Include(us => us.UserSpecification).FirstOrDefaultAsync(u => u.Id == userId);
 
@@ -141,8 +143,6 @@ public class ProductServices : IProductServices
             Created = DateTime.UtcNow,
             LastUpdated = DateTime.UtcNow
         };
-        var productCode = GenerateProductCode();
-        var productSlug = GenerateSlug(productCreateDTO.Title, productCode);
         product.Id = productId;
         product.Slug = productSlug;
         product.Author = userInfo?.UserSpecification.FirstName + " " + userInfo?.UserSpecification.FamilyName;
@@ -151,7 +151,7 @@ public class ProductServices : IProductServices
         product.ProductFeatures = productFeatures;
         product.ProductScale = productScale;
         product.ProductScaleId = scaleId;
-        product.ParsedDate = productCreateDTO.ParsedDate;
+        product.ParsedDate = productCreateDTO.ParsedDate ?? DateTime.UtcNow;
         product.Date = productCreateDTO.Date ?? "";
         product.PublishTime = product.ParsedDate.HasValue && product.ParsedDate.Value.ToLocalTime() > DateTimeOffset.Now.ToLocalTime();
 
@@ -178,7 +178,7 @@ public class ProductServices : IProductServices
                     Id = stockItemDTO.Id,
                     StockId = stockItemDTO.StockId,
                     IsHidden = stockItemDTO.IsHidden,
-                    Images = stockItemDTO.ImageStock != null ? _byteFileUtility.SaveFileInFolder<EntityImage<Guid, StockItem>>([stockItemDTO.ImageStock], nameof(StockItem), false) : [],
+                    Images = stockItemDTO.ImageStock != null ? _byteFileUtility.SaveFileInFolder<EntityImage<Guid, StockItem>>([stockItemDTO.ImageStock], nameof(Product), productCode, false) : [],
                     Idx = stockItemDTO.Idx ?? string.Empty,
                     ProductId = product.Id,
                     FeatureValueId = featureIds,
@@ -413,11 +413,17 @@ public class ProductServices : IProductServices
                 query = query.Where(p => allCategoryIds.Contains(p.CategoryId));
             }
 
-            if (requestQuery.CategoryId is not null && requestQuery.SingleCategory is null)
+            if (requestQuery.CategorySlug is not null && requestQuery.SingleCategory is null)
             {
-
-                if (requestQuery.CategoryId != "default") query = query.Where(p => p.CategoryId == Guid.Parse(requestQuery.CategoryId));
+                var allCategoryIds = _categoryServices.GetAllCategoryIdsBy(requestQuery.CategorySlug);
+                query = query.Where(p => allCategoryIds.Contains(p.CategoryId));
             }
+
+            // if (requestQuery.CategoryId is not null && requestQuery.SingleCategory is null)
+            // {
+
+            //     if (requestQuery.CategoryId != "default") query = query.Where(p => p.CategoryId == Guid.Parse(requestQuery.CategoryId));
+            // }
 
             // Search filter
             if (!string.IsNullOrEmpty(requestQuery.Search))
@@ -857,7 +863,7 @@ public class ProductServices : IProductServices
             {
                 Id = product.Category!.Id,
                 Name = product.Category.Name,
-                Slug = product.Category.Name,
+                Slug = product.Category.Slug,
                 Level = product.Category.Level,
                 IsActive = product.Category.IsActive,
                 IsDeleted = product.Category.IsDeleted,
@@ -873,7 +879,7 @@ public class ProductServices : IProductServices
             {
                 Id = category.Id,
                 Name = category.Name,
-                Slug = category.Name,
+                Slug = category.Slug,
                 Level = category.Level,
                 IsActive = category.IsActive,
                 IsDeleted = category.IsDeleted,
@@ -940,7 +946,7 @@ public class ProductServices : IProductServices
                     Id = img.Id,
                     ImageUrl = img.ImageUrl ?? string.Empty,
                     Placeholder = img.Placeholder ?? string.Empty
-                }).ToList(), nameof(ProductSize)).First() : null
+                }).ToList(), nameof(ProductSize), "SubProductSize").First() : null
             };
 
             result.ProductSizeInfo = productSizeInfo;
@@ -998,7 +1004,7 @@ public class ProductServices : IProductServices
                         Id = img.Id,
                         ImageUrl = img.ImageUrl!,
                         Placeholder = img.Placeholder!
-                    }).ToList(), nameof(StockItem)),
+                    }).ToList(), nameof(Product), result.Code),
                     Discount = ps.Discount,
                     OfferTime = ps.OfferTime,
                     Price = ps.Price,
@@ -1154,9 +1160,9 @@ public class ProductServices : IProductServices
         {
             if (product.MainImage != null)
             {
-                _byteFileUtility.DeleteFiles(new[] { product.MainImage }, nameof(Product));
+                _byteFileUtility.DeleteFiles(new[] { product.MainImage }, nameof(Product), product.Code);
             }
-            var newMainImage = _byteFileUtility.SaveFileInFolder<EntityMainImage<Guid, Product>>([productUpdateDTO.MainThumbnail], nameof(Product), false).First();
+            var newMainImage = _byteFileUtility.SaveFileInFolder<EntityMainImage<Guid, Product>>([productUpdateDTO.MainThumbnail], nameof(Product), newProduct.Code, false).First();
             newProduct.MainImage = newMainImage;
         }
 
@@ -1164,11 +1170,19 @@ public class ProductServices : IProductServices
         {
             if (product.Images != null)
             {
-                _byteFileUtility.DeleteFiles(product.Images, nameof(Product));
+                _byteFileUtility.DeleteFiles(product.Images, nameof(Product), product.Code);
             }
-            var newImages = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Product>>(productUpdateDTO.Thumbnail, nameof(Product), false);
+            var newImages = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Product>>(productUpdateDTO.Thumbnail, nameof(Product), newProduct.Code, false);
             newProduct.Images = newImages;
         }
+        if (productUpdateDTO.Thumbnail == null)
+        {
+            if (product.Images != null)
+            {
+                _byteFileUtility.DeleteFiles(product.Images, nameof(Product), product.Code);
+            }
+        }
+
 
         if (productUpdateDTO.StockItems != null)
         {
@@ -1184,10 +1198,10 @@ public class ProductServices : IProductServices
 
                 if (stockItemDTO.ImageStock != null)
                 {
-                    var existingStockItem = product.StockItems?.FirstOrDefault(si => si.Id == stockItemDTO.Id);
+                    var existingStockItem = product.StockItems?.FirstOrDefault(si => si.StockId == stockItemDTO.StockId);
                     if (existingStockItem != null && existingStockItem.Images != null)
                     {
-                        _byteFileUtility.DeleteFiles(existingStockItem.Images, nameof(StockItem));
+                        _byteFileUtility.DeleteFiles(existingStockItem.Images, nameof(Product), newProduct.Code);
                     }
                 }
 
@@ -1196,7 +1210,7 @@ public class ProductServices : IProductServices
                     Id = stockItemDTO.Id,
                     StockId = stockItemDTO.StockId,
                     IsHidden = stockItemDTO.IsHidden,
-                    Images = stockItemDTO.ImageStock != null ? _byteFileUtility.SaveFileInFolder<EntityImage<Guid, StockItem>>([stockItemDTO.ImageStock], nameof(StockItem), false) : new List<EntityImage<Guid, StockItem>>(),
+                    Images = stockItemDTO.ImageStock != null ? _byteFileUtility.SaveFileInFolder<EntityImage<Guid, StockItem>>([stockItemDTO.ImageStock], nameof(Product), newProduct.Code, false) : new List<EntityImage<Guid, StockItem>>(),
                     Idx = stockItemDTO.Idx ?? string.Empty,
                     ProductId = productId,
                     FeatureValueId = featureIds,
@@ -1231,7 +1245,7 @@ public class ProductServices : IProductServices
 
     public async Task<ServiceResponse<bool>> DeleteAsync(Guid id)
     {
-        var product = await _context.Products
+        var product = await _context.Products.Include(x => x.Images).Include(x => x.MainImage).Include(x => x.StockItems).ThenInclude(ps => ps.Images)
     .FirstOrDefaultAsync(p => p.Id == id);
 
 
@@ -1243,7 +1257,24 @@ public class ProductServices : IProductServices
                 Message = "محصولی پیدا نشد."
             };
         }
-
+        if (product.MainImage != null)
+        {
+            _byteFileUtility.DeleteFiles([product.MainImage], nameof(Product), product.Code);
+        }
+        if (product.Images != null)
+        {
+            _byteFileUtility.DeleteFiles(product.Images, nameof(Product), product.Code);
+        }
+        if (product.StockItems != null)
+        {
+            foreach (var stockItem in product.StockItems)
+            {
+                if (stockItem.Images != null)
+                {
+                    _byteFileUtility.DeleteFiles(stockItem.Images, nameof(Product), product.Code);
+                }
+            }
+        }
         _context.Products.Remove(product);
 
         await _unitOfWork.SaveChangesAsync();
@@ -1313,7 +1344,7 @@ public class ProductServices : IProductServices
         {
             Id = id,
             Name = nameof(Description),
-            Thumbnail = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, DescriptionEntity>>([file.Thumbnail], nameof(DescriptionEntity), false).First()
+            Thumbnail = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, DescriptionEntity>>([file.Thumbnail], nameof(DescriptionEntity), "SubDescriptionEntity", false).First()
         };
         await _context.Descriptions.AddAsync(description);
         await _context.SaveChangesAsync();
@@ -1327,7 +1358,7 @@ public class ProductServices : IProductServices
                                 ImageUrl = mediaData.Thumbnail.ImageUrl,
                                 Placeholder = mediaData.Thumbnail.Placeholder
                             }],
-              nameof(DescriptionEntity)).First();
+              nameof(DescriptionEntity), "SubDescriptionEntity").First();
 
 
 

@@ -61,7 +61,7 @@ public class ReviewServices : IReviewServices
             Comment = reviewCreate.Comment,
             Rating = reviewCreate.Rating,
             Status = 1,
-            Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Review>>(reviewCreate.ProductThumbnails, nameof(reviewCreate), false),
+            Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Review>>(reviewCreate.ProductThumbnails, nameof(reviewCreate), null,false),
             NegativePoints = reviewCreate.NegativePoints?.Select(p => new Points
             {
                 Id = p.Id,
@@ -132,7 +132,7 @@ public class ReviewServices : IReviewServices
                                 Id = img.Id,
                                 ImageUrl = img.ImageUrl!,
                                 Placeholder = img.Placeholder!
-                            }).ToList(), nameof(Review)),
+                            }).ToList(), nameof(Review),null),
                 UserId = r.User.Id,
                 Created = r.Created,
                 LastUpdated = r.LastUpdated

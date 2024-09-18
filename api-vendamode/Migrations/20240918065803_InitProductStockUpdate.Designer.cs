@@ -13,8 +13,8 @@ using api_vendace.Data;
 namespace api_vendamode.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20240915122708_InitUpdateStoteCategoryAndBrand")]
-    partial class InitUpdateStoteCategoryAndBrand
+    [Migration("20240918065803_InitProductStockUpdate")]
+    partial class InitProductStockUpdate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

@@ -7,7 +7,7 @@ namespace api_vendace.Mapper;
 
 public static class CreateProductMapper
 {
-    public static Product ToProducts(this ProductCreateDTO product_C_DTO, ByteFileUtility byteFileUtility, Guid productId)
+    public static Product ToProducts(this ProductCreateDTO product_C_DTO, ByteFileUtility byteFileUtility, Guid productId, string? productCode)
     {
         return new Product
         {
@@ -17,8 +17,8 @@ public static class CreateProductMapper
             Status = product_C_DTO.Status,
             IsActive = product_C_DTO.IsActive,
             Date = product_C_DTO.Date,
-            MainImage = byteFileUtility.SaveFileInFolder<EntityMainImage<Guid, Product>>([product_C_DTO.MainThumbnail], nameof(Product), false).First(),
-            Images = byteFileUtility.SaveFileInFolder<EntityImage<Guid, Product>>(product_C_DTO.Thumbnail != null ? product_C_DTO.Thumbnail : [], nameof(Product), false),//!Boolean true is encrypted and Boolean false is not encrypted
+            MainImage = byteFileUtility.SaveFileInFolder<EntityMainImage<Guid, Product>>([product_C_DTO.MainThumbnail], nameof(Product), productCode, false).First(),
+            Images = byteFileUtility.SaveFileInFolder<EntityImage<Guid, Product>>(product_C_DTO.Thumbnail != null ? product_C_DTO.Thumbnail : [], nameof(Product), productCode, false),//!Boolean true is encrypted and Boolean false is not encrypted
             CategoryId = product_C_DTO.CategoryId,
             Description = product_C_DTO.Description,
             IsFake = product_C_DTO.IsFake,

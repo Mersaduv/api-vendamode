@@ -30,7 +30,7 @@ public class SliderServices : ISliderServices
         {
             Id = Guid.NewGuid(),
             CategoryId = sliderCreateDto.CategoryId,
-            Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Slider>>([sliderCreateDto.Thumbnail], nameof(Slider), false).First(),
+            Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Slider>>([sliderCreateDto.Thumbnail], nameof(Slider), null, false).First(),
             Link = sliderCreateDto.Link,
             Type = sliderCreateDto.Type,
             IsActive = sliderCreateDto.IsActive,
@@ -60,7 +60,7 @@ public class SliderServices : ISliderServices
                 {
                     Id = Guid.NewGuid(),
                     CategoryId = sliderUpsertDto.CategoryId,
-                    Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Slider>>(new List<IFormFile> { sliderUpsertDto.Thumbnail }, nameof(Slider), false).First(),
+                    Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Slider>>(new List<IFormFile> { sliderUpsertDto.Thumbnail }, nameof(Slider), "SubSlider", false).First(),
                     Link = sliderUpsertDto.Link,
                     Type = sliderUpsertDto.Type,
                     IsActive = sliderUpsertDto.IsActive,
@@ -81,9 +81,10 @@ public class SliderServices : ISliderServices
                 {
                     if (sliderDb.Image is not null)
                     {
-                        _byteFileUtility.DeleteFiles(new List<EntityImage<Guid, Slider>> { sliderDb.Image }, nameof(Slider));
+                        _byteFileUtility.DeleteFiles(new List<EntityImage<Guid, Slider>> { sliderDb.Image }, nameof(Slider), "SubSlider");
                     }
-                    sliderDb.Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Slider>>(new List<IFormFile> { sliderUpsertDto.Thumbnail }, nameof(Slider), false).First();
+
+                    sliderDb.Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Slider>>(new List<IFormFile> { sliderUpsertDto.Thumbnail }, nameof(Slider), "SubSlider", false).First();
                 }
 
                 _context.Update(sliderDb);
@@ -104,6 +105,11 @@ public class SliderServices : ISliderServices
                 Data = false
             };
         }
+        if (dbSlider.Image is not null)
+        {
+            _byteFileUtility.DeleteFiles(new List<EntityImage<Guid, Slider>> { dbSlider.Image }, nameof(Slider), "SubSlider");
+        }
+
         _context.Sliders.Remove(dbSlider);
         await _context.SaveChangesAsync();
         return new ServiceResponse<bool>
@@ -132,7 +138,7 @@ public class SliderServices : ISliderServices
             Image = slider.Image != null ? _byteFileUtility.GetEncryptedFileActionUrl(new List<EntityImageDto>
             {
                 new EntityImageDto { Id = slider.Image.Id , ImageUrl =slider.Image.ImageUrl ?? string.Empty, Placeholder=slider.Image.Placeholder ?? string.Empty}
-            }, nameof(Slider)).First() : null,
+            }, nameof(Slider),"SubSlider").First() : null,
             Link = slider.Link,
             Type = slider.Type,
             IsActive = slider.IsActive,
@@ -155,7 +161,7 @@ public class SliderServices : ISliderServices
             Image = slider.Image != null ? _byteFileUtility.GetEncryptedFileActionUrl(new List<EntityImageDto>
             {
                 new EntityImageDto { Id = slider.Image.Id , ImageUrl =slider.Image.ImageUrl ?? string.Empty, Placeholder=slider.Image.Placeholder ?? string.Empty}
-            }, nameof(Slider)).First() : null,
+            }, nameof(Slider), "SubSlider").First() : null,
             Link = slider.Link,
             Type = slider.Type,
             IsActive = slider.IsActive,
@@ -179,7 +185,7 @@ public class SliderServices : ISliderServices
                                         Image = slider.Image != null ? _byteFileUtility.GetEncryptedFileActionUrl(new List<EntityImageDto>
                                         {
                                         new EntityImageDto { Id = slider.Image.Id, ImageUrl = slider.Image.ImageUrl ?? string.Empty, Placeholder = slider.Image.Placeholder ?? string.Empty}
-                                        }, nameof(Slider)).First() : null,
+                                        }, nameof(Slider), "SubSlider").First() : null,
                                         Link = slider.Link,
                                         Type = slider.Type,
                                         IsActive = slider.IsActive,
@@ -213,9 +219,9 @@ public class SliderServices : ISliderServices
         {
             if (dbSlider.Image is not null)
             {
-                _byteFileUtility.DeleteFiles([dbSlider.Image], nameof(Slider));
+                _byteFileUtility.DeleteFiles([dbSlider.Image], nameof(Slider),"SubSlider");
             }
-            dbSlider.Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Slider>>([sliderDto.Thumbnail], nameof(Slider), false).First();
+            dbSlider.Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Slider>>([sliderDto.Thumbnail], nameof(Slider), null, false).First();
         }
 
         _context.Update(dbSlider);
@@ -228,3 +234,9 @@ public class SliderServices : ISliderServices
     }
 
 }
+
+// good looking - suki waterhouse
+// technike ultra slowed
+// witiwant super slowed
+// duvet  - boa
+// enemy sped up tommee profitt, beacon light 

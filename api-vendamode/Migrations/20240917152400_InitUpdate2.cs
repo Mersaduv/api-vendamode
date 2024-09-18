@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace api_vendamode.Migrations
 {
     /// <inheritdoc />
-    public partial class InitLogoImages : Migration
+    public partial class InitUpdate2 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -35,7 +35,8 @@ namespace api_vendamode.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
+                    NameFa = table.Column<string>(type: "text", nullable: false),
+                    NameEn = table.Column<string>(type: "text", nullable: false),
                     InSlider = table.Column<bool>(type: "boolean", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     Count = table.Column<int>(type: "integer", nullable: false),
@@ -108,6 +109,35 @@ namespace api_vendamode.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ColumnFooters",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Index = table.Column<int>(type: "integer", nullable: false),
+                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ColumnFooters", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Copyrights",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Copyrights", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Descriptions",
                 columns: table => new
                 {
@@ -117,6 +147,24 @@ namespace api_vendamode.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Descriptions", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DesignItems",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    Link = table.Column<string>(type: "text", nullable: false),
+                    Type = table.Column<string>(type: "text", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    Index = table.Column<int>(type: "integer", nullable: false),
+                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DesignItems", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -138,6 +186,22 @@ namespace api_vendamode.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "GeneralSettings",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    ShortIntroduction = table.Column<string>(type: "text", nullable: false),
+                    GoogleTags = table.Column<string>(type: "text", nullable: false),
+                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GeneralSettings", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "HeaderTexts",
                 columns: table => new
                 {
@@ -150,6 +214,19 @@ namespace api_vendamode.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_HeaderTexts", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "LogoImages",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_LogoImages", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -226,6 +303,22 @@ namespace api_vendamode.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Redirects",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ArticleId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ArticleTitle = table.Column<string>(type: "text", nullable: false),
+                    Slug = table.Column<string>(type: "text", nullable: false),
+                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Redirects", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Returneds",
                 columns: table => new
                 {
@@ -256,6 +349,67 @@ namespace api_vendamode.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Sliders", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SloganFooters",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Headline = table.Column<string>(type: "text", nullable: false),
+                    IntroductionText = table.Column<string>(type: "text", nullable: false),
+                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SloganFooters", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StoreBrands",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    BrandId = table.Column<Guid>(type: "uuid", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StoreBrands", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StoreCategories",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    CategoryId = table.Column<Guid>(type: "uuid", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StoreCategories", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Supports",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ContactAndSupport = table.Column<string>(type: "text", nullable: false),
+                    ResponseTime = table.Column<string>(type: "text", nullable: false),
+                    Address = table.Column<string>(type: "text", nullable: false),
+                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Supports", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -380,6 +534,27 @@ namespace api_vendamode.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "FooterArticleColumns",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ArticleId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Index = table.Column<int>(type: "integer", nullable: false),
+                    ColumnFooterId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FooterArticleColumns", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_FooterArticleColumns_ColumnFooters_ColumnFooterId",
+                        column: x => x.ColumnFooterId,
+                        principalTable: "ColumnFooters",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "MediaImages",
                 columns: table => new
                 {
@@ -400,6 +575,26 @@ namespace api_vendamode.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "DesignItemImages",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    EntityId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ImageUrl = table.Column<string>(type: "text", nullable: true),
+                    Placeholder = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DesignItemImages", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DesignItemImages_DesignItems_EntityId",
+                        column: x => x.EntityId,
+                        principalTable: "DesignItems",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "FooterBannerImages",
                 columns: table => new
                 {
@@ -415,6 +610,46 @@ namespace api_vendamode.Migrations
                         name: "FK_FooterBannerImages_FooterBanners_EntityId",
                         column: x => x.EntityId,
                         principalTable: "FooterBanners",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "FaviconThumbnailImages",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    EntityId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ImageUrl = table.Column<string>(type: "text", nullable: true),
+                    Placeholder = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FaviconThumbnailImages", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_FaviconThumbnailImages_LogoImages_EntityId",
+                        column: x => x.EntityId,
+                        principalTable: "LogoImages",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "OrgThumbnailImages",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    EntityId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ImageUrl = table.Column<string>(type: "text", nullable: true),
+                    Placeholder = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OrgThumbnailImages", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_OrgThumbnailImages_LogoImages_EntityId",
+                        column: x => x.EntityId,
+                        principalTable: "LogoImages",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -564,7 +799,11 @@ namespace api_vendamode.Migrations
                     Code = table.Column<string>(type: "text", nullable: false),
                     Slug = table.Column<string>(type: "text", nullable: false),
                     Author = table.Column<string>(type: "text", nullable: false),
+                    Date = table.Column<string>(type: "text", nullable: false),
+                    ParsedDate = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    PublishTime = table.Column<bool>(type: "boolean", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    ProductType = table.Column<int>(type: "integer", nullable: false),
                     IsFake = table.Column<bool>(type: "boolean", nullable: false),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
@@ -826,6 +1065,19 @@ namespace api_vendamode.Migrations
                     ShabaNumber = table.Column<string>(type: "text", nullable: false),
                     Note = table.Column<string>(type: "text", nullable: false),
                     Email = table.Column<string>(type: "text", nullable: false),
+                    StoreName = table.Column<string>(type: "text", nullable: false),
+                    StoreTelephone = table.Column<string>(type: "text", nullable: false),
+                    StoreAddress = table.Column<string>(type: "text", nullable: false),
+                    BussinessLicenseNumber = table.Column<string>(type: "text", nullable: false),
+                    IsActiveAddProduct = table.Column<bool>(type: "boolean", nullable: false),
+                    IsPublishProduct = table.Column<bool>(type: "boolean", nullable: false),
+                    IsSelectedAsSpecialSeller = table.Column<bool>(type: "boolean", nullable: false),
+                    CommissionType = table.Column<int>(type: "integer", nullable: true),
+                    PercentageValue = table.Column<string>(type: "text", nullable: false),
+                    SellerPerformance = table.Column<string>(type: "text", nullable: false),
+                    TimelySupply = table.Column<string>(type: "text", nullable: false),
+                    ShippingCommitment = table.Column<string>(type: "text", nullable: false),
+                    NoReturns = table.Column<string>(type: "text", nullable: false),
                     Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
@@ -907,26 +1159,6 @@ namespace api_vendamode.Migrations
                         name: "FK_ArticleReviews_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ProductImages",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    EntityId = table.Column<Guid>(type: "uuid", nullable: false),
-                    ImageUrl = table.Column<string>(type: "text", nullable: true),
-                    Placeholder = table.Column<string>(type: "text", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ProductImages", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ProductImages_Products_EntityId",
-                        column: x => x.EntityId,
-                        principalTable: "Products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -1018,6 +1250,8 @@ namespace api_vendamode.Migrations
                     Quantity = table.Column<int>(type: "integer", nullable: false),
                     Price = table.Column<double>(type: "double precision", nullable: false),
                     Discount = table.Column<double>(type: "double precision", nullable: true),
+                    Weight = table.Column<double>(type: "double precision", nullable: false),
+                    PurchasePrice = table.Column<double>(type: "double precision", nullable: false),
                     OfferTime = table.Column<int>(type: "integer", nullable: true),
                     IsHidden = table.Column<bool>(type: "boolean", nullable: false),
                     AdditionalProperties = table.Column<string>(type: "jsonb", nullable: true),
@@ -1229,23 +1463,29 @@ namespace api_vendamode.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "StockImages",
+                name: "ProductImages",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     EntityId = table.Column<Guid>(type: "uuid", nullable: false),
                     ImageUrl = table.Column<string>(type: "text", nullable: true),
-                    Placeholder = table.Column<string>(type: "text", nullable: true)
+                    Placeholder = table.Column<string>(type: "text", nullable: true),
+                    StockItemId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_StockImages", x => x.Id);
+                    table.PrimaryKey("PK_ProductImages", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_StockImages_StockItems_EntityId",
+                        name: "FK_ProductImages_Products_EntityId",
                         column: x => x.EntityId,
-                        principalTable: "StockItems",
+                        principalTable: "Products",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ProductImages_StockItems_StockItemId",
+                        column: x => x.StockItemId,
+                        principalTable: "StockItems",
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -1312,39 +1552,6 @@ namespace api_vendamode.Migrations
                         principalTable: "Orders",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "EntityImage<Guid, LogoImages>",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    EntityId = table.Column<Guid>(type: "uuid", nullable: false),
-                    ImageUrl = table.Column<string>(type: "text", nullable: true),
-                    Placeholder = table.Column<string>(type: "text", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_EntityImage<Guid, LogoImages>", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "LogoImages",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    FaviconThumbnailId = table.Column<Guid>(type: "uuid", nullable: true),
-                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_LogoImages", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_LogoImages_EntityImage<Guid, LogoImages>_FaviconThumbnailId",
-                        column: x => x.FaviconThumbnailId,
-                        principalTable: "EntityImage<Guid, LogoImages>",
-                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateIndex(
@@ -1430,8 +1637,14 @@ namespace api_vendamode.Migrations
                 column: "SizeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_EntityImage<Guid, LogoImages>_EntityId",
-                table: "EntityImage<Guid, LogoImages>",
+                name: "IX_DesignItemImages_EntityId",
+                table: "DesignItemImages",
+                column: "EntityId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FaviconThumbnailImages_EntityId",
+                table: "FaviconThumbnailImages",
                 column: "EntityId",
                 unique: true);
 
@@ -1441,15 +1654,15 @@ namespace api_vendamode.Migrations
                 column: "ProductFeatureId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_FooterArticleColumns_ColumnFooterId",
+                table: "FooterArticleColumns",
+                column: "ColumnFooterId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_FooterBannerImages_EntityId",
                 table: "FooterBannerImages",
                 column: "EntityId",
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_LogoImages_FaviconThumbnailId",
-                table: "LogoImages",
-                column: "FaviconThumbnailId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MediaImages_EntityId",
@@ -1478,6 +1691,12 @@ namespace api_vendamode.Migrations
                 column: "UserID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_OrgThumbnailImages_EntityId",
+                table: "OrgThumbnailImages",
+                column: "EntityId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Permissions_ParentPermissionId",
                 table: "Permissions",
                 column: "ParentPermissionId");
@@ -1501,6 +1720,11 @@ namespace api_vendamode.Migrations
                 name: "IX_ProductImages_EntityId",
                 table: "ProductImages",
                 column: "EntityId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProductImages_StockItemId",
+                table: "ProductImages",
+                column: "StockItemId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ProductMainImages_EntityId",
@@ -1603,11 +1827,6 @@ namespace api_vendamode.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_StockImages_EntityId",
-                table: "StockImages",
-                column: "EntityId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_StockItems_ProductId",
                 table: "StockItems",
                 column: "ProductId");
@@ -1642,23 +1861,11 @@ namespace api_vendamode.Migrations
                 table: "UserSpecifications",
                 column: "UserId",
                 unique: true);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_EntityImage<Guid, LogoImages>_LogoImages_EntityId",
-                table: "EntityImage<Guid, LogoImages>",
-                column: "EntityId",
-                principalTable: "LogoImages",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_EntityImage<Guid, LogoImages>_LogoImages_EntityId",
-                table: "EntityImage<Guid, LogoImages>");
-
             migrationBuilder.DropTable(
                 name: "ArticleBanners");
 
@@ -1693,16 +1900,34 @@ namespace api_vendamode.Migrations
                 name: "CategorySizes");
 
             migrationBuilder.DropTable(
+                name: "Copyrights");
+
+            migrationBuilder.DropTable(
+                name: "DesignItemImages");
+
+            migrationBuilder.DropTable(
+                name: "FaviconThumbnailImages");
+
+            migrationBuilder.DropTable(
                 name: "FeatureValues");
 
             migrationBuilder.DropTable(
+                name: "FooterArticleColumns");
+
+            migrationBuilder.DropTable(
                 name: "FooterBannerImages");
+
+            migrationBuilder.DropTable(
+                name: "GeneralSettings");
 
             migrationBuilder.DropTable(
                 name: "HeaderTexts");
 
             migrationBuilder.DropTable(
                 name: "MediaImages");
+
+            migrationBuilder.DropTable(
+                name: "OrgThumbnailImages");
 
             migrationBuilder.DropTable(
                 name: "Permissions");
@@ -1729,6 +1954,9 @@ namespace api_vendamode.Migrations
                 name: "PurchaseInvoice");
 
             migrationBuilder.DropTable(
+                name: "Redirects");
+
+            migrationBuilder.DropTable(
                 name: "ReviewImages");
 
             migrationBuilder.DropTable(
@@ -1741,7 +1969,16 @@ namespace api_vendamode.Migrations
                 name: "SliderImages");
 
             migrationBuilder.DropTable(
-                name: "StockImages");
+                name: "SloganFooters");
+
+            migrationBuilder.DropTable(
+                name: "StoreBrands");
+
+            migrationBuilder.DropTable(
+                name: "StoreCategories");
+
+            migrationBuilder.DropTable(
+                name: "Supports");
 
             migrationBuilder.DropTable(
                 name: "UserImages");
@@ -1768,10 +2005,22 @@ namespace api_vendamode.Migrations
                 name: "Sizes");
 
             migrationBuilder.DropTable(
+                name: "DesignItems");
+
+            migrationBuilder.DropTable(
+                name: "ColumnFooters");
+
+            migrationBuilder.DropTable(
                 name: "FooterBanners");
 
             migrationBuilder.DropTable(
                 name: "Descriptions");
+
+            migrationBuilder.DropTable(
+                name: "LogoImages");
+
+            migrationBuilder.DropTable(
+                name: "StockItems");
 
             migrationBuilder.DropTable(
                 name: "ProductFeatures");
@@ -1787,9 +2036,6 @@ namespace api_vendamode.Migrations
 
             migrationBuilder.DropTable(
                 name: "Sliders");
-
-            migrationBuilder.DropTable(
-                name: "StockItems");
 
             migrationBuilder.DropTable(
                 name: "Roles");
@@ -1829,12 +2075,6 @@ namespace api_vendamode.Migrations
 
             migrationBuilder.DropTable(
                 name: "ProductSizes");
-
-            migrationBuilder.DropTable(
-                name: "LogoImages");
-
-            migrationBuilder.DropTable(
-                name: "EntityImage<Guid, LogoImages>");
         }
     }
 }

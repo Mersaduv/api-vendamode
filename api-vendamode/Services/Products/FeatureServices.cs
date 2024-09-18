@@ -382,7 +382,7 @@ public class FeatureServices : IFeatureServices
                 Id = img.Id,
                 ImageUrl = img.ImageUrl ?? string.Empty,
                 Placeholder = img.Placeholder ?? string.Empty
-            }).ToList(), nameof(ProductSize)).First() : null,
+            }).ToList(), nameof(ProductSize),"SubProductSize").First() : null,
             SizeType = productSize.SizeType,
             ProductSizeValues = productSize.ProductSizeProductSizeValues?.Select(sv => new ProductSizeValuesDTO
             {

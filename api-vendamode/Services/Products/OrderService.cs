@@ -87,7 +87,7 @@ public class OrderService : IOrderServices
             PaymentMethod = orderCreate.PaymentMethod,
             Delivered = false,
             Paid = false,
-            PurchaseInvoice = orderCreate.Thumbnail != null ? _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Order>>([orderCreate.Thumbnail], nameof(Order)).First() : null,
+            PurchaseInvoice = orderCreate.Thumbnail != null ? _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Order>>([orderCreate.Thumbnail], nameof(Order),"SubOrder").First() : null,
             DateOfPayment = DateTime.UtcNow,
             Created = DateTime.UtcNow,
             LastUpdated = DateTime.UtcNow,

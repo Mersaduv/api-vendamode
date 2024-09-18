@@ -71,7 +71,7 @@ public class CategoryServices : ICategoryServices
         var category = new Category
         {
             Id = categoryNewId,
-            Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Category>>(categoryCreate.Thumbnail!, nameof(Category), false),
+            Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Category>>(categoryCreate.Thumbnail!, nameof(Category), "SubCategory", false),
             Name = categoryCreate.Name,
             Slug = categoryCreate.Name + categoryNewId,
             IsActive = categoryCreate.IsActive,
@@ -118,7 +118,7 @@ public class CategoryServices : ICategoryServices
                 Id = img.Id,
                 ImageUrl = img.ImageUrl ?? string.Empty,
                 Placeholder = img.Placeholder ?? string.Empty
-            }).ToList(), nameof(Category)).First() : null,
+            }).ToList(), nameof(Category),"SubCategory").First() : null,
             Name = category.Name,
             SizeCount = 0,
             Level = category.Level,
@@ -192,12 +192,12 @@ public class CategoryServices : ICategoryServices
         var categoriesTree = BuildCategoryTree(filteredCategories, sortedCategories);
 
         // Flatten the tree and select only the name and id properties
-        var categoriesDto = categoriesTree.Select(c => new CategoryDTO { Id = c.Id, Name = c.Name, Level = c.Level }).ToList();
+        var categoriesDto = categoriesTree.Select(c => new CategoryDTO { Id = c.Id, Name = c.Name, Level = c.Level, Slug = c.Slug, }).ToList();
         foreach (var categoryDto in categoriesDto)
         {
             if (categoryDto.ChildCategories != null)
             {
-                categoriesDto.AddRange(categoryDto.ChildCategories.Select(c => new CategoryDTO { Id = c.Id, Name = c.Name, Level = c.Level }));
+                categoriesDto.AddRange(categoryDto.ChildCategories.Select(c => new CategoryDTO { Id = c.Id, Name = c.Name, Level = c.Level, Slug = c.Slug, }));
             }
         }
 
@@ -244,7 +244,7 @@ public class CategoryServices : ICategoryServices
                     Id = img.Id,
                     ImageUrl = img.ImageUrl ?? string.Empty,
                     Placeholder = img.Placeholder ?? string.Empty
-                }).ToList(), nameof(Category)).First() : null,
+                }).ToList(), nameof(Category),"SubCategory").First() : null,
                 Count = GetProductCount(category, allCategories, isParent),
                 SubCategoryCount = allCategories.Count(c => c.ParentCategoryId == category.Id),
                 FeatureCount = category.CategoryProductFeatures != null ? category.CategoryProductFeatures.Count : 0,
@@ -261,7 +261,7 @@ public class CategoryServices : ICategoryServices
                 {
                     Id = category.Id,
                     Name = category.Name,
-                    Slug = category.Name,
+                    Slug = category.Slug,
                     Level = category.Level,
                     IsActive = category.IsActive,
                     IsDeleted = category.IsDeleted,
@@ -292,7 +292,7 @@ public class CategoryServices : ICategoryServices
 
     public async Task<ServiceResponse<bool>> Delete(Guid id)
     {
-        var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id);
+        var category = await _context.Categories.Include(x => x.Images).FirstOrDefaultAsync(c => c.Id == id);
         if (category == null)
         {
             return new ServiceResponse<bool>
@@ -340,6 +340,10 @@ public class CategoryServices : ICategoryServices
 
                 await _context.SaveChangesAsync();
 
+                if (category.Images != null)
+                {
+                    _byteFileUtility.DeleteFiles(category.Images, nameof(Category),"SubCategory");
+                }
                 _context.Categories.Remove(category);
 
                 await _context.SaveChangesAsync();
@@ -415,9 +419,9 @@ public class CategoryServices : ICategoryServices
         {
             if (category.Images is not null)
             {
-                _byteFileUtility.DeleteFiles(category.Images, nameof(Category));
+                _byteFileUtility.DeleteFiles(category.Images, nameof(Category),"SubCategory");
             }
-            category.Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Category>>(categoryUpdate.Thumbnail, nameof(Category), false);
+            category.Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Category>>(categoryUpdate.Thumbnail, nameof(Category), "SubCategory", false);
         }
         _context.Update(category);
         await _unitOfWork.SaveChangesAsync();
@@ -624,19 +628,20 @@ public class CategoryServices : ICategoryServices
             Name = category.Name,
             IsActive = category.IsActive,
             Level = category.Level,
+            Slug = category.Slug,
             ImagesSrc = category.Images != null ? _byteFileUtility.GetEncryptedFileActionUrl(category.Images.Select(img => new EntityImageDto
             {
                 Id = img.Id,
                 ImageUrl = img.ImageUrl ?? string.Empty,
                 Placeholder = img.Placeholder ?? string.Empty
-            }).ToList(), nameof(Category)).First() : null,
+            }).ToList(), nameof(Category),"SubCategory").First() : null,
             Categories = subCategoryList,
             Count = category.Products != null ? category.Products.Count : 0,
             ParentCategories = category.GetParentCategories(_context).Select(category => new CategoryDTO
             {
                 Id = category.Id,
                 Name = category.Name,
-                Slug = category.Name,
+                Slug = category.Slug,
                 Level = category.Level,
                 IsActive = category.IsActive,
                 IsDeleted = category.IsDeleted,
@@ -742,7 +747,7 @@ public class CategoryServices : ICategoryServices
                 Id = img.Id,
                 ImageUrl = img.ImageUrl ?? string.Empty,
                 Placeholder = img.Placeholder ?? string.Empty
-            }).ToList(), nameof(Category)).First() : null,
+            }).ToList(), nameof(Category),"SubCategory").First() : null,
             Categories = subCategoryList,
             Created = category.Created,
             LastUpdated = category.LastUpdated
@@ -938,7 +943,7 @@ public class CategoryServices : ICategoryServices
                 Id = img.Id,
                 ImageUrl = img.ImageUrl ?? string.Empty,
                 Placeholder = img.Placeholder ?? string.Empty
-            }).ToList(), nameof(Category)).First() : null,
+            }).ToList(), nameof(Category), "SubCategory").First() : null,
             ChildCategories = category.ChildCategories.Select(c => new CategoryDTO
             {
                 Id = c.Id,
@@ -951,7 +956,7 @@ public class CategoryServices : ICategoryServices
                     Id = img.Id,
                     ImageUrl = img.ImageUrl ?? string.Empty,
                     Placeholder = img.Placeholder ?? string.Empty
-                }).ToList(), nameof(Category)).First() : null,
+                }).ToList(), nameof(Category),"SubCategory").First() : null,
                 Created = c.Created,
                 LastUpdated = c.LastUpdated
             }).ToList(),
@@ -1066,7 +1071,7 @@ public class CategoryServices : ICategoryServices
                 Id = img.Id,
                 ImageUrl = img.ImageUrl ?? string.Empty,
                 Placeholder = img.Placeholder ?? string.Empty
-            }).ToList(), nameof(Category)).FirstOrDefault() : null,
+            }).ToList(), nameof(Category),"SubCategory").FirstOrDefault() : null,
             Count = category.Products?.Count ?? 0,
             FeatureCount = category.CategoryProductFeatures?.Count ?? 0,
             SizeCount = 0,
@@ -1144,7 +1149,7 @@ public class CategoryServices : ICategoryServices
                 Id = img.Id,
                 ImageUrl = img.ImageUrl ?? string.Empty,
                 Placeholder = img.Placeholder ?? string.Empty
-            }).ToList(), nameof(Category)).First() : null,
+            }).ToList(), nameof(Category),"SubCategory").First() : null,
             Categories = subCategoryList,
             Created = category.Created,
             LastUpdated = category.LastUpdated
@@ -1217,4 +1222,3 @@ public class CategoryServices : ICategoryServices
         }
     }
 }
-

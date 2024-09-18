@@ -96,7 +96,7 @@ public class UserServices : IUserServices
                 Id = Guid.NewGuid(),
                 UserId = userId,
                 Roles = roles.Select(r => r.Title).ToList(),
-                IdCardImages = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, UserSpecification>>(userUpsert.IdCardThumbnail!, nameof(UserSpecification), false),
+                IdCardImages = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, UserSpecification>>(userUpsert.IdCardThumbnail!, nameof(UserSpecification), null,false),
                 MobileNumber = userUpsert.MobileNumber,
                 PasswordSalt = passwordSalt,
                 Password = hashedPassword,
@@ -139,7 +139,7 @@ public class UserServices : IUserServices
             {
                 Id = userId,
                 UserType = userUpsert.UserType,
-                Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, User>>(userUpsert.Thumbnail!, nameof(User), false),
+                Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, User>>(userUpsert.Thumbnail!, nameof(User), null,false),
                 UserSpecification = specification,
                 Roles = roles,
                 Created = DateTime.UtcNow,
@@ -154,17 +154,17 @@ public class UserServices : IUserServices
             {
                 if (user.Images != null)
                 {
-                    _byteFileUtility.DeleteFiles(user.Images, nameof(User));
+                    _byteFileUtility.DeleteFiles(user.Images, nameof(User),"SubUser");
                 }
-                user.Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, User>>(userUpsert.Thumbnail, nameof(User), false);
+                user.Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, User>>(userUpsert.Thumbnail, nameof(User), null,false);
             }
             if (userUpsert.IdCardThumbnail != null)
             {
                 if (user.UserSpecification.IdCardImages != null)
                 {
-                    _byteFileUtility.DeleteFiles(user.UserSpecification.IdCardImages, nameof(UserSpecification));
+                    _byteFileUtility.DeleteFiles(user.UserSpecification.IdCardImages, nameof(UserSpecification),"SubUserSpecification");
                 }
-                user.UserSpecification.IdCardImages = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, UserSpecification>>(userUpsert.IdCardThumbnail, nameof(UserSpecification), false);
+                user.UserSpecification.IdCardImages = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, UserSpecification>>(userUpsert.IdCardThumbnail, nameof(UserSpecification), null,false);
             }
             user.UserType = userUpsert.UserType;
             user.UserSpecification.Roles = roles.Select(r => r.Title).ToList();
@@ -587,7 +587,7 @@ public class UserServices : IUserServices
                 Id = img.Id,
                 ImageUrl = img.ImageUrl ?? string.Empty,
                 Placeholder = img.Placeholder ?? string.Empty
-            }).ToList(), nameof(User)).First()
+            }).ToList(), nameof(User),"SubUser").First()
             : null,
             FullName = (user.UserSpecification?.FirstName ?? string.Empty) + " " + (user.UserSpecification?.FamilyName ?? string.Empty),
             Roles = user.UserSpecification?.Roles,
@@ -611,7 +611,7 @@ public class UserServices : IUserServices
                     Id = img.Id,
                     ImageUrl = img.ImageUrl ?? string.Empty,
                     Placeholder = img.Placeholder ?? string.Empty
-                }).ToList(), nameof(User)).First()
+                }).ToList(), nameof(User),"SubUser").First()
                 : null,
                 IdCardImageSrc = user.UserSpecification?.IdCardImages != null
                 ? _byteFileUtility.GetEncryptedFileActionUrl(user.UserSpecification.IdCardImages.Select(img => new EntityImageDto
@@ -619,7 +619,7 @@ public class UserServices : IUserServices
                     Id = img.Id,
                     ImageUrl = img.ImageUrl ?? string.Empty,
                     Placeholder = img.Placeholder ?? string.Empty
-                }).ToList(), nameof(UserSpecification)).First()
+                }).ToList(), nameof(UserSpecification),"SubUserSpecification").First()
                 : null,
                 MobileNumber = user.UserSpecification?.MobileNumber ?? string.Empty,
                 PassCode = user.UserSpecification != null ? _passwordHasher.DecryptPassword(user.UserSpecification.PassCode) : string.Empty,
@@ -699,7 +699,7 @@ public class UserServices : IUserServices
                 Id = img.Id,
                 ImageUrl = img.ImageUrl ?? string.Empty,
                 Placeholder = img.Placeholder ?? string.Empty
-            }).ToList(), nameof(User)).First() : null,
+            }).ToList(), nameof(User),"SubUser").First() : null,
             FullName = data.UserSpecification != null ? data.UserSpecification!.FirstName + " " + data.UserSpecification!.FamilyName : string.Empty,
             Roles = data.UserSpecification?.Roles,
             MobileNumber = data.UserSpecification!.MobileNumber,
@@ -722,13 +722,13 @@ public class UserServices : IUserServices
                     Id = img.Id,
                     ImageUrl = img.ImageUrl ?? string.Empty,
                     Placeholder = img.Placeholder ?? string.Empty
-                }).ToList(), nameof(User)).First() : null,
+                }).ToList(), nameof(User),"SubUser").First() : null,
                 IdCardImageSrc = data.UserSpecification?.IdCardImages?.Count > 0 ? _byteFileUtility.GetEncryptedFileActionUrl(data.UserSpecification.IdCardImages.Select(img => new EntityImageDto
                 {
                     Id = img.Id,
                     ImageUrl = img.ImageUrl ?? string.Empty,
                     Placeholder = img.Placeholder ?? string.Empty
-                }).ToList(), nameof(UserSpecification)).First() : null,
+                }).ToList(), nameof(UserSpecification),"SubUserSpecification").First() : null,
                 MobileNumber = data.UserSpecification!.MobileNumber,
                 Email = data.UserSpecification.Email,
                 PassCode = _passwordHasher.DecryptPassword(data.UserSpecification.PassCode),

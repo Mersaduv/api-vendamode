@@ -4,6 +4,7 @@ using api_vendace.Interfaces;
 using api_vendace.Models;
 using api_vendace.Models.Dtos;
 using api_vendace.Utility;
+using api_vendamode.Entities.Designs;
 using api_vendamode.Entities.Products;
 using api_vendamode.Interfaces.IServices;
 using api_vendamode.Models.Dtos.designDto;
@@ -30,7 +31,7 @@ public class BannerServices : IBannerServices
         {
             Id = Guid.NewGuid(),
             CategoryId = bannerCreateDto.CategoryId,
-            Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Banner>>([bannerCreateDto.Thumbnail], nameof(Banner), false).First(),
+            Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Banner>>([bannerCreateDto.Thumbnail], nameof(Banner), null, false).First(),
             Link = bannerCreateDto.Link,
             Type = bannerCreateDto.Type,
             IsActive = bannerCreateDto.IsActive,
@@ -60,7 +61,7 @@ public class BannerServices : IBannerServices
                 {
                     Id = Guid.NewGuid(),
                     CategoryId = bannerUpsertDto.CategoryId,
-                    Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Banner>>([bannerUpsertDto.Thumbnail!], nameof(Banner), false).First(),
+                    Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Banner>>([bannerUpsertDto.Thumbnail!], nameof(DesignItem), nameof(Banner), false).First(),
                     Link = bannerUpsertDto.Link,
                     Type = bannerUpsertDto.Type,
                     IsActive = bannerUpsertDto.IsActive,
@@ -84,9 +85,9 @@ public class BannerServices : IBannerServices
                 {
                     if (bannerDb.Image is not null)
                     {
-                        _byteFileUtility.DeleteFiles([bannerDb.Image], nameof(Banner));
+                        _byteFileUtility.DeleteFiles([bannerDb.Image], nameof(DesignItem), nameof(Banner));
                     }
-                    bannerDb.Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Banner>>([bannerUpsertDto.Thumbnail], nameof(Banner), false).First();
+                    bannerDb.Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Banner>>([bannerUpsertDto.Thumbnail], nameof(DesignItem), nameof(Banner), false).First();
                 }
 
                 _context.Banners.Update(bannerDb);
@@ -111,7 +112,7 @@ public class BannerServices : IBannerServices
             {
                 Id = Guid.NewGuid(),
                 CategoryId = bannerUpsertDto.CategoryId,
-                Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, FooterBanner>>([bannerUpsertDto.Thumbnail!], nameof(FooterBanner), false).First(),
+                Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, FooterBanner>>([bannerUpsertDto.Thumbnail!], nameof(DesignItem), nameof(FooterBanner), false).First(),
                 Link = bannerUpsertDto.Link,
                 Type = bannerUpsertDto.Type,
                 IsActive = bannerUpsertDto.IsActive,
@@ -135,9 +136,9 @@ public class BannerServices : IBannerServices
             {
                 if (bannerDb.Image is not null)
                 {
-                    _byteFileUtility.DeleteFiles([bannerDb.Image], nameof(FooterBanner));
+                    _byteFileUtility.DeleteFiles([bannerDb.Image], nameof(DesignItem), nameof(FooterBanner));
                 }
-                bannerDb.Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, FooterBanner>>([bannerUpsertDto.Thumbnail], nameof(FooterBanner), false).First();
+                bannerDb.Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, FooterBanner>>([bannerUpsertDto.Thumbnail], nameof(DesignItem), nameof(FooterBanner), false).First();
             }
 
 
@@ -174,9 +175,9 @@ public class BannerServices : IBannerServices
         {
             if (bannerDb.Image is not null)
             {
-                _byteFileUtility.DeleteFiles([bannerDb.Image], nameof(Banner));
+                _byteFileUtility.DeleteFiles([bannerDb.Image], nameof(DesignItem), nameof(Banner));
             }
-            bannerDb.Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Banner>>([banner.Thumbnail], nameof(Banner), false).First();
+            bannerDb.Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Banner>>([banner.Thumbnail], nameof(DesignItem), nameof(Banner), false).First();
         }
 
         _context.Banners.Update(bannerDb);
@@ -219,7 +220,7 @@ public class BannerServices : IBannerServices
                 Image = x.Image != null ? _byteFileUtility.GetEncryptedFileActionUrl(new List<EntityImageDto>
             {
                 new EntityImageDto { Id = x.Image.Id , ImageUrl =x.Image.ImageUrl ?? string.Empty, Placeholder=x.Image.Placeholder ?? string.Empty}
-            }, nameof(Banner)).First() : null,
+            }, nameof(Banner), null).First() : null,
                 Link = x.Link,
                 Type = x.Type,
                 IsActive = x.IsActive,
@@ -247,7 +248,7 @@ public class BannerServices : IBannerServices
                 Image = x.Image != null ? _byteFileUtility.GetEncryptedFileActionUrl(new List<EntityImageDto>
                     {
                         new EntityImageDto { Id = x.Image.Id , ImageUrl =x.Image.ImageUrl ?? string.Empty, Placeholder=x.Image.Placeholder ?? string.Empty}
-                    }, nameof(Banner)).First() : null,
+                    }, nameof(DesignItem), nameof(Banner)).First() : null,
                 Link = x.Link,
                 Type = x.Type,
                 IsActive = x.IsActive,
@@ -268,28 +269,40 @@ public class BannerServices : IBannerServices
         var banners = await _context.FooterBanners
             .Include(x => x.Image)
             .OrderByDescending(x => x.Index)
-            .Select(x => new FooterBannerDto
-            {
-                Id = x.Id,
-                CategoryId = x.CategoryId,
-                Image = x.Image != null ? _byteFileUtility.GetEncryptedFileActionUrl(new List<EntityImageDto>
-                    {
-                        new EntityImageDto { Id = x.Image.Id , ImageUrl =x.Image.ImageUrl ?? string.Empty, Placeholder=x.Image.Placeholder ?? string.Empty}
-                    }, nameof(FooterBanner)).First() : null,
-                Link = x.Link,
-                Type = x.Type,
-                IsActive = x.IsActive,
-                Index = x.Index,
-                Created = x.Created,
-                LastUpdated = x.LastUpdated
-            })
             .ToListAsync();
+
+        var bannerDtos = banners.Select(x => new FooterBannerDto
+        {
+            Id = x.Id,
+            CategoryId = x.CategoryId,
+            Image = x.Image != null
+                ? _byteFileUtility.GetEncryptedFileActionUrl(
+                    new List<EntityImageDto>
+                    {
+                    new EntityImageDto
+                    {
+                        Id = x.Image.Id,
+                        ImageUrl = x.Image.ImageUrl ?? string.Empty,
+                        Placeholder = x.Image.Placeholder ?? string.Empty
+                    }
+                    }
+                    , nameof(DesignItem), nameof(FooterBanner)
+                ).First()
+                : null,
+            Link = x.Link,
+            Type = x.Type,
+            IsActive = x.IsActive,
+            Index = x.Index,
+            Created = x.Created,
+            LastUpdated = x.LastUpdated
+        }).ToList();
 
         return new ServiceResponse<IReadOnlyList<FooterBannerDto>>
         {
-            Data = banners
+            Data = bannerDtos
         };
     }
+
 
     public async Task<ServiceResponse<bool>> UpsertArticleBanners(List<ArticleBannerUpsertDto> articleBannerUpserts)
     {
@@ -370,7 +383,7 @@ public class BannerServices : IBannerServices
                 ImagesSrc = x.Article != null && x.Article.Image != null ? _byteFileUtility.GetEncryptedFileActionUrl(new List<EntityImageDto>
                     {
                         new EntityImageDto { Id = x.Article.Image.Id , ImageUrl =x.Article.Image.ImageUrl ?? string.Empty, Placeholder=x.Article.Image.Placeholder ?? string.Empty}
-                    }, nameof(Article)).First() : null,
+                    }, nameof(Article), null).First() : null,
                 Title = x.Article != null ? x.Article.Title : "",
                 Index = x.Index,
                 IsActive = x.IsActive,

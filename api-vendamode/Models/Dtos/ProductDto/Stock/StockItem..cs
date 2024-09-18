@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using api_vendace.Entities;
+using api_vendace.Entities.Products;
 
 namespace api_vendace.Models.Dtos.ProductDto.Stock;
 

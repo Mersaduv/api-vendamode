@@ -73,7 +73,7 @@ public class ArticleServices : IArticleServices
             var newArticle = new Article
             {
                 Id = newArticleId,
-                Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Article>>([articleUpsert.Thumbnail!], nameof(Article), false).First(),
+                Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Article>>([articleUpsert.Thumbnail!], nameof(Article), newArticleCode, false).First(),
                 IsActive = articleUpsert.IsActive,
                 Description = articleUpsert.Description,
                 Place = articleUpsert.Place,
@@ -110,9 +110,9 @@ public class ArticleServices : IArticleServices
             {
                 if (articleDb.Image is not null)
                 {
-                    _byteFileUtility.DeleteFiles([articleDb.Image], nameof(Article));
+                    _byteFileUtility.DeleteFiles([articleDb.Image], nameof(Article), articleDb.Code);
                 }
-                articleDb.Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Article>>([articleUpsert.Thumbnail], nameof(Article), false).First();
+                articleDb.Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Article>>([articleUpsert.Thumbnail], nameof(Article), articleDb.Code, false).First();
             }
 
 
@@ -180,6 +180,11 @@ public class ArticleServices : IArticleServices
             articlesQuery = articlesQuery.Where(p => p.Title.ToLower().Contains(searchLower));
         }
 
+        // with Category
+        if (requestQuery.IsCategory is not null)
+        {
+            articlesQuery = articlesQuery.Where(a => a.CategoryId != null);
+        }
 
         // Sort
         if (!string.IsNullOrEmpty(requestQuery.Sort))
@@ -274,9 +279,9 @@ public class ArticleServices : IArticleServices
             Code = article.Code,
             IsDeleted = article.IsDeleted,
             Image = article.Image != null ? _byteFileUtility.GetEncryptedFileActionUrl(new List<EntityImageDto>
-    {
-        new EntityImageDto { Id = article.Image.Id , ImageUrl = article.Image.ImageUrl ?? string.Empty, Placeholder = article.Image.Placeholder ?? string.Empty }
-    }, nameof(Article)).First() : null,
+            {
+                new EntityImageDto { Id = article.Image.Id , ImageUrl = article.Image.ImageUrl ?? string.Empty, Placeholder = article.Image.Placeholder ?? string.Empty }
+            }, nameof(Article),article.Code).First() : null,
             Created = article.Created,
             LastUpdated = article.LastUpdated
         }).ToList();
@@ -312,7 +317,7 @@ public class ArticleServices : IArticleServices
         }
         if (dbArticle.Image is not null)
         {
-            _byteFileUtility.DeleteFiles([dbArticle.Image], nameof(Article));
+            _byteFileUtility.DeleteFiles([dbArticle.Image], nameof(Article), dbArticle.Code);
         }
         _context.Articles.Remove(dbArticle);
         await _context.SaveChangesAsync();
@@ -404,7 +409,7 @@ public class ArticleServices : IArticleServices
             Image = article.Image != null ? _byteFileUtility.GetEncryptedFileActionUrl(new List<EntityImageDto>
             {
                 new EntityImageDto { Id = article.Image.Id , ImageUrl =article.Image.ImageUrl ?? string.Empty, Placeholder=article.Image.Placeholder ?? string.Empty}
-            }, nameof(Article)).First() : null,
+            }, nameof(Article), article.Code).First() : null,
 
         };
 
@@ -446,7 +451,7 @@ public class ArticleServices : IArticleServices
             Image = article.Image != null ? _byteFileUtility.GetEncryptedFileActionUrl(new List<EntityImageDto>
             {
                 new EntityImageDto { Id = article.Image.Id , ImageUrl =article.Image.ImageUrl ?? string.Empty, Placeholder=article.Image.Placeholder ?? string.Empty}
-            }, nameof(Article)).First() : null,
+            }, nameof(Article), article.Code).First() : null,
 
         };
 
@@ -488,7 +493,7 @@ public class ArticleServices : IArticleServices
             Image = article.Image != null ? _byteFileUtility.GetEncryptedFileActionUrl(new List<EntityImageDto>
             {
                 new EntityImageDto { Id = article.Image.Id , ImageUrl =article.Image.ImageUrl ?? string.Empty, Placeholder=article.Image.Placeholder ?? string.Empty}
-            }, nameof(Article)).First() : null,
+            }, nameof(Article), article.Code).First() : null,
 
         };
 

@@ -23,31 +23,43 @@ public class ByteFileUtility
         this.httpContextAccessor = httpContextAccessor;
     }
 
-    public string GetFileFullPath(string fileName, string enityName)
+    public string GetFileFullPath(string fileName, string entityName, string? subFolder = null)
     {
         var appRootPath = environment.WebRootPath;
         var mediaRootPath = configuration.GetValue<string>("MediaPath");
 
-        return Path.Combine(appRootPath, mediaRootPath!, enityName, fileName);
+        // Include subFolder in the path if it's provided
+        return subFolder != null
+            ? Path.Combine(appRootPath, mediaRootPath!, entityName, subFolder, fileName)
+            : Path.Combine(appRootPath, mediaRootPath!, entityName, fileName);
     }
 
-    public List<TImage> SaveFileInFolder<TImage>(List<IFormFile> files, string entityName, bool isEncrypt = false, bool shouldResize = true)
-        where TImage : IThumbnail, new()
+    public List<TImage> SaveFileInFolder<TImage>(List<IFormFile> files, string entityName, string subFolderName, bool isEncrypt = false, bool shouldResize = true)
+     where TImage : IThumbnail, new()
     {
         List<TImage> newFileNames = new List<TImage>();
         var appRootPath = environment.WebRootPath;
         var mediaRootPath = configuration.GetValue<string>("MediaPath");
 
-        CheckAndCreatePathDirectory(appRootPath, mediaRootPath!, entityName);
+        CheckAndCreatePathDirectory(appRootPath, mediaRootPath!, entityName, subFolderName);
+
         foreach (var file in files)
         {
             var newFileName = $"{DateTime.Now.Ticks.ToString()}{GetFileExtension(file.FileName)}";
-            var newFilePath = Path.Combine(appRootPath, mediaRootPath!, entityName, newFileName);
+
+            // ایجاد مسیر فایل نهایی
+            var newFilePath = subFolderName != null && !string.IsNullOrEmpty(subFolderName)
+                ? Path.Combine(appRootPath, mediaRootPath!, entityName, subFolderName, newFileName)
+                : Path.Combine(appRootPath, mediaRootPath!, entityName, newFileName);
+
             var byteArray = ConvertToByteArray(file, false);
 
-            //placeholder
+            // ایجاد مسیر placeholder
             var placeholderFileName = $"placeholder_{newFileName}";
-            var placeholderFilePath = Path.Combine(appRootPath, mediaRootPath!, entityName, placeholderFileName);
+            var placeholderFilePath = subFolderName != null && !string.IsNullOrEmpty(subFolderName)
+                ? Path.Combine(appRootPath, mediaRootPath!, entityName, subFolderName, placeholderFileName)
+                : Path.Combine(appRootPath, mediaRootPath!, entityName, placeholderFileName);
+
             var placeholderBytes = ConvertToByteArray(file, shouldResize);
 
             if (isEncrypt)
@@ -55,37 +67,44 @@ public class ByteFileUtility
                 byteArray = EncryptFile(byteArray);
                 placeholderBytes = EncryptFile(placeholderBytes);
             }
+
             using (var writer = new BinaryWriter(File.OpenWrite(placeholderFilePath)))
             {
                 writer.Write(placeholderBytes);
             }
+
             using (var writer = new BinaryWriter(File.OpenWrite(newFilePath)))
             {
                 writer.Write(byteArray);
             }
-
 
             var image = new TImage
             {
                 ImageUrl = newFileName,
                 Placeholder = placeholderFileName
             };
+
             newFileNames.Add(image);
         }
         return newFileNames;
     }
 
-    public void DeleteFiles<TImage>(ICollection<TImage> images, string entityName)
-    where TImage : IThumbnail
+    public void DeleteFiles<TImage>(ICollection<TImage> images, string entityName, string subFolderName)
+     where TImage : IThumbnail
     {
         var appRootPath = environment.WebRootPath;
         var mediaRootPath = configuration.GetValue<string>("MediaPath") ?? throw new InvalidOperationException("MediaPath is not configured.");
+        var subFolderPath = string.Empty;
 
         foreach (var image in images)
         {
             if (image.ImageUrl != null)
             {
-                var imageFilePath = Path.Combine(appRootPath, mediaRootPath, entityName, image.ImageUrl);
+                // Construct the image file path based on whether a subFolder is provided
+                var imageFilePath = subFolderName != null && !string.IsNullOrEmpty(subFolderName)
+                    ? Path.Combine(appRootPath, mediaRootPath, entityName, subFolderName, image.ImageUrl)
+                    : Path.Combine(appRootPath, mediaRootPath, entityName, image.ImageUrl);
+
                 if (File.Exists(imageFilePath))
                 {
                     File.Delete(imageFilePath);
@@ -94,14 +113,36 @@ public class ByteFileUtility
 
             if (image.Placeholder != null)
             {
-                var placeholderFilePath = Path.Combine(appRootPath, mediaRootPath, entityName, image.Placeholder);
+                // Construct the placeholder file path based on whether a subFolder is provided
+                var placeholderFilePath = subFolderName != null && !string.IsNullOrEmpty(subFolderName)
+                    ? Path.Combine(appRootPath, mediaRootPath, entityName, subFolderName, image.Placeholder)
+                    : Path.Combine(appRootPath, mediaRootPath, entityName, image.Placeholder);
+
                 if (File.Exists(placeholderFilePath))
                 {
                     File.Delete(placeholderFilePath);
                 }
             }
+
+            // Store subFolderPath if subFolderName is provided
+            if (!string.IsNullOrEmpty(subFolderName))
+            {
+                subFolderPath = Path.Combine(appRootPath, mediaRootPath, entityName, subFolderName);
+            }
+        }
+
+        // Check if subFolder exists and is empty, then delete it
+        if (!string.IsNullOrEmpty(subFolderPath) && Directory.Exists(subFolderPath))
+        {
+            // Check if the directory is empty
+            if (!Directory.EnumerateFileSystemEntries(subFolderPath).Any())
+            {
+                Directory.Delete(subFolderPath);
+            }
         }
     }
+
+
 
     private string GetEntityFolderUrl(string host, string entityName, bool isHttps)
     {
@@ -110,7 +151,7 @@ public class ByteFileUtility
         return $"{httpMode}://{host}/{mediaRootPath}/{entityName}";
     }
 
-    private void CheckAndCreatePathDirectory(string appRootPath, string mediaRootPath, string entityFolderName)
+    private void CheckAndCreatePathDirectory(string appRootPath, string mediaRootPath, string entityFolderName, string? subFolderName = null)
     {
         var mediaFullPath = Path.Combine(appRootPath, mediaRootPath);
         if (!Directory.Exists(mediaFullPath))
@@ -123,28 +164,47 @@ public class ByteFileUtility
         {
             Directory.CreateDirectory(entityFolderFullPath);
         }
+
+        // اگر subFolderName مقدار داشت، فولدر فرعی ایجاد شود
+        if (!string.IsNullOrEmpty(subFolderName))
+        {
+            var subFolderFullPath = Path.Combine(entityFolderFullPath, subFolderName);
+            if (!Directory.Exists(subFolderFullPath))
+            {
+                Directory.CreateDirectory(subFolderFullPath);
+            }
+        }
     }
 
-    public List<EntityImageDto> GetEncryptedFileActionUrl(List<EntityImageDto> thumbnailFiles, string entityName)
+
+    public List<EntityImageDto> GetEncryptedFileActionUrl(List<EntityImageDto> thumbnailFiles, string entityName, string subFolderName)
     {
         List<EntityImageDto> imagesSrc = new List<EntityImageDto>();
         var hostUrl = httpContextAccessor.HttpContext!.Request.Host.Value;
         var isHttps = httpContextAccessor.HttpContext.Request.IsHttps;
-        var httpMode = isHttps ? "https" : "https";
+        var httpMode = isHttps ? "https" : "http";
         foreach (var thumbnailFile in thumbnailFiles)
         {
-            var srcImageUrl = $"{httpMode}://{hostUrl}/api/base/images/{entityName}/{thumbnailFile.ImageUrl}";
-            var srcPlaceholder = $"{httpMode}://{hostUrl}/api/base/images/{entityName}/{thumbnailFile.Placeholder}";
+            var imagePath = !string.IsNullOrEmpty(subFolderName)
+                ? $"{httpMode}://{hostUrl}/api/base/images/{entityName}/{subFolderName}/{thumbnailFile.ImageUrl}"
+                : $"{httpMode}://{hostUrl}/api/base/images/{entityName}/{thumbnailFile.ImageUrl}";
+
+            var placeholderPath = !string.IsNullOrEmpty(subFolderName)
+                ? $"{httpMode}://{hostUrl}/api/base/images/{entityName}/{subFolderName}/{thumbnailFile.Placeholder}"
+                : $"{httpMode}://{hostUrl}/api/base/images/{entityName}/{thumbnailFile.Placeholder}";
+
             var imageSrc = new EntityImageDto
             {
                 Id = thumbnailFile.Id,
-                ImageUrl = srcImageUrl,
-                Placeholder = srcPlaceholder
+                ImageUrl = imagePath,
+                Placeholder = placeholderPath
             };
+
             imagesSrc.Add(imageSrc);
         }
         return imagesSrc;
     }
+
 
     public byte[] ConvertToByteArray(IFormFile file, bool shouldResize)
     {

@@ -90,4 +90,9 @@ apiGroup
     .MapBannerApi();
 
 // app.UseHttpsRedirection();
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    DbInitializer.Initialize(context);
+}
 app.Run();

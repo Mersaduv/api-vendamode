@@ -42,7 +42,7 @@ public class BrandServices : IBrandServices
             NameFa = brandCreate.NameFa,
             NameEn = brandCreate.NameEn,
             Count = 0,
-            Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Brand>>(brandCreate.Thumbnail!, nameof(Brand), false),
+            Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Brand>>(brandCreate.Thumbnail!, nameof(Brand),"SubBrand",false),
             Description = brandCreate.Description ?? "",
             InSlider = brandCreate.InSlider,
             IsActive = brandCreate.IsActive,
@@ -60,7 +60,7 @@ public class BrandServices : IBrandServices
 
     public async Task<ServiceResponse<bool>> DeleteBrand(Guid id)
     {
-        var brand = await _context.Brands.FirstOrDefaultAsync(b => b.Id == id);
+        var brand = await _context.Brands.Include(x => x.Images).FirstOrDefaultAsync(b => b.Id == id);
         if (brand == null)
         {
             return new ServiceResponse<bool>
@@ -68,6 +68,10 @@ public class BrandServices : IBrandServices
                 Success = false,
                 Message = "برندی پیدا نشد"
             };
+        }
+        if (brand.Images != null)
+        {
+            _byteFileUtility.DeleteFiles(brand.Images, nameof(Brand),"SubBrand");
         }
         _context.Brands.Remove(brand);
         await _unitOfWork.SaveChangesAsync();
@@ -98,7 +102,7 @@ public class BrandServices : IBrandServices
                 Id = img.Id,
                 ImageUrl = img.ImageUrl ?? string.Empty,
                 Placeholder = img.Placeholder ?? string.Empty
-            }).ToList(), nameof(Brand)).First() : null,
+            }).ToList(), nameof(Brand),"SubBrand").First() : null,
             NameFa = brand.NameFa,
             NameEn = brand.NameEn,
             Description = brand.Description,
@@ -175,7 +179,7 @@ public class BrandServices : IBrandServices
                     Id = img.Id,
                     ImageUrl = img.ImageUrl ?? string.Empty,
                     Placeholder = img.Placeholder ?? string.Empty
-                }).ToList(), nameof(Brand)).First() : null,
+                }).ToList(), nameof(Brand),"SubBrand").First() : null,
                 NameFa = brand.NameFa,
                 NameEn = brand.NameEn,
                 Description = brand.Description,
@@ -230,9 +234,9 @@ public class BrandServices : IBrandServices
         {
             if (brand.Images != null)
             {
-                _byteFileUtility.DeleteFiles(brand.Images, nameof(Brand));
+                _byteFileUtility.DeleteFiles(brand.Images, nameof(Brand),"SubBrand");
             }
-            brand.Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Brand>>(brandUpdate.Thumbnail, nameof(Brand), false);
+            brand.Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, Brand>>(brandUpdate.Thumbnail, nameof(Brand),"SubBrand",false);
         }
 
         _context.Brands.Update(brand);

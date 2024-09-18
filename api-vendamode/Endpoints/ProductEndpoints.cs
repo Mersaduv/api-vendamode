@@ -32,7 +32,13 @@ public static class ProductEndpoints
         productGroup.MapGet("/{id:guid}", GetProduct);
         productGroup.MapGet(string.Empty, GetProductBySlug);
 
-        apiGroup.MapGet($"/{Constants.ImageApi}/{{entity}}/{{fileName}}", MediaEndpoint);
+        apiGroup.MapGet($"/{Constants.ImageApi}/{{entity}}/{{subFolder?}}/{{fileName}}", MediaEndpoint)
+           .WithName("GetMedia")
+           .Produces<FileContentHttpResult>(StatusCodes.Status200OK)
+           .AllowAnonymous();
+
+
+
 
         var adminProductGroup = productGroup.MapGroup(string.Empty); //.RequireAuthorization();
 
@@ -92,7 +98,7 @@ public static class ProductEndpoints
         return TypedResults.Ok(result);
     }
 
-        private async static Task<Ok<ServiceResponse<bool>>> RestoreProduct(IProductServices productServices, Guid id, ILogger<Program> _logger, HttpContext context)
+    private async static Task<Ok<ServiceResponse<bool>>> RestoreProduct(IProductServices productServices, Guid id, ILogger<Program> _logger, HttpContext context)
     {
         _logger.Log(LogLevel.Information, "Restore Product");
 
@@ -174,18 +180,20 @@ public static class ProductEndpoints
         return TypedResults.Ok(result);
     }
 
-    private async static Task<FileContentHttpResult> MediaEndpoint(string fileName, string entity, ByteFileUtility byteFileUtility, HttpContext context)
+    private async static Task<FileContentHttpResult> MediaEndpoint(string entity, string? subFolder, string fileName, ByteFileUtility byteFileUtility, HttpContext context)
     {
-        var filePath = byteFileUtility.GetFileFullPath(fileName, entity);
+        // Process the file path with or without subFolder
+        var filePath = subFolder != null
+            ? byteFileUtility.GetFileFullPath(fileName, entity, subFolder)
+            : byteFileUtility.GetFileFullPath(fileName, entity);
+
         byte[] encryptedData = await System.IO.File.ReadAllBytesAsync(filePath);
 
-        //? Decrypt if the file is encrypted
-        // var decryptedData = byteFileUtility.DecryptFile(encryptedData);
-
-        context.Response.Headers.Append("Content-Disposition", "inline; filename=preview.jpg");
+        context.Response.Headers.Append("Content-Disposition", $"inline; filename={fileName}");
 
         return TypedResults.File(encryptedData, "image/jpeg");
     }
+
 
     private async static Task<Ok<ServiceResponse<Guid>>> UpdateProduct(IProductServices productService, ProductUpdateDTO productUpdate, ILogger<Program> _logger)
     {

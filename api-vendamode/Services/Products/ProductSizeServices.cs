@@ -77,7 +77,7 @@ public class ProductSizeServices : IProductSizeServices
         var productSize = new ProductSize
         {
             Id = productSizeId,
-            Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, ProductSize>>(productSizeCreate.Thumbnail!, nameof(ProductSize), false),
+            Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, ProductSize>>(productSizeCreate.Thumbnail!, nameof(ProductSize), "SubProductSize", false),
             SizeType = productSizeCreate.SizeType,
             ProductSizeProductSizeValues = sizeValueList,
             IsDeleted = false,
@@ -199,9 +199,9 @@ public class ProductSizeServices : IProductSizeServices
         {
             if (productSize.Images is not null)
             {
-                _byteFileUtility.DeleteFiles(productSize.Images, nameof(ProductSize));
+                _byteFileUtility.DeleteFiles(productSize.Images, nameof(ProductSize), "SubProductSize");
             }
-            productSize.Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, ProductSize>>(productSizeUpdate.Thumbnail, nameof(ProductSize), false);
+            productSize.Images = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, ProductSize>>(productSizeUpdate.Thumbnail, nameof(ProductSize), "SubProductSize", false);
         }
         var existingProductSizeValues = _context.ProductSizeProductSizeValues
           .Where(psv => psv.ProductSizeId == productSize.Id);
@@ -283,7 +283,7 @@ public class ProductSizeServices : IProductSizeServices
                 Id = img.Id,
                 ImageUrl = img.ImageUrl ?? string.Empty,
                 Placeholder = img.Placeholder ?? string.Empty
-            }).ToList(), nameof(ProductSize)).First() : null,
+            }).ToList(), nameof(ProductSize), "SubProductSize").First() : null,
             SizeType = productSize.SizeType,
             ProductSizeValues = productSize.ProductSizeProductSizeValues?.Select(sv => new ProductSizeValuesDTO
             {
@@ -331,7 +331,7 @@ public class ProductSizeServices : IProductSizeServices
                 Id = img.Id,
                 ImageUrl = img.ImageUrl ?? string.Empty,
                 Placeholder = img.Placeholder ?? string.Empty
-            }).ToList(), nameof(ProductSize)).First() : null,
+            }).ToList(), nameof(ProductSize), "SubProductSize").First() : null,
             SizeType = productSize.SizeType,
             ProductSizeValues = productSize.ProductSizeProductSizeValues?.Select(sv => new ProductSizeValuesDTO
             {
@@ -474,7 +474,7 @@ public class ProductSizeServices : IProductSizeServices
                 Id = img.Id,
                 ImageUrl = img.ImageUrl ?? string.Empty,
                 Placeholder = img.Placeholder ?? string.Empty
-            }).ToList(), nameof(ProductSize)).First() : null
+            }).ToList(), nameof(ProductSize), "SubProductSize").First() : null
         };
 
         return new ServiceResponse<ProductSizeDTO>

@@ -87,8 +87,8 @@ public class DesignServices : IDesignServices
             var newLogoImage = new LogoImages
             {
                 Id = logoUpsertDTO.Id ?? Guid.NewGuid(),
-                OrgThumbnail = logoUpsertDTO.OrgThumbnail != null ? _byteFileUtility.SaveFileInFolder<EntityMainImage<Guid, LogoImages>>([logoUpsertDTO.OrgThumbnail], nameof(LogoImages), false).First() : null,
-                FaviconThumbnail = logoUpsertDTO.FaviconThumbnail != null ? _byteFileUtility.SaveFileInFolder<EntityImage<Guid, LogoImages>>([logoUpsertDTO.FaviconThumbnail], nameof(LogoImages), false, false).First() : null,
+                OrgThumbnail = logoUpsertDTO.OrgThumbnail != null ? _byteFileUtility.SaveFileInFolder<EntityMainImage<Guid, LogoImages>>([logoUpsertDTO.OrgThumbnail], nameof(LogoImages),"SubLogoImages", false).First() : null,
+                FaviconThumbnail = logoUpsertDTO.FaviconThumbnail != null ? _byteFileUtility.SaveFileInFolder<EntityImage<Guid, LogoImages>>([logoUpsertDTO.FaviconThumbnail], nameof(LogoImages), "SubLogoImages", false, false).First() : null,
                 Created = DateTime.UtcNow,
                 LastUpdated = DateTime.UtcNow
             };
@@ -100,9 +100,9 @@ public class DesignServices : IDesignServices
             {
                 if (logoImagesDb.OrgThumbnail is not null)
                 {
-                    _byteFileUtility.DeleteFiles([logoImagesDb.OrgThumbnail], nameof(LogoImages));
+                    _byteFileUtility.DeleteFiles([logoImagesDb.OrgThumbnail], nameof(LogoImages), "SubLogoImages");
                 }
-                logoImagesDb.OrgThumbnail = _byteFileUtility.SaveFileInFolder<EntityMainImage<Guid, LogoImages>>([logoUpsertDTO.OrgThumbnail], nameof(LogoImages), false).First();
+                logoImagesDb.OrgThumbnail = _byteFileUtility.SaveFileInFolder<EntityMainImage<Guid, LogoImages>>([logoUpsertDTO.OrgThumbnail], nameof(LogoImages), "SubLogoImages", false).First();
             }
 
 
@@ -110,9 +110,9 @@ public class DesignServices : IDesignServices
             {
                 if (logoImagesDb.FaviconThumbnail is not null)
                 {
-                    _byteFileUtility.DeleteFiles([logoImagesDb.FaviconThumbnail], nameof(LogoImages));
+                    _byteFileUtility.DeleteFiles([logoImagesDb.FaviconThumbnail], nameof(LogoImages),"SubLogoImages");
                 }
-                logoImagesDb.FaviconThumbnail = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, LogoImages>>([logoUpsertDTO.FaviconThumbnail], nameof(LogoImages), false, false).First();
+                logoImagesDb.FaviconThumbnail = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, LogoImages>>([logoUpsertDTO.FaviconThumbnail], nameof(LogoImages), "SubLogoImages", false, false).First();
             }
 
             _context.LogoImages.Update(logoImagesDb);
@@ -133,11 +133,11 @@ public class DesignServices : IDesignServices
                 OrgImage = x.OrgThumbnail != null ? _byteFileUtility.GetEncryptedFileActionUrl(new List<EntityImageDto>
                     {
                         new EntityImageDto { Id = x.OrgThumbnail.Id , ImageUrl =x.OrgThumbnail.ImageUrl ?? string.Empty, Placeholder=x.OrgThumbnail.Placeholder ?? string.Empty}
-                    }, nameof(LogoImages)).First() : null,
+                    }, nameof(LogoImages), "SubLogoImages").First() : null,
                 FaviconImage = x.FaviconThumbnail != null ? _byteFileUtility.GetEncryptedFileActionUrl(new List<EntityImageDto>
                     {
                         new EntityImageDto { Id = x.FaviconThumbnail.Id , ImageUrl =x.FaviconThumbnail.ImageUrl ?? string.Empty, Placeholder=x.FaviconThumbnail.Placeholder ?? string.Empty}
-                    }, nameof(LogoImages)).First() : null,
+                    }, nameof(LogoImages), "SubLogoImages").First() : null,
                 Created = x.Created,
                 LastUpdated = x.LastUpdated
             })
@@ -206,7 +206,7 @@ public class DesignServices : IDesignServices
         {
             Id = Guid.NewGuid(),
             Title = designItemUpsertDto.Title ?? string.Empty,
-            Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, DesignItem>>([designItemUpsertDto.Thumbnail], nameof(DesignItem), false).First(),
+            Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, DesignItem>>([designItemUpsertDto.Thumbnail], nameof(DesignItem), null, false).First(),
             Link = designItemUpsertDto.Link,
             Type = designItemUpsertDto.Type,
             IsActive = designItemUpsertDto.IsActive,
@@ -234,7 +234,7 @@ public class DesignServices : IDesignServices
                 {
                     Id = Guid.NewGuid(),
                     Title = dto.Title ?? string.Empty,
-                    Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, DesignItem>>(new List<IFormFile> { dto.Thumbnail }, nameof(DesignItem), false).First(),
+                    Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, DesignItem>>(new List<IFormFile> { dto.Thumbnail }, nameof(DesignItem), dto.Type, false).First(),
                     Link = dto.Link,
                     Type = dto.Type,
                     IsActive = dto.IsActive,
@@ -257,9 +257,9 @@ public class DesignServices : IDesignServices
                 {
                     if (designItem.Image != null)
                     {
-                        _byteFileUtility.DeleteFiles(new List<EntityImage<Guid, DesignItem>> { designItem.Image }, nameof(DesignItem));
+                        _byteFileUtility.DeleteFiles(new List<EntityImage<Guid, DesignItem>> { designItem.Image }, nameof(DesignItem), designItem.Type);
                     }
-                    designItem.Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, DesignItem>>(new List<IFormFile> { dto.Thumbnail }, nameof(DesignItem), false).First();
+                    designItem.Image = _byteFileUtility.SaveFileInFolder<EntityImage<Guid, DesignItem>>(new List<IFormFile> { dto.Thumbnail }, nameof(DesignItem), designItem.Type, false).First();
                 }
 
                 _context.Update(designItem);
@@ -280,7 +280,7 @@ public class DesignServices : IDesignServices
 
         if (designItem.Image != null)
         {
-            _byteFileUtility.DeleteFiles(new List<EntityImage<Guid, DesignItem>> { designItem.Image }, nameof(DesignItem));
+            _byteFileUtility.DeleteFiles(new List<EntityImage<Guid, DesignItem>> { designItem.Image }, nameof(DesignItem), designItem.Type);
         }
 
         _context.DesignItems.Remove(designItem);
@@ -308,7 +308,7 @@ public class DesignServices : IDesignServices
             Image = designItem.Image != null ? _byteFileUtility.GetEncryptedFileActionUrl(new List<EntityImageDto>
                 {
                     new EntityImageDto { Id = designItem.Image.Id, ImageUrl = designItem.Image.ImageUrl ?? string.Empty, Placeholder = designItem.Image.Placeholder ?? string.Empty }
-                }, nameof(DesignItem)).First() : null,
+                }, nameof(DesignItem),designItem.Type).First() : null,
             Link = designItem.Link,
             Type = designItem.Type,
             IsActive = designItem.IsActive,
@@ -326,9 +326,9 @@ public class DesignServices : IDesignServices
             Id = designItem.Id,
             Title = designItem.Title,
             Image = designItem.Image != null ? _byteFileUtility.GetEncryptedFileActionUrl(new List<EntityImageDto>
-                {
-                    new EntityImageDto { Id = designItem.Image.Id, ImageUrl = designItem.Image.ImageUrl ?? string.Empty, Placeholder = designItem.Image.Placeholder ?? string.Empty }
-                }, nameof(DesignItem)).First() : null,
+            {
+                new EntityImageDto { Id = designItem.Image.Id, ImageUrl = designItem.Image.ImageUrl ?? string.Empty, Placeholder = designItem.Image.Placeholder ?? string.Empty }
+            }, nameof(DesignItem), designItem.Type).First() : null,
             Link = designItem.Link,
             Type = designItem.Type,
             IsActive = designItem.IsActive,
@@ -401,7 +401,7 @@ public class DesignServices : IDesignServices
                 Id = img.Id,
                 ImageUrl = img.ImageUrl ?? string.Empty,
                 Placeholder = img.Placeholder ?? string.Empty
-            }).ToList(), nameof(Category)).First() : null,
+            }).ToList(), nameof(Category), null).First() : null,
 
         }).ToListAsync();
 
@@ -781,7 +781,7 @@ public class DesignServices : IDesignServices
                 Id = img.Id,
                 ImageUrl = img.ImageUrl ?? string.Empty,
                 Placeholder = img.Placeholder ?? string.Empty
-            }).ToList(), nameof(Brand)).First() : null,
+            }).ToList(), nameof(Brand), null).First() : null,
             NameFa = brand.NameFa,
             NameEn = brand.NameEn,
             Description = brand.Description,
