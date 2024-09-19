@@ -14,6 +14,7 @@ public static class GetProductMapper
             Id = product.Id,
             CategoryId = product.CategoryId,
             Title = product.Title,
+            StockTag = product.StockTag,
             Code = product.Code,
             Slug = product.Slug,
             Author = product.Author,
@@ -54,6 +55,7 @@ public static class GetProductMapper
             {
                 Id = prod.Id,
                 Title = prod.Title,
+                StockTag = prod.StockTag,
                 Slug = prod.Slug,
                 Code = prod.Code,
                 Author = prod.Author,

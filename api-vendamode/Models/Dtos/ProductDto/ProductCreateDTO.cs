@@ -15,6 +15,7 @@ public class ProductCreateDTO
     public string Title { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public string Date { get; set; } = string.Empty;
+    public string StockTag { get; set; } = string.Empty;
     public IFormFile MainThumbnail { get; set; } = default!;
     public List<IFormFile> Thumbnail { get; set; } = [];
     public StatusType Status { get; set; }
@@ -34,6 +35,7 @@ public class ProductCreateDTO
         var thumbnailFiles = form.Files.GetFiles("Thumbnail");
         var thumbnail = thumbnailFiles.Any() ? thumbnailFiles.ToList() : null;
         var title = form["Title"];
+        var stockTag = form["StockTag"];
         var isActive = bool.Parse(form["IsActive"]!);
         var categoryId = Guid.Parse(form["CategoryId"]!);
         var description = form["Description"];
@@ -94,6 +96,7 @@ public class ProductCreateDTO
             MainThumbnail = mainThumbnail!,
             Thumbnail = thumbnail!,
             Title = title!,
+            StockTag = stockTag,
             IsActive = isActive,
             CategoryId = categoryId,
             Description = description!,
@@ -141,7 +144,7 @@ public class ProductCreateDTO
             // ایجاد DateTimeOffset با تنظیم منطقه زمانی
             DateTimeOffset dateTimeOffset = new DateTimeOffset(gregorianDateTime, offset);
 
-            return dateTimeOffset.ToUniversalTime();;
+            return dateTimeOffset.ToUniversalTime(); ;
         }
         catch (Exception ex)
         {
@@ -162,7 +165,7 @@ public class ProductCreateDTO
 
         return input;
     }
-    
+
 }
 
 

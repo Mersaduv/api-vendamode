@@ -13,6 +13,7 @@ public class ProductDTO
 {
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
+    public string StockTag { get; set; } = string.Empty;
     public EntityImageDto? MainImageSrc { get; set; }
     public List<EntityImageDto>? ImagesSrc { get; set; }
     public string Code { get; set; } = string.Empty;

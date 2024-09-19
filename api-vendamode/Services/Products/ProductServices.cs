@@ -1099,6 +1099,7 @@ public class ProductServices : IProductServices
         {
             Id = productId,
             Title = productUpdateDTO.Title,
+            StockTag = productUpdateDTO.StockTag,
             Code = product.Code,
             Slug = product.Slug,
             Author = userInfo?.UserSpecification.FirstName + " " + userInfo?.UserSpecification.FamilyName,

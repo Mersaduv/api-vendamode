@@ -14,6 +14,7 @@ public class ProductUpdateDTO
 {
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
+    public string StockTag { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public string Date { get; set; } = string.Empty;
     public IFormFile MainThumbnail { get; set; } = default!;
@@ -37,6 +38,7 @@ public class ProductUpdateDTO
         var thumbnail = thumbnailFiles.Any() ? thumbnailFiles.ToList() : null;
         var productId = Guid.Parse(form["Id"]!);
         var title = form["Title"];
+        var stockTag = form["StockTag"];
         var isActive = bool.Parse(form["IsActive"]!);
         var categoryId = Guid.Parse(form["CategoryId"]!);
         var description = form["Description"];
@@ -99,6 +101,7 @@ public class ProductUpdateDTO
             MainThumbnail = mainThumbnail!,
             Thumbnail = thumbnail!,
             Title = title!,
+            StockTag = stockTag,
             IsActive = isActive,
             ParsedDate = parsedDate,
             Date = dateStr,

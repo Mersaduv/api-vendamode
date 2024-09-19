@@ -13,6 +13,7 @@ public static class CreateProductMapper
         {
             Id = productId,
             Title = product_C_DTO.Title,
+            StockTag = product_C_DTO.StockTag,
             Slug = product_C_DTO.Title.ToLower(),
             Status = product_C_DTO.Status,
             IsActive = product_C_DTO.IsActive,

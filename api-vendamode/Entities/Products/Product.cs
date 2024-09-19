@@ -8,6 +8,7 @@ namespace api_vendace.Entities.Products;
 public class Product : BaseClass<Guid>
 {
     public string Title { get; set; } = string.Empty;
+    public string StockTag { get; set; } = string.Empty;
     public EntityMainImage<Guid, Product> MainImage { get; set; } = new EntityMainImage<Guid, Product>();
     public List<EntityImage<Guid, Product>> Images { get; set; } = [];
     public string Code { get; set; } = string.Empty;
