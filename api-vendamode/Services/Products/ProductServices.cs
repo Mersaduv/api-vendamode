@@ -380,7 +380,7 @@ public class ProductServices : IProductServices
             // Best selling product
             if (requestQuery.IsBestSeller is not null)
             {
-                query = query.Where(x => x.Sold > 0).OrderByDescending(x => x.Sold);
+                query = query.Where(x => x.Sold > 0).OrderBy(x => x.Sold);
             }
 
             // Category filter
@@ -444,7 +444,8 @@ public class ProductServices : IProductServices
             // Discount and stock filter using StockItem
             if (requestQuery.Discount.HasValue && requestQuery.Discount.Value)
             {
-                query = query.Where(p => p.StockItems.Any(si => si.Discount >= 1) && p.InStock >= 1);
+                query = query.Where(p => p.StockItems.Any(si => si.Discount >= 1) && p.InStock >= 1).OrderByDescending(p => p.StockItems.Any(si => si.Quantity > 0 && si.Price > 0)) // Prioritize products with stock and price
+                            .ThenBy(p => p.LastUpdated);;
             }
 
             // Product filters based on ProductIds
@@ -503,18 +504,19 @@ public class ProductServices : IProductServices
             // SortBy
             if (!string.IsNullOrEmpty(requestQuery.SortBy))
             {
-                if (requestQuery.Sort?.ToLower() == "desc")
+                if (requestQuery.SortBy == "LastUpdated" && requestQuery.Sort?.ToLower() == "desc")
                 {
-                    query = query.OrderByDescending(p => EF.Property<object>(p, requestQuery.SortBy));
+                    query = query
+                            .OrderByDescending(p => p.StockItems.Any(si => si.Quantity > 0 && si.Price > 0)) // Prioritize products with stock and price
+                            .ThenBy(p => p.LastUpdated);
                 }
-                else if (requestQuery.SortBy == "LastUpdated")
+                else if (requestQuery.SortBy == "LastUpdated" && requestQuery.Sort?.ToLower() != "desc")
                 {
                     query = query.OrderByDescending(p => EF.Property<object>(p, requestQuery.SortBy));
-
                 }
                 else
                 {
-                    query = query.OrderBy(p => EF.Property<object>(p, requestQuery.SortBy));
+                    // query = query.OrderBy(p => EF.Property<object>(p, requestQuery.SortBy));
                 }
             }
             // Sort
@@ -522,28 +524,40 @@ public class ProductServices : IProductServices
             {
                 switch (requestQuery.Sort)
                 {
-                    case "1": // Sort by latest
-                        query = query.OrderByDescending(p => p.Created);
+                    case "1": // Sort by latest with stock and price prioritized
+                        query = query
+                            .OrderByDescending(p => p.StockItems.Any(si => si.Quantity > 0 && si.Price > 0)) // Prioritize products with stock and price
+                            .ThenByDescending(p => p.LastUpdated); // Sort by latest
                         break;
 
                     case "2": // Sort by best-selling
-                        query = query.OrderByDescending(p => p.Sold);
+                        query = query
+                        .OrderByDescending(p => p.StockItems.Any(si => si.Quantity > 0 && si.Price > 0)).ThenByDescending(p => p.Sold);
                         break;
 
                     case "3": // Sort by cheapest
-                        query = query.OrderBy(p => p.StockItems.Min(si => si.Price));
+                        query = query
+                        .OrderByDescending(p => p.StockItems.Any(si => si.Quantity > 0 && si.Price > 0)).ThenBy(p => p.StockItems.Min(si => si.Price));
                         break;
 
                     case "4": // Sort by most expensive
-                        query = query.OrderByDescending(p => p.StockItems.Max(si => si.Price));
+                        query = query
+                        .OrderByDescending(p => p.StockItems.Any(si => si.Quantity > 0 && si.Price > 0)).ThenByDescending(p => p.StockItems.Max(si => si.Price));
                         break;
 
                     default:
-                        query = query.OrderByDescending(p => p.Created);
+                        // query = query
+                        // .OrderByDescending(p => p.StockItems.Any(si => si.Quantity > 0 && si.Price > 0)).ThenByDescending(p => p.Created);
                         break;
                 }
             }
-
+            // Order by existing and non-existent
+            // if (!requestQuery.Admin.HasValue)
+            // {
+            //     query = query
+            //     .OrderBy(p => p.StockItems.Any(si => si.Quantity > 0 && si.Price > 0) ? 0 : 1)
+            //     .ThenBy(p => p.StockItems.Any(si => si.Quantity > 0) ? 0 : 1);
+            // }
             if (requestQuery.InStock is not null)
             {
                 if (requestQuery.InStock == "1")
@@ -559,12 +573,6 @@ public class ProductServices : IProductServices
                     query = query.Where(x => x.InStock == 0);
                 }
             }
-            if (!requestQuery.Admin.HasValue)
-            {
-                query = query
-                .OrderBy(p => p.StockItems.Any(si => si.Quantity > 0 && si.Price > 0) ? 0 : 1)
-                .ThenBy(p => p.StockItems.Any(si => si.Quantity > 0) ? 0 : 1);
-            }
 
             // Pagination and data retrieval
             var totalCount = await query.CountAsync();
@@ -579,7 +587,7 @@ public class ProductServices : IProductServices
 
             // Calculate min and max price for the filtered products in stock
             var stockItemsQuery = query
-                .Where(p => p.InStock >= 1)
+                // .Where(p => p.InStock >= 1)
                 .SelectMany(p => p.StockItems);
 
             var mainMaxPrice = await stockItemsQuery.MaxAsync(si => (double?)si.Price) ?? 0;

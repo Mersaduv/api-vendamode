@@ -383,7 +383,7 @@ public class BannerServices : IBannerServices
                 ImagesSrc = x.Article != null && x.Article.Image != null ? _byteFileUtility.GetEncryptedFileActionUrl(new List<EntityImageDto>
                     {
                         new EntityImageDto { Id = x.Article.Image.Id , ImageUrl =x.Article.Image.ImageUrl ?? string.Empty, Placeholder=x.Article.Image.Placeholder ?? string.Empty}
-                    }, nameof(Article), null).First() : null,
+                    }, nameof(Article), x.Article.Code).First() : null,
                 Title = x.Article != null ? x.Article.Title : "",
                 Index = x.Index,
                 IsActive = x.IsActive,
